@@ -426,8 +426,8 @@ export function ChatInternoContent() {
               onOpenChange={setIsCreatingConversation}
             >
               <DialogTrigger asChild>
-                <Button className="bg-[#00183E] hover:bg-[#00183E]/90">
-                  <Plus className="mr-2 h-4 w-4" />
+                <Button className="bg-primary-million hover:bg-primary-million/90">
+                  <Plus className="mr-2 size-4" />
                   Nova
                 </Button>
               </DialogTrigger>
@@ -517,7 +517,7 @@ export function ChatInternoContent() {
                     </Button>
                     <Button
                       onClick={createConversation}
-                      className="bg-[#00183E] hover:bg-[#00183E]/90"
+                      className="bg-primary-million hover:bg-primary-million/90"
                     >
                       Salvar
                     </Button>
@@ -529,7 +529,7 @@ export function ChatInternoContent() {
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+            <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 transform text-gray-400" />
             <Input
               placeholder="Buscar conversas..."
               className="pl-10"
@@ -545,9 +545,9 @@ export function ChatInternoContent() {
             {filteredConversations.map((conversation) => (
               <Card
                 key={conversation.id}
-                className={`mb-2 h-32 cursor-pointer transition-all hover:shadow-md ${
+                className={`mb-2 flex h-28 cursor-pointer justify-center transition-all hover:shadow-md ${
                   selectedConversation === conversation.id
-                    ? "ring-opacity-50 bg-blue-50 ring-2 ring-[#00183E]"
+                    ? "ring-opacity-50 ring-primary-million bg-blue-50 ring-1"
                     : ""
                 }`}
                 onClick={() => setSelectedConversation(conversation.id)}
@@ -572,12 +572,12 @@ export function ChatInternoContent() {
                                 size="sm"
                                 className="h-6 w-6 p-0"
                               >
-                                <MoreVertical className="h-4 w-4" />
+                                <MoreVertical className="size-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
                               <DropdownMenuItem>
-                                <Edit className="mr-2 h-4 w-4" />
+                                <Edit className="mr-2 size-4" />
                                 Editar
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -586,7 +586,7 @@ export function ChatInternoContent() {
                                 }
                                 className="text-red-600"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
+                                <Trash2 className="mr-2 size-4" />
                                 Excluir
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -610,7 +610,7 @@ export function ChatInternoContent() {
                         </div>
 
                         {conversation.unreadCount > 0 && (
-                          <Badge className="bg-[#00183E] text-xs text-white">
+                          <Badge className="bg-primary-million text-xs text-white">
                             {conversation.unreadCount}
                           </Badge>
                         )}
@@ -641,7 +641,7 @@ export function ChatInternoContent() {
                             <AvatarImage
                               src={user?.avatar || "/placeholder.svg"}
                             />
-                            <AvatarFallback className="bg-[#00183E] text-white">
+                            <AvatarFallback className="bg-primary-million text-white">
                               {user?.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
@@ -670,18 +670,18 @@ export function ChatInternoContent() {
 
                 <div className="flex items-center space-x-2">
                   <Button variant="outline" size="sm">
-                    <Users className="h-4 w-4" />
+                    <Users className="size-4" />
                   </Button>
                   <Button variant="outline" size="sm">
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreVertical className="size-4" />
                   </Button>
                 </div>
               </div>
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 overflow-y-auto p-4">
+              <div className="h-full space-y-4 overflow-y-auto">
                 {currentMessages.map((message, index) => {
                   const isCurrentUser = message.senderId === currentUserId;
                   const sender = getUser(message.senderId);
@@ -716,7 +716,7 @@ export function ChatInternoContent() {
                                 <AvatarImage
                                   src={sender?.avatar || "/placeholder.svg"}
                                 />
-                                <AvatarFallback className="bg-[#00183E] text-xs text-white">
+                                <AvatarFallback className="bg-primary-million text-xs text-white">
                                   {sender?.name.charAt(0)}
                                 </AvatarFallback>
                               </Avatar>
@@ -729,7 +729,7 @@ export function ChatInternoContent() {
                           <div
                             className={`group relative rounded-lg px-4 py-2 ${
                               isCurrentUser
-                                ? "rounded-br-sm bg-[#00183E] text-white"
+                                ? "bg-primary-million rounded-br-sm text-white"
                                 : "rounded-bl-sm border border-gray-200 bg-white text-gray-900"
                             }`}
                           >
@@ -789,7 +789,7 @@ export function ChatInternoContent() {
                                       size="sm"
                                       className="h-8 w-8 p-0"
                                     >
-                                      <MoreVertical className="h-4 w-4" />
+                                      <MoreVertical className="size-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent>
@@ -799,14 +799,14 @@ export function ChatInternoContent() {
                                         setEditContent(message.content);
                                       }}
                                     >
-                                      <Edit className="mr-2 h-4 w-4" />
+                                      <Edit className="mr-2 size-4" />
                                       Editar
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => deleteMessage(message.id)}
                                       className="text-red-600"
                                     >
-                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <Trash2 className="mr-2 size-4" />
                                       Excluir
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -855,8 +855,8 @@ export function ChatInternoContent() {
             {/* Message Input */}
             <div className="border-t border-gray-200 bg-white p-4">
               <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Paperclip className="h-4 w-4" />
+                <Button variant="outline" className="size-12">
+                  <Paperclip className="size-4" />
                 </Button>
 
                 <div className="relative flex-1">
@@ -870,23 +870,22 @@ export function ChatInternoContent() {
                         sendMessage();
                       }
                     }}
-                    className="pr-12"
+                    className="h-12 focus-visible:border-blue-400 focus-visible:ring-0"
                   />
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="absolute top-1/2 right-1 -translate-y-1/2 transform bg-transparent"
+                    className="absolute top-1/2 right-2 -translate-y-1/2 transform bg-transparent"
                   >
-                    <Smile className="h-4 w-4" />
+                    <Smile className="size-4" />
                   </Button>
                 </div>
 
                 <Button
                   onClick={sendMessage}
                   disabled={!messageInput.trim()}
-                  className="bg-[#00183E] hover:bg-[#00183E]/90"
+                  className="bg-primary-million hover:bg-primary-million/90 size-12"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="size-4" />
                 </Button>
               </div>
             </div>
