@@ -282,7 +282,7 @@ const messages: Message[] = [
     timestamp: "14:10",
     sender: "agent",
     type: "text",
-    status: "read",
+    status: "sent",
   },
   {
     id: "2",
@@ -391,7 +391,7 @@ export function AtendimentosContent() {
                 ABERTAS
                 <Badge
                   variant="secondary"
-                  className="ml-2 bg-[#00183E] text-white"
+                  className="ml-2 bg-primary-million text-white"
                 >
                   {conversations.length}
                 </Badge>
@@ -426,7 +426,7 @@ export function AtendimentosContent() {
           <button
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeSubTab === "atendendo"
-                ? "border-b-2 border-[#00183E] bg-blue-50 text-[#00183E]"
+                ? "border-b-2 border-primary-million bg-blue-50 text-primary-million"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveSubTab("atendendo")}
@@ -434,7 +434,7 @@ export function AtendimentosContent() {
             ATENDENDO
             <Badge
               variant="secondary"
-              className="ml-2 bg-[#00183E] text-xs text-white"
+              className="ml-2 bg-primary-million text-xs text-white"
             >
               {conversations.length}
             </Badge>
@@ -442,7 +442,7 @@ export function AtendimentosContent() {
           <button
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeSubTab === "aguardando"
-                ? "border-b-2 border-[#00183E] bg-blue-50 text-[#00183E]"
+                ? "border-b-2 border-primary-million bg-blue-50 text-primary-million"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveSubTab("aguardando")}
@@ -481,7 +481,7 @@ export function AtendimentosContent() {
                             conversation.contact.avatar || "/placeholder.svg"
                           }
                         />
-                        <AvatarFallback className="bg-[#00183E] text-white">
+                        <AvatarFallback className="bg-primary-million text-white">
                           {conversation.contact.name.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -571,7 +571,7 @@ export function AtendimentosContent() {
                   <div className="relative">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                      <AvatarFallback className="bg-[#00183E] text-white">
+                      <AvatarFallback className="bg-primary-million text-white">
                         JS
                       </AvatarFallback>
                     </Avatar>
@@ -615,7 +615,7 @@ export function AtendimentosContent() {
                     <div
                       className={`max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
                         message.sender === "agent"
-                          ? "bg-[#00183E] text-white"
+                          ? "bg-primary-million text-white"
                           : "border border-gray-200 bg-white text-gray-900"
                       }`}
                     >
@@ -635,15 +635,20 @@ export function AtendimentosContent() {
                             <div
                               className={`h-2 w-2 rounded-full ${
                                 message.status === "read"
-                                  ? "bg-blue-300"
+                                  ? "bg-secondary-million"
                                   : message.status === "delivered"
-                                    ? "bg-gray-300"
-                                    : "bg-gray-400"
+                                    ? "bg-blue-50"
+                                    : "bg-blue-50"
                               }`}
                             />
-                            {message.status === "read" && (
-                              <div className="h-2 w-2 rounded-full bg-blue-300" />
-                            )}
+                            {message.status === "read" ? (
+                              <>
+                                <div className="bg-secondary-million h-2 w-2 rounded-full" />
+                                <div className="bg-secondary-million h-2 w-2 rounded-full" />
+                              </>
+                            ) : message.status === "delivered" ? (
+                              <div className="h-2 w-2 rounded-full bg-blue-50" />
+                            ) : null}
                           </div>
                         )}
                       </div>
@@ -656,8 +661,8 @@ export function AtendimentosContent() {
             {/* Message Input */}
             <div className="border-t border-gray-200 bg-white p-4">
               <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Paperclip className="h-4 w-4" />
+                <Button variant="outline" className="size-12">
+                  <Paperclip className="size-4" />
                 </Button>
 
                 <div className="relative flex-1">
@@ -665,18 +670,18 @@ export function AtendimentosContent() {
                     placeholder="Digite uma mensagem..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    className="pr-12"
+                    className="h-12 focus-visible:border-blue-200 focus-visible:ring-0"
                   />
                   <Button
                     size="sm"
-                    className="absolute top-1/2 right-1 -translate-y-1/2 transform bg-[#00183E] hover:bg-[#00183E]/90"
+                    className="bg-secondary-million hover:bg-secondary-million/90 absolute top-1/2 right-2 -translate-y-1/2 transform"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="size-4" />
                   </Button>
                 </div>
 
-                <Button variant="outline" size="sm">
-                  <Mic className="h-4 w-4" />
+                <Button variant="outline" className="size-12">
+                  <Mic className="size-4" />
                 </Button>
               </div>
             </div>

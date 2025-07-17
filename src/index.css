@@ -5,6 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
+  --color-primary-million: #182854;
+  --color-secondary-million: #fc7800;
+}
+
+@theme {
   --font-inter: "Inter", sans-serif;
   --font-montserrat: "Montserrat", serif;
   --font-open: "Open Sans", monospace;
