@@ -1,6 +1,4 @@
-"use client";
-
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Search,
   Filter,
@@ -27,296 +25,264 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Contact } from "@/interfaces/contact-interface";
+import { useParams } from "react-router-dom";
+import { useMessages } from "@/hooks/useMessages";
 
-interface Conversation {
-  id: string;
-  contact: {
-    name: string;
-    phone: string;
-    avatar?: string;
-  };
-  lastMessage: string;
-  timestamp: string;
-  status: "online" | "offline" | "away";
-  queue: string;
-  agent: string;
-  unreadCount: number;
-  priority: "high" | "medium" | "low";
-}
+// const conversations: Conversation[] = [
+//   {
+//     id: "1",
+//     contact: {
+//       name: "João Silva",
+//       phone: "5567994634486",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Preciso de ajuda com meu pedido, Preciso de ajuda com meu pedido,Preciso de ajuda com meu pedido",
+//     timestamp: "13:41",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "ADMIN",
+//     unreadCount: 2,
+//     priority: "high",
+//   },
+//   {
+//     id: "2",
+//     contact: {
+//       name: "Maria Santos",
+//       phone: "5567913517720",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Obrigada pelo atendimento!",
+//     timestamp: "11:28",
+//     status: "offline",
+//     queue: "VENDAS",
+//     agent: "WEBSTER",
+//     unreadCount: 0,
+//     priority: "medium",
+//   },
+//   {
+//     id: "3",
+//     contact: {
+//       name: "Carlos Oliveira",
+//       phone: "5567998765432",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Quando será entregue?",
+//     timestamp: "10:59",
+//     status: "away",
+//     queue: "LOGISTICA",
+//     agent: "ADMIN",
+//     unreadCount: 1,
+//     priority: "medium",
+//   },
+//   {
+//     id: "4",
+//     contact: {
+//       name: "João Silva",
+//       phone: "5567994634486",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Preciso de ajuda com meu pedido",
+//     timestamp: "13:41",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "ADMIN",
+//     unreadCount: 2,
+//     priority: "high",
+//   },
+//   {
+//     id: "5",
+//     contact: {
+//       name: "João Silva",
+//       phone: "5567994634486",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Preciso de ajuda com meu pedido",
+//     timestamp: "13:41",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "ADMIN",
+//     unreadCount: 2,
+//     priority: "high",
+//   },
+//   {
+//     id: "6",
+//     contact: {
+//       name: "João Silva",
+//       phone: "5567994634486",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Preciso de ajuda com meu pedido",
+//     timestamp: "13:41",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "ADMIN",
+//     unreadCount: 2,
+//     priority: "high",
+//   },
+//   {
+//     id: "7",
+//     contact: {
+//       name: "João Silva",
+//       phone: "5567994634486",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Preciso de ajuda com meu pedido",
+//     timestamp: "13:41",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "ADMIN",
+//     unreadCount: 2,
+//     priority: "high",
+//   },
+// ];
 
-interface Message {
-  id: string;
-  content: string;
-  timestamp: string;
-  sender: "customer" | "agent";
-  type: "text" | "image" | "file";
-  status: "sent" | "delivered" | "read";
-}
-
-const conversations: Conversation[] = [
-  {
-    id: "1",
-    contact: {
-      name: "João Silva",
-      phone: "5567994634486",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Preciso de ajuda com meu pedido, Preciso de ajuda com meu pedido,Preciso de ajuda com meu pedido",
-    timestamp: "13:41",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "ADMIN",
-    unreadCount: 2,
-    priority: "high",
-  },
-  {
-    id: "2",
-    contact: {
-      name: "Maria Santos",
-      phone: "5567913517720",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Obrigada pelo atendimento!",
-    timestamp: "11:28",
-    status: "offline",
-    queue: "VENDAS",
-    agent: "WEBSTER",
-    unreadCount: 0,
-    priority: "medium",
-  },
-  {
-    id: "3",
-    contact: {
-      name: "Carlos Oliveira",
-      phone: "5567998765432",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Quando será entregue?",
-    timestamp: "10:59",
-    status: "away",
-    queue: "LOGISTICA",
-    agent: "ADMIN",
-    unreadCount: 1,
-    priority: "medium",
-  },
-  {
-    id: "4",
-    contact: {
-      name: "João Silva",
-      phone: "5567994634486",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Preciso de ajuda com meu pedido",
-    timestamp: "13:41",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "ADMIN",
-    unreadCount: 2,
-    priority: "high",
-  },
-  {
-    id: "5",
-    contact: {
-      name: "João Silva",
-      phone: "5567994634486",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Preciso de ajuda com meu pedido",
-    timestamp: "13:41",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "ADMIN",
-    unreadCount: 2,
-    priority: "high",
-  },
-  {
-    id: "6",
-    contact: {
-      name: "João Silva",
-      phone: "5567994634486",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Preciso de ajuda com meu pedido",
-    timestamp: "13:41",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "ADMIN",
-    unreadCount: 2,
-    priority: "high",
-  },
-  {
-    id: "7",
-    contact: {
-      name: "João Silva",
-      phone: "5567994634486",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Preciso de ajuda com meu pedido",
-    timestamp: "13:41",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "ADMIN",
-    unreadCount: 2,
-    priority: "high",
-  },
-];
-
-const waitingConversations: Conversation[] = [
-  {
-    id: "w1",
-    contact: {
-      name: "Ana Costa",
-      phone: "5567998123456",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Entendo que você está falando sobre sair com alguém especial, mas essa informação não está relaci...",
-    timestamp: "14:11",
-    status: "away",
-    queue: "SEM FILA",
-    agent: "WEBSTER",
-    unreadCount: 0,
-    priority: "medium",
-  },
-  {
-    id: "w2",
-    contact: {
-      name: "Pedro Silva",
-      phone: "5567929445756",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Boa tarde! Posso ajudar com alguma informação específica? Qual é o seu nome?",
-    timestamp: "14:11",
-    status: "offline",
-    queue: "VENDAS",
-    agent: "WEBSTER",
-    unreadCount: 1,
-    priority: "high",
-  },
-  {
-    id: "w3",
-    contact: {
-      name: "Lucia Santos",
-      phone: "5567930313571",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Por favor, me informe seu nome para que possamos continuar a conversa",
-    timestamp: "14:11",
-    status: "online",
-    queue: "SUPORTE",
-    agent: "WEBSTER",
-    unreadCount: 0,
-    priority: "medium",
-  },
-  {
-    id: "w4",
-    contact: {
-      name: "Roberto Lima",
-      phone: "5567940123456",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Parece que não consegui entender sua solicitação. Por favor, poderia esclarecer ou reformular a perg...",
-    timestamp: "14:11",
-    status: "away",
-    queue: "LOGISTICA",
-    agent: "WEBSTER",
-    unreadCount: 2,
-    priority: "low",
-  },
-  {
-    id: "w5",
-    contact: {
-      name: "Fernanda Oliveira",
-      phone: "5567967790175",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "Minha zona é fazendo o que trabalho no mesmo lugar q vc",
-    timestamp: "14:11",
-    status: "online",
-    queue: "VENDAS",
-    agent: "WEBSTER",
-    unreadCount: 0,
-    priority: "medium",
-  },
-  {
-    id: "w6",
-    contact: {
-      name: "Marcos Pereira",
-      phone: "5512036318460509037",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage:
-      "Mouse Bluetooth Attack Shark X6 PAW3395 por R$130,00 🖱️ Com cupom ALTLIVE18 + 493 moedas...",
-    timestamp: "13:42",
-    status: "offline",
-    queue: "VENDAS",
-    agent: "WEBSTER",
-    unreadCount: 1,
-    priority: "high",
-  },
-  {
-    id: "w7",
-    contact: {
-      name: "Leo",
-      phone: "5567999888777",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    lastMessage: "❤️",
-    timestamp: "13:07",
-    status: "away",
-    queue: "SEM FILA",
-    agent: "WEBSTER",
-    unreadCount: 0,
-    priority: "low",
-  },
-];
-
-const messages: Message[] = [
-  {
-    id: "1",
-    content: "Olá! Como posso ajudá-lo hoje?",
-    timestamp: "14:10",
-    sender: "agent",
-    type: "text",
-    status: "sent",
-  },
-  {
-    id: "2",
-    content: "Preciso de informações sobre meu pedido #12345",
-    timestamp: "14:11",
-    sender: "customer",
-    type: "text",
-    status: "read",
-  },
-  {
-    id: "3",
-    content:
-      "Claro! Vou verificar o status do seu pedido. Um momento, por favor.",
-    timestamp: "14:12",
-    sender: "agent",
-    type: "text",
-    status: "read",
-  },
-  {
-    id: "4",
-    content:
-      "Seu pedido foi enviado hoje e deve chegar em 2-3 dias úteis. Aqui está o código de rastreamento: BR123456789",
-    timestamp: "14:15",
-    sender: "agent",
-    type: "text",
-    status: "delivered",
-  },
-];
+// const waitingConversations: Conversation[] = [
+//   {
+//     id: "w1",
+//     contact: {
+//       name: "Ana Costa",
+//       phone: "5567998123456",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Entendo que você está falando sobre sair com alguém especial, mas essa informação não está relaci...",
+//     timestamp: "14:11",
+//     status: "away",
+//     queue: "SEM FILA",
+//     agent: "WEBSTER",
+//     unreadCount: 0,
+//     priority: "medium",
+//   },
+//   {
+//     id: "w2",
+//     contact: {
+//       name: "Pedro Silva",
+//       phone: "5567929445756",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Boa tarde! Posso ajudar com alguma informação específica? Qual é o seu nome?",
+//     timestamp: "14:11",
+//     status: "offline",
+//     queue: "VENDAS",
+//     agent: "WEBSTER",
+//     unreadCount: 1,
+//     priority: "high",
+//   },
+//   {
+//     id: "w3",
+//     contact: {
+//       name: "Lucia Santos",
+//       phone: "5567930313571",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Por favor, me informe seu nome para que possamos continuar a conversa",
+//     timestamp: "14:11",
+//     status: "online",
+//     queue: "SUPORTE",
+//     agent: "WEBSTER",
+//     unreadCount: 0,
+//     priority: "medium",
+//   },
+//   {
+//     id: "w4",
+//     contact: {
+//       name: "Roberto Lima",
+//       phone: "5567940123456",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Parece que não consegui entender sua solicitação. Por favor, poderia esclarecer ou reformular a perg...",
+//     timestamp: "14:11",
+//     status: "away",
+//     queue: "LOGISTICA",
+//     agent: "WEBSTER",
+//     unreadCount: 2,
+//     priority: "low",
+//   },
+//   {
+//     id: "w5",
+//     contact: {
+//       name: "Fernanda Oliveira",
+//       phone: "5567967790175",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "Minha zona é fazendo o que trabalho no mesmo lugar q vc",
+//     timestamp: "14:11",
+//     status: "online",
+//     queue: "VENDAS",
+//     agent: "WEBSTER",
+//     unreadCount: 0,
+//     priority: "medium",
+//   },
+//   {
+//     id: "w6",
+//     contact: {
+//       name: "Marcos Pereira",
+//       phone: "5512036318460509037",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage:
+//       "Mouse Bluetooth Attack Shark X6 PAW3395 por R$130,00 🖱️ Com cupom ALTLIVE18 + 493 moedas...",
+//     timestamp: "13:42",
+//     status: "offline",
+//     queue: "VENDAS",
+//     agent: "WEBSTER",
+//     unreadCount: 1,
+//     priority: "high",
+//   },
+//   {
+//     id: "w7",
+//     contact: {
+//       name: "Leo",
+//       phone: "5567999888777",
+//       avatar: "/placeholder.svg?height=40&width=40",
+//     },
+//     lastMessage: "❤️",
+//     timestamp: "13:07",
+//     status: "away",
+//     queue: "SEM FILA",
+//     agent: "WEBSTER",
+//     unreadCount: 0,
+//     priority: "low",
+//   },
+// ];
 
 export function AtendimentosContent() {
-  const [selectedConversation, setSelectedConversation] = useState<string>("1");
+  const [selectedConversation, setSelectedConversation] = useState<
+    string | null
+  >(null);
   const [messageInput, setMessageInput] = useState("");
   const [activeTab, setActiveTab] = useState("abertas");
   const [activeSubTab, setActiveSubTab] = useState("atendendo");
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const lastMessageRef = useRef<HTMLDivElement | null>(null);
+
+  const { instagramReceiverId, facebookReceiverId } = useParams<{
+    instagramReceiverId: string;
+    facebookReceiverId: string;
+  }>();
+
+  const { contacts, isLoading, isError, messages } = useMessages({
+    instagramReceiverId,
+    facebookReceiverId,
+  });
+
+  const handleContactSelect = (contact: Contact) => {
+    setSelectedContact(contact);
+    setSelectedConversation(contact.id);
+  };
+
+  const formatTime = (timestamp: Date) => {
+    const date = new Date(timestamp);
+    return new Intl.DateTimeFormat("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -357,11 +323,6 @@ export function AtendimentosContent() {
     }
   };
 
-  const getCurrentConversations = () => {
-    if (activeTab !== "abertas") return [];
-    return activeSubTab === "atendendo" ? conversations : waitingConversations;
-  };
-
   return (
     <div className="flex h-full">
       {/* Conversations List */}
@@ -377,23 +338,19 @@ export function AtendimentosContent() {
               Filtros
             </Button>
           </div>
-
-          {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
             <Input placeholder="Buscar conversas..." className="pl-10" />
           </div>
-
-          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="abertas" className="text-xs">
                 ABERTAS
                 <Badge
                   variant="secondary"
-                  className="ml-2 bg-primary-million text-white"
+                  className="bg-primary-million ml-2 text-white"
                 >
-                  {conversations.length}
+                  {contacts?.length ?? 0}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="resolvidas" className="text-xs">
@@ -426,7 +383,7 @@ export function AtendimentosContent() {
           <button
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeSubTab === "atendendo"
-                ? "border-b-2 border-primary-million bg-blue-50 text-primary-million"
+                ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveSubTab("atendendo")}
@@ -434,15 +391,15 @@ export function AtendimentosContent() {
             ATENDENDO
             <Badge
               variant="secondary"
-              className="ml-2 bg-primary-million text-xs text-white"
+              className="bg-primary-million ml-2 text-xs text-white"
             >
-              {conversations.length}
+              {contacts?.filter((c) => c.status === "serving").length ?? 0}
             </Badge>
           </button>
           <button
             className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
               activeSubTab === "aguardando"
-                ? "border-b-2 border-primary-million bg-blue-50 text-primary-million"
+                ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                 : "text-gray-500 hover:text-gray-700"
             }`}
             onClick={() => setActiveSubTab("aguardando")}
@@ -452,7 +409,7 @@ export function AtendimentosContent() {
               variant="secondary"
               className="ml-2 bg-red-500 text-xs text-white"
             >
-              {waitingConversations.length}
+              {contacts?.filter((c) => c.status === "waiting").length ?? 0}
             </Badge>
           </button>
         </div>
@@ -460,132 +417,145 @@ export function AtendimentosContent() {
         {/* Conversations */}
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="w-96 space-y-2 p-4">
-            {getCurrentConversations().map((conversation) => (
-              <Card
-                key={conversation.id}
-                className={`relative h-32 cursor-pointer border-l-4 transition-all hover:shadow-md ${getPriorityColor(
-                  conversation.priority,
-                )} ${
-                  selectedConversation === conversation.id
-                    ? "ring-1 ring-[#1d5cd362]"
-                    : ""
-                } ${activeSubTab === "aguardando" ? "bg-yellow-50" : ""}`}
-                onClick={() => setSelectedConversation(conversation.id)}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-start space-x-3">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage
-                          src={
-                            conversation.contact.avatar || "/placeholder.svg"
-                          }
-                        />
-                        <AvatarFallback className="bg-primary-million text-white">
-                          {conversation.contact.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={`absolute -right-1 -bottom-1 h-4 w-4 rounded-full border-2 border-white ${getStatusColor(
-                          conversation.status,
-                        )}`}
-                      />
-                      {activeSubTab === "aguardando" && (
-                        <div className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500">
-                          <Clock className="h-2 w-2 text-white" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-center justify-between">
-                        <h3 className="truncate font-medium text-gray-900">
-                          {conversation.contact.name}
-                        </h3>
-                        <div className="flex items-center space-x-1">
-                          <span className="text-xs text-gray-500">
-                            {conversation.timestamp}
-                          </span>
-                          {activeSubTab === "aguardando" && (
-                            <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
-                          )}
-                        </div>
+            {isLoading && (
+              <div className="text-center text-sm text-gray-500">
+                Carregando...
+              </div>
+            )}
+            {isError && (
+              <div className="text-center text-sm text-red-500">
+                Erro ao carregar conversas.
+              </div>
+            )}
+            {contacts
+              ?.filter((contact) => {
+                if (activeSubTab === "aguardando") {
+                  return contact.status === "waiting";
+                }
+                if (activeSubTab === "atendendo") {
+                  return contact.status === "serving";
+                }
+                return false;
+              })
+              .map((contact) => (
+                <Card
+                  key={contact.id}
+                  className={`relative h-32 cursor-pointer border-l-4 transition-all hover:shadow-md ${
+                    selectedContact?.id === contact.id
+                      ? "ring-1 ring-[#1d5cd362]"
+                      : ""
+                  } ${activeSubTab === "aguardando" ? "bg-yellow-50" : ""}`}
+                  onClick={() => handleContactSelect(contact)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-start space-x-3">
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage
+                            src={contact.profilePicture || "/placeholder.svg"}
+                          />
+                          <AvatarFallback className="bg-primary-million text-white">
+                            {contact.name.charAt(0) || "C"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -right-1 -bottom-1 h-4 w-4 rounded-full border-2 border-white" />
+                        {activeSubTab === "aguardando" && (
+                          <div className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500">
+                            <Clock className="h-2 w-2 text-white" />
+                          </div>
+                        )}
                       </div>
 
-                      <p className="mb-2 truncate text-sm text-gray-600">
-                        {conversation.lastMessage}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-center justify-between">
+                          <h3 className="truncate font-medium text-gray-900">
+                            {contact.phone}
+                          </h3>
+                          <div className="flex items-center space-x-1">
+                            <span className="text-xs text-gray-500">
+                              {formatTime(contact.timestamp)}
+                            </span>
+                            {activeSubTab === "aguardando" && (
+                              <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+                            )}
+                          </div>
+                        </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs ${getQueueColor(
-                              conversation.queue,
-                            )}`}
-                          >
-                            {conversation.queue}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {conversation.agent}
-                          </Badge>
-                          {activeSubTab === "aguardando" && (
+                        <p className="mb-2 truncate text-sm text-gray-600">
+                          {contact.lastMessage}
+                        </p>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
                             <Badge
                               variant="secondary"
-                              className="bg-yellow-100 text-xs text-yellow-800"
+                              className={`text-xs ${getQueueColor("SUPORTE")}`}
                             >
-                              AGUARDANDO
+                              SUPORTE
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              ADMIN
+                            </Badge>
+                            {activeSubTab === "aguardando" && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-yellow-100 text-xs text-yellow-800"
+                              >
+                                AGUARDANDO
+                              </Badge>
+                            )}
+                          </div>
+
+                          {contact.unreadCount > 0 && (
+                            <Badge
+                              className={`absolute top-2 right-2 flex size-5 items-center justify-center rounded-sm text-xs text-white ${
+                                activeSubTab === "aguardando"
+                                  ? "bg-red-600"
+                                  : "bg-green-400"
+                              }`}
+                            >
+                              {contact.unreadCount}
                             </Badge>
                           )}
                         </div>
-
-                        {conversation.unreadCount > 0 &&
-                        activeSubTab === "aguardando" ? (
-                          <Badge className="absolute top-2 right-2 size-5 rounded-sm bg-red-600 text-xs text-white">
-                            {conversation.unreadCount}
-                          </Badge>
-                        ) : conversation.unreadCount > 0 &&
-                          activeSubTab === "atendendo" ? (
-                          <Badge className="absolute top-2 right-2 size-5 rounded-sm bg-green-400 text-xs text-white">
-                            {conversation.unreadCount}
-                          </Badge>
-                        ) : null}
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </ScrollArea>
       </div>
 
       {/* Chat Area */}
       <div className="flex flex-1 flex-col bg-gray-50">
-        {selectedConversation ? (
+        {selectedConversation && selectedContact ? (
           <>
-            {/* Chat Header */}
             <div className="border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src="/placeholder.svg?height=40&width=40" />
+                      <AvatarImage
+                        src={
+                          selectedContact.profilePicture || "/placeholder.svg"
+                        }
+                      />
                       <AvatarFallback className="bg-primary-million text-white">
-                        JS
+                        {selectedContact.name.charAt(0) || "C"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -right-1 -bottom-1 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                   </div>
-
                   <div>
-                    <h2 className="font-semibold text-gray-900">João Silva</h2>
+                    <h2 className="font-semibold text-gray-900">
+                      {selectedContact.name}
+                    </h2>
                     <p className="text-sm text-gray-500">
-                      +55 67 99463-4486 • Online
+                      {selectedContact.phone} • Online
                     </p>
                   </div>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   <Button variant="outline" size="sm">
                     <Phone className="h-4 w-4" />
@@ -600,71 +570,55 @@ export function AtendimentosContent() {
               </div>
             </div>
 
-            {/* Messages */}
             <ScrollArea className="flex-1 p-4">
               <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.sender === "agent"
-                        ? "justify-end"
-                        : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
-                        message.sender === "agent"
-                          ? "bg-primary-million text-white"
-                          : "border border-gray-200 bg-white text-gray-900"
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <div className="mt-1 flex items-center justify-end space-x-1">
-                        <span
-                          className={`text-xs ${
-                            message.sender === "agent"
-                              ? "text-blue-200"
-                              : "text-gray-500"
+                {(messages ?? [])
+                  .filter(
+                    (msg) =>
+                      msg.sender_id === selectedContact.id ||
+                      msg.recipient_id === selectedContact.id,
+                  )
+                  .map((message) => {
+                    const isAgent = message.sender_id !== selectedContact.id;
+                    return (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          isAgent ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
+                            isAgent
+                              ? "bg-primary-million text-white"
+                              : "border border-gray-200 bg-white text-gray-900"
                           }`}
                         >
-                          {message.timestamp}
-                        </span>
-                        {message.sender === "agent" && (
-                          <div className="flex space-x-1">
-                            <div
-                              className={`h-2 w-2 rounded-full ${
-                                message.status === "read"
-                                  ? "bg-secondary-million"
-                                  : message.status === "delivered"
-                                    ? "bg-blue-50"
-                                    : "bg-blue-50"
+                          <p className="text-sm">
+                            {message.content.text?.body}
+                          </p>
+                          <div className="mt-1 flex items-center justify-end space-x-1">
+                            <span
+                              className={`text-xs ${
+                                isAgent ? "text-blue-200" : "text-gray-500"
                               }`}
-                            />
-                            {message.status === "read" ? (
-                              <>
-                                <div className="bg-secondary-million h-2 w-2 rounded-full" />
-                                <div className="bg-secondary-million h-2 w-2 rounded-full" />
-                              </>
-                            ) : message.status === "delivered" ? (
-                              <div className="h-2 w-2 rounded-full bg-blue-50" />
-                            ) : null}
+                            >
+                              {formatTime(new Date(message.timestamp))}
+                            </span>
                           </div>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                <div ref={lastMessageRef} />
               </div>
             </ScrollArea>
 
-            {/* Message Input */}
             <div className="border-t border-gray-200 bg-white p-4">
               <div className="flex items-center space-x-2">
                 <Button variant="outline" className="size-12">
                   <Paperclip className="size-4" />
                 </Button>
-
                 <div className="relative flex-1">
                   <Input
                     placeholder="Digite uma mensagem..."
@@ -679,7 +633,6 @@ export function AtendimentosContent() {
                     <Send className="size-4" />
                   </Button>
                 </div>
-
                 <Button variant="outline" className="size-12">
                   <Mic className="size-4" />
                 </Button>
@@ -687,7 +640,6 @@ export function AtendimentosContent() {
             </div>
           </>
         ) : (
-          /* Empty State */
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
