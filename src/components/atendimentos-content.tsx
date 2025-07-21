@@ -319,21 +319,41 @@ export function AtendimentosContent() {
 
                 if (activeTab === "resolvidas") {
                   return (
-                    <Card
+                    <div
                       key={contact.id}
-                      className={`relative h-32 cursor-pointer border-l-4 border-gray-300 bg-gray-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "ring-1 ring-gray-300" : ""}`}
-                      onClick={() => handleContactSelect(contact)}
+                      className="relative overflow-hidden rounded-lg"
                     >
-                      {cardInnerContent}
-                    </Card>
+                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-500 px-6">
+                        <Play className="h-6 w-6 text-white" />
+                      </div>
+                      <motion.div
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        onDragEnd={(_, info) => {
+                          if (info.offset.x < -100) {
+                            updateStatus({
+                              contactId: contact.id,
+                              status: "serving",
+                            });
+                          }
+                        }}
+                        className="relative z-10 w-full"
+                        onClick={() => handleContactSelect(contact)}
+                      >
+                        <Card
+                          className={`relative h-32 cursor-pointer border-l-4 border-gray-300 bg-gray-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "ring-1 ring-gray-300" : ""}`}
+                        >
+                          {cardInnerContent}
+                        </Card>
+                      </motion.div>
+                    </div>
                   );
                 }
 
-                // **MODIFICADO**: Lógica de renderização simplificada
                 if (activeSubTab === "aguardando") {
                   return (
                     <div key={contact.id} className="relative">
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-500 px-6">
+                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
                         <Play className="h-6 w-6 text-white" />
                       </div>
                       <motion.div
@@ -365,12 +385,11 @@ export function AtendimentosContent() {
                       className="relative overflow-hidden rounded-lg"
                     >
                       {/* Ação de arrastar para a DIREITA (Voltar para Aguardando) */}
-                      <div className="absolute top-0 left-0 flex h-full items-center justify-center rounded-l-lg bg-yellow-400 px-6">
+                      <div className="absolute top-0 left-0 flex h-full items-center justify-center rounded-l-lg bg-orange-200 px-6">
                         <Undo2 className="h-6 w-6 text-white" />
                       </div>
 
-                      {/* Ação de arrastar para a ESQUERDA (Finalizar) */}
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-blue-500 px-6">
+                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-blue-300 px-6">
                         <CheckCheck className="h-6 w-6 text-white" />
                       </div>
 
@@ -398,7 +417,7 @@ export function AtendimentosContent() {
                         onClick={() => handleContactSelect(contact)}
                       >
                         <Card
-                          className={`relative h-32 cursor-pointer border-l-4 bg-white transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "ring-1 ring-[#1d5cd362]" : ""}`}
+                          className={`relative h-32 cursor-pointer border-l-4 bg-green-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "border-y border-[#1d5cd362]" : ""}`}
                         >
                           {cardInnerContent}
                         </Card>
