@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Settings, Edit, Trash2, HelpCircle } from "lucide-react";
 
 interface Company {

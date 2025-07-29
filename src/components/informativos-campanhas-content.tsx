@@ -57,7 +57,7 @@ import {
   Filter,
   Download,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Informativo {
   id: string;

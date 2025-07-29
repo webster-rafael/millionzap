@@ -23,6 +23,7 @@ export interface IMessage {
   timestamp: string;
   status: string;
   is_read: boolean;
+  unreadCount: number;
   origin: IncomingTypeMessageEnum;
 }
 

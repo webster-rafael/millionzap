@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Code,
   Send,
@@ -39,46 +39,28 @@ export function ApiContent() {
   const handleTextSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!textForm.token || !textForm.number || !textForm.message) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos.",
-        variant: "destructive",
-      });
+      toast("Por favor, preencha todos os campos.");
       return;
     }
 
-    toast({
-      title: "Mensagem enviada",
-      description: `Mensagem de texto enviada para ${textForm.number}`,
-    });
+    toast("Mensagem enviada com sucesso!");
   };
 
   const handleMediaSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!mediaForm.token || !mediaForm.number || !mediaForm.file) {
-      toast({
-        title: "Erro",
-        description:
-          "Por favor, preencha todos os campos e selecione um arquivo.",
-        variant: "destructive",
-      });
+      toast("Por favor, preencha todos os campos e escolha um arquivo.");
       return;
     }
 
-    toast({
-      title: "Mídia enviada",
-      description: `Arquivo enviado para ${mediaForm.number}`,
-    });
+    toast("Mensagem de mídia enviada com sucesso!");
   };
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(type);
     setTimeout(() => setCopiedCode(null), 2000);
-    toast({
-      title: "Copiado!",
-      description: "Código copiado para a área de transferência.",
-    });
+    toast("Código copiado para a área de transferência!");
   };
 
   const textMessageExample = `{

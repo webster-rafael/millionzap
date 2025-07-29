@@ -33,7 +33,7 @@ import {
   Save,
   RotateCcw,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export function ConfiguracoesCampanhasContent() {
   const [settings, setSettings] = useState({
@@ -68,18 +68,11 @@ export function ConfiguracoesCampanhasContent() {
   const [activeTab, setActiveTab] = useState("geral");
 
   const handleSave = () => {
-    toast({
-      title: "Configurações salvas",
-      description: "As configurações foram atualizadas com sucesso.",
-    });
+    toast("Configurações salvas com sucesso!");
   };
 
   const handleReset = () => {
-    toast({
-      title: "Configurações resetadas",
-      description: "As configurações foram restauradas para os valores padrão.",
-      variant: "destructive",
-    });
+    toast("Configurações resetadas para os valores padrão.");
   };
 
   return (

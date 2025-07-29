@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MessageSquare, Edit, Trash2, Plus, Palette } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast, Toaster } from "sonner";
 import {
   Table,
   TableBody,
@@ -26,26 +26,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { useQueues } from "@/hooks/useQueues";
+import type { Queue, QueueCreate } from "@/interfaces/queues-interface";
 
-interface Fila {
-  id: string;
-  nome: string;
-  cor: string;
-  ordem: number;
-  integracao: string;
-  prompt: string;
-  mensagemSaudacao: string;
-  mensagemForaExpediente: string;
-  horarios: {
-    [key: string]: { inicio: string; fim: string };
-  };
-  opcoes: string[];
-  criadoEm: Date;
-}
-
-type FormDataState = Omit<Fila, "id" | "criadoEm" | "ordem"> & {
-  ordem: string; // Ordem é string no input
+type Schedule = {
+  weekday: string;
+  startTime: string;
+  endTime: string;
+  weekdayEn: string;
 };
+type Horarios = { [key: string]: { inicio: string; fim: string } };
 
 const diasSemana = [
   "Segunda-feira",
@@ -80,160 +70,164 @@ const cores = [
   "#374151",
 ];
 
-const createInitialFormData = (): FormDataState => {
-  const horariosIniciais: { [key: string]: { inicio: string; fim: string } } =
-    {};
+const createInitialHorarios = (): Horarios => {
+  const horarios: Horarios = {};
   diasSemana.forEach((dia) => {
-    if (dia === "Sábado") {
-      horariosIniciais[dia] = { inicio: "08:00", fim: "12:00" };
-    } else if (dia === "Domingo") {
-      horariosIniciais[dia] = { inicio: "00:00", fim: "00:00" };
-    } else {
-      horariosIniciais[dia] = { inicio: "08:00", fim: "18:00" };
-    }
+    if (dia === "Sábado") horarios[dia] = { inicio: "08:00", fim: "12:00" };
+    else if (dia === "Domingo")
+      horarios[dia] = { inicio: "00:00", fim: "00:00" };
+    else horarios[dia] = { inicio: "08:00", fim: "18:00" };
   });
+  return horarios;
+};
 
-  return {
-    nome: "",
-    cor: "#3b82f6",
-    ordem: "",
-    integracao: "",
-    prompt: "",
-    mensagemSaudacao: "",
-    mensagemForaExpediente: "",
-    horarios: horariosIniciais,
-    opcoes: [],
-  };
+const schedulesToHorarios = (schedules: Schedule[]): Horarios => {
+  const horarios: Horarios = createInitialHorarios();
+  if (Array.isArray(schedules)) {
+    schedules.forEach((schedule) => {
+      if (horarios[schedule.weekday]) {
+        horarios[schedule.weekday] = {
+          inicio: schedule.startTime,
+          fim: schedule.endTime,
+        };
+      }
+    });
+  }
+  return horarios;
+};
+
+const horariosToSchedules = (horarios: Horarios): Schedule[] => {
+  return Object.entries(horarios).map(([weekday, times]) => ({
+    weekday: weekday,
+    startTime: times.inicio,
+    endTime: times.fim,
+    weekdayEn: weekday
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace("-feira", ""),
+  }));
 };
 
 export default function FilasChatbotContent() {
-  const [filas, setFilas] = useState<Fila[]>([
-    {
-      id: "1",
-      nome: "Fila 1",
-      cor: "#3b82f6",
-      ordem: 1,
-      integracao: "DialogFlow",
-      prompt: "Atendimento Geral",
-      mensagemSaudacao: "Olá! Como posso ajudá-lo?",
-      mensagemForaExpediente: "Estamos fora do horário de atendimento.",
-      horarios: {
-        "Segunda-feira": { inicio: "08:00", fim: "18:00" },
-        "Terça-feira": { inicio: "08:00", fim: "18:00" },
-        "Quarta-feira": { inicio: "08:00", fim: "18:00" },
-        "Quinta-feira": { inicio: "08:00", fim: "18:00" },
-        "Sexta-feira": { inicio: "08:00", fim: "18:00" },
-        Sábado: { inicio: "08:00", fim: "12:00" },
-        Domingo: { inicio: "00:00", fim: "00:00" },
-      },
-      opcoes: [],
-      criadoEm: new Date(),
-    },
-  ]);
+  const {
+    queues,
+    isLoading,
+    isError,
+    create,
+    isCreating,
+    isErrorQueues,
+    update,
+    isUpdating,
+    isLoadingQueues,
+    remove,
+  } = useQueues();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"dados" | "horarios">("dados");
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [editingFila, setEditingFila] = useState<Fila | null>(null);
+  const [editingFilaId, setEditingFilaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [formData, setFormData] = useState<FormDataState>(
-    createInitialFormData(),
-  );
+  const [formData, setFormData] = useState({
+    name: "",
+    color: "",
+    priority: 0,
+    integrationId: "",
+    promptId: "",
+    greetingMessage: "",
+    outOfOfficeHoursMessage: "",
+    prompt: "",
+    horarios: createInitialHorarios(),
+  });
 
-  const filteredFilas = filas.filter(
-    (fila) =>
-      fila.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fila.mensagemSaudacao.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const filteredFilas = useMemo(() => {
+    return queues.filter(
+      (fila) =>
+        fila.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fila.greetingMessage?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [queues, searchTerm]);
 
-  const handleOpenModal = (fila?: Fila) => {
+  const handleOpenModal = (fila?: Queue) => {
     if (fila) {
-      setEditingFila(fila);
+      setEditingFilaId(fila.id);
       setFormData({
-        ...fila,
-        ordem: fila.ordem.toString(), // Converte para string para o input
+        name: fila.name,
+        color: fila.color,
+        priority: fila.priority,
+        integrationId: fila.integrationId || "",
+        promptId: fila.promptId || "",
+        greetingMessage: fila.greetingMessage || "",
+        outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
+        prompt: fila.promptId || "",
+        horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
       });
     } else {
-      setEditingFila(null);
-      setFormData(createInitialFormData()); // Reseta o formulário
+      setEditingFilaId(null);
+      setFormData({ ...formData, ...createInitialHorarios(), name: "" }); // Reseta o formulário
     }
     setActiveTab("dados");
-    setShowColorPicker(false);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingFila(null);
-    // Não precisa resetar o form aqui, pois `handleOpenModal` e `handleSubmit` já cuidam disso.
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.nome.trim()) {
-      toast({
-        title: "Erro",
-        description: "Nome é obrigatório",
-        variant: "destructive",
-      });
+    if (!formData.name.trim()) {
+      toast("O nome da fila é obrigatório.");
       return;
     }
 
-    const filaData: Omit<Fila, "id" | "criadoEm"> = {
-      nome: formData.nome.trim(),
-      cor: formData.cor,
-      ordem: Number(formData.ordem) || filas.length + 1, // Garante uma ordem padrão
-      integracao: formData.integracao,
-      prompt: formData.prompt,
-      mensagemSaudacao: formData.mensagemSaudacao,
-      mensagemForaExpediente: formData.mensagemForaExpediente,
-      horarios: formData.horarios,
-      opcoes: formData.opcoes,
+    const basePayload: QueueCreate = {
+      name: formData.name.trim(),
+      color: formData.color,
+      priority: formData.priority || 0,
+      integrationId: formData.integrationId || "",
+      promptId: formData.promptId || "",
+      greetingMessage: formData.greetingMessage,
+      outOfOfficeHoursMessage: formData.outOfOfficeHoursMessage,
+      schedules: horariosToSchedules(formData.horarios),
     };
 
-    if (editingFila) {
-      const filaAtualizada: Fila = {
-        ...filaData,
-        id: editingFila.id,
-        criadoEm: editingFila.criadoEm,
-      };
-      setFilas((prevFilas) =>
-        prevFilas.map((f) => (f.id === editingFila.id ? filaAtualizada : f)),
+    if (editingFilaId) {
+      update(
+        { id: editingFilaId, ...basePayload },
+        {
+          onSuccess: () => {
+            toast("Fila atualizada com sucesso!");
+            handleCloseModal();
+          },
+          onError: (error) => {
+            toast("Erro ao atualizar fila: " + error.message);
+          },
+        },
       );
-      toast({
-        title: "Sucesso",
-        description: "Fila atualizada com sucesso!",
-      });
     } else {
-      const novaFila: Fila = {
-        ...filaData,
-        id: Date.now().toString(),
-        criadoEm: new Date(),
-      };
-      setFilas((prevFilas) => [...prevFilas, novaFila]);
-      toast({
-        title: "Sucesso",
-        description: "Fila criada com sucesso!",
+      create(basePayload, {
+        onSuccess: () => {
+          toast("Fila criada com sucesso!");
+          handleCloseModal();
+        },
+        onError: (error) => {
+          toast("Erro ao criar fila: " + error.message);
+        },
       });
     }
-
-    handleCloseModal();
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta fila?")) {
-      setFilas((prevFilas) => prevFilas.filter((f) => f.id !== id));
-      toast({
-        title: "Sucesso",
-        description: "Fila excluída com sucesso!",
-      });
-    }
+    remove(id, {
+      onSuccess: () => toast("Fila excluída com sucesso!"),
+      onError: (error) => toast("Erro ao excluir fila: " + error.message),
+    });
   };
 
-  const handleColorSelect = (cor: string) => {
-    setFormData((prev) => ({ ...prev, cor }));
+  const handleColorSelect = (color: string) => {
+    setFormData((prev) => ({ ...prev, color }));
     setShowColorPicker(false);
   };
 
@@ -293,42 +287,60 @@ export default function FilasChatbotContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFilas.length > 0 ? (
-                filteredFilas.map((fila) => (
-                  <TableRow key={fila.id}>
-                    <TableCell className="font-medium">{fila.nome}</TableCell>
-                    <TableCell>
-                      <div
-                        className="h-4 w-16 rounded"
-                        style={{ backgroundColor: fila.cor }}
-                      ></div>
-                    </TableCell>
-                    <TableCell>{fila.ordem}</TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {fila.mensagemSaudacao || "Não definida"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenModal(fila)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(fila.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              )}
+              {isError && (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="h-24 text-center text-red-500"
+                  >
+                    Erro ao carregar filas.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!isLoading && !isError && filteredFilas.length > 0
+                ? filteredFilas.map((fila) => (
+                    <TableRow key={fila.id}>
+                      <TableCell className="font-medium">{fila.name}</TableCell>
+                      <TableCell>
+                        <div
+                          className="h-4 w-16 rounded"
+                          style={{ backgroundColor: fila.color }}
+                        ></div>
+                      </TableCell>
+                      <TableCell>{fila.priority}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {fila.greetingMessage || "Não definida"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenModal(fila)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(fila.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                : null}
+              {!isLoading && !isError && filteredFilas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     Nenhuma fila encontrada.
@@ -345,7 +357,7 @@ export default function FilasChatbotContent() {
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingFila ? "Editar fila" : "Adicionar fila"}
+              {editingFilaId ? "Editar fila" : "Adicionar fila"}
             </DialogTitle>
           </DialogHeader>
 
@@ -385,18 +397,18 @@ export default function FilasChatbotContent() {
                       Nome <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      value={formData.nome}
+                      value={formData.name}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          nome: e.target.value,
+                          name: e.target.value,
                         }))
                       }
                       placeholder="Nome da fila"
-                      className={!formData.nome ? "border-red-300" : ""}
+                      className={!formData.name ? "border-red-300" : ""}
                       required
                     />
-                    {!formData.nome && (
+                    {!formData.name && (
                       <p className="mt-1 text-xs text-red-500">Required</p>
                     )}
                   </div>
@@ -409,10 +421,10 @@ export default function FilasChatbotContent() {
                         type="button"
                         onClick={() => setShowColorPicker(!showColorPicker)}
                         className="flex h-10 w-full items-center justify-between rounded border border-gray-300 px-3"
-                        style={{ backgroundColor: formData.cor }}
+                        style={{ backgroundColor: formData.color }}
                       >
                         <span className="font-mono text-sm text-white">
-                          {formData.cor.toUpperCase()}
+                          {formData.color.toUpperCase()}
                         </span>
                         <Palette className="h-4 w-4 text-white" />
                       </button>
@@ -442,16 +454,15 @@ export default function FilasChatbotContent() {
                     Ordem da fila (Bot)
                   </label>
                   <Input
-                    type="number"
-                    value={formData.ordem}
+                    type="text"
+                    value={formData.priority}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        ordem: e.target.value,
+                        priority: Number(e.target.value) || 0,
                       }))
                     }
-                    placeholder="1"
-                    min="1"
+                    placeholder="0"
                   />
                 </div>
 
@@ -462,9 +473,12 @@ export default function FilasChatbotContent() {
                       Integração
                     </Label>
                     <Select
-                      value={formData.integracao}
+                      value={formData.integrationId}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, integracao: value }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          integrationId: value,
+                        }))
                       }
                     >
                       <SelectTrigger>
@@ -482,22 +496,22 @@ export default function FilasChatbotContent() {
                       Prompt
                     </label>
                     <Select
-                      value={formData.prompt}
+                      value={formData.promptId}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, prompt: value }))
+                        setFormData((prev) => ({ ...prev, promptId: value }))
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um prompt" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="atendimento-geral">
-                          Atendimento Geral
-                        </SelectItem>
-                        <SelectItem value="suporte-tecnico">
-                          Suporte Técnico
-                        </SelectItem>
-                        <SelectItem value="vendas">Vendas</SelectItem>
+                        {queues.map((fila) => (
+                          <SelectItem key={fila.id} value={fila.id}>{`${
+                            fila.promptId === undefined
+                              ? "Prompt não definido"
+                              : fila.promptId
+                          }`}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -510,11 +524,11 @@ export default function FilasChatbotContent() {
                       Mensagem de saudação
                     </label>
                     <Textarea
-                      value={formData.mensagemSaudacao}
+                      value={formData.greetingMessage}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          mensagemSaudacao: e.target.value,
+                          greetingMessage: e.target.value,
                         }))
                       }
                       placeholder="Digite a mensagem de saudação..."
@@ -526,11 +540,11 @@ export default function FilasChatbotContent() {
                       Mensagem de fora de expediente
                     </label>
                     <Textarea
-                      value={formData.mensagemForaExpediente}
+                      value={formData.outOfOfficeHoursMessage}
                       onChange={(e) =>
                         setFormData((prev) => ({
                           ...prev,
-                          mensagemForaExpediente: e.target.value,
+                          outOfOfficeHoursMessage: e.target.value,
                         }))
                       }
                       placeholder="Digite a mensagem de fora de expediente..."
@@ -615,12 +629,13 @@ export default function FilasChatbotContent() {
                 type="submit"
                 className="bg-[#00183E] hover:bg-[#00183E]/90"
               >
-                {editingFila ? "ATUALIZAR" : "ADICIONAR"}
+                {editingFilaId ? "ATUALIZAR" : "ADICIONAR"}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
+      <Toaster />
     </div>
   );
 }

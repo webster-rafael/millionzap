@@ -34,20 +34,23 @@ import { useParams } from "react-router-dom";
 import { useMessages } from "@/hooks/useMessages";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { IMessage } from "@/interfaces/message-interface";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const updateStatusMutation = async ({
   contactId,
   status,
+  is_read,
 }: {
   contactId: string;
-  status: string;
+  status?: string;
+  is_read?: boolean;
 }) => {
-  const response = await fetch(import.meta.env.VITE_UPDATE_STATUS_URL, {
+  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ contactId, status }),
+    body: JSON.stringify({ contactId, status, is_read }),
   });
 
   if (!response.ok) {
@@ -81,23 +84,46 @@ export function AtendimentosContent() {
   const handleContactSelect = (contact: Contact) => {
     setSelectedContact(contact);
     setSelectedConversation(contact.id);
+    if (contact.unreadCount > 0 && selectedContact?.status === "serving") {
+      updateStatus({ contactId: contact.id, is_read: true, status: "serving" });
+      setSelectedContact(null);
+    }
   };
 
   const { mutate: updateStatus } = useMutation({
     mutationFn: updateStatusMutation,
-    onSuccess: (_, variables) => {
+    onMutate: async (newData) => {
+      await queryClient.cancelQueries({ queryKey: ["messages"] });
+      const previousMessages = queryClient.getQueryData<IMessage[]>([
+        "messages",
+      ]);
+
       queryClient.setQueryData<IMessage[]>(["messages"], (oldData) => {
         if (!oldData) return [];
         return oldData.map((message) => {
-          if (message.sender_id === variables.contactId) {
-            return { ...message, status: variables.status };
+          if (message.sender_id === newData.contactId) {
+            return {
+              ...message,
+              status:
+                newData.status !== undefined ? newData.status : message.status,
+              is_read:
+                newData.is_read !== undefined
+                  ? newData.is_read
+                  : message.is_read,
+              unreadCount: newData.is_read === true ? 0 : message.unreadCount,
+            };
           }
           return message;
         });
       });
+
+      return { previousMessages };
     },
-    onError: (error) => {
-      console.error("Erro ao atualizar status:", error);
+    onError: (err, newData, context) => {
+      if (context?.previousMessages) {
+        queryClient.setQueryData(["messages"], context.previousMessages);
+      }
+      console.error("Erro ao atualizar:", err);
     },
   });
 
@@ -189,7 +215,10 @@ export function AtendimentosContent() {
                   ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => setActiveSubTab("atendendo")}
+              onClick={() => {
+                setActiveSubTab("atendendo");
+                setSelectedContact(null);
+              }}
             >
               ATENDENDO
               <Badge
@@ -205,7 +234,10 @@ export function AtendimentosContent() {
                   ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => setActiveSubTab("aguardando")}
+              onClick={() => {
+                setActiveSubTab("aguardando");
+                setSelectedContact(null);
+              }}
             >
               AGUARDANDO
               <Badge
@@ -222,15 +254,15 @@ export function AtendimentosContent() {
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="w-96 space-y-2 p-4">
             {isLoading && (
-              <div className="text-center text-sm text-gray-500">
-                Carregando...
-              </div>
+              <>
+                <Skeleton className="h-32 bg-zinc-200" />
+                <Skeleton className="h-32 bg-zinc-200" />
+                <Skeleton className="h-32 bg-zinc-200" />
+                <Skeleton className="h-32 bg-zinc-200" />
+                <Skeleton className="h-32 bg-zinc-200" />
+              </>
             )}
-            {isError && (
-              <div className="text-center text-sm text-red-500">
-                Erro ao carregar conversas.
-              </div>
-            )}
+            {isError && <Skeleton className="h-32 rounded-full" />}
             {contacts
               ?.filter((contact) => {
                 if (activeTab === "abertas") {
@@ -323,7 +355,7 @@ export function AtendimentosContent() {
                       key={contact.id}
                       className="relative overflow-hidden rounded-lg"
                     >
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-500 px-6">
+                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
                         <Play className="h-6 w-6 text-white" />
                       </div>
                       <motion.div
@@ -334,7 +366,10 @@ export function AtendimentosContent() {
                             updateStatus({
                               contactId: contact.id,
                               status: "serving",
+                              is_read: false,
                             });
+                            setSelectedConversation("");
+                            setSelectedContact(null);
                           }
                         }}
                         className="relative z-10 w-full"
@@ -364,7 +399,10 @@ export function AtendimentosContent() {
                             updateStatus({
                               contactId: contact.id,
                               status: "serving",
+                              is_read: false,
                             });
+                            setSelectedConversation("");
+                            setSelectedContact(null);
                           }
                         }}
                         className="relative z-10 w-full"
@@ -403,14 +441,18 @@ export function AtendimentosContent() {
                             updateStatus({
                               contactId: contact.id,
                               status: "waiting",
+                              is_read: false,
                             });
+                            setSelectedConversation("");
                           }
                           // Arrastou para a ESQUERDA
                           else if (info.offset.x < -dragThreshold) {
                             updateStatus({
                               contactId: contact.id,
                               status: "finished",
+                              is_read: true,
                             });
+                            setSelectedConversation("");
                           }
                         }}
                         className="relative z-10 w-full"
@@ -528,6 +570,33 @@ export function AtendimentosContent() {
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     className="h-12 focus-visible:border-blue-200 focus-visible:ring-0"
+                    // onKeyDown={(e) => {
+                    //   if (e.key === "Enter") {
+                    //     e.preventDefault();
+                    //     handleSendMessage();
+                    //   }
+                    // }}
+                    onClick={() => {
+                      if (
+                        selectedContact &&
+                        selectedContact.status === "waiting"
+                      ) {
+                        updateStatus({
+                          contactId: selectedContact.id,
+                          status: "serving",
+                        });
+                        setActiveSubTab("atendendo");
+                      } else if (
+                        selectedContact &&
+                        selectedContact.unreadCount > 0
+                      ) {
+                        updateStatus({
+                          contactId: selectedContact.id,
+                          status: "serving",
+                          is_read: true,
+                        });
+                      }
+                    }}
                   />
                   <Button
                     size="sm"

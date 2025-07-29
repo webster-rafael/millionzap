@@ -5,7 +5,7 @@ import type { IMessage } from "@/interfaces/message-interface";
 import type { Contact } from "@/interfaces/contact-interface";
 
 const fetchMessages = async (): Promise<IMessage[]> => {
-  const response = await fetch(import.meta.env.VITE_GET_MESSAGES_URL);
+  const response = await fetch(import.meta.env.VITE_BACKEND_URL);
   if (!response.ok) {
     throw new Error("Falha ao buscar as mensagens.");
   }
