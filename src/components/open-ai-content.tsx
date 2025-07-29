@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,158 +45,112 @@ import {
   Copy,
   Eye,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
+import { usePrompts } from "@/hooks/usePrompts";
+import type { Prompt, PromptCreate } from "@/interfaces/prompt-interface";
 
-interface Prompt {
-  id: string;
-  nome: string;
-  descricao: string;
-  prompt: string;
-  dadosEmpresa: string;
-  fila: string;
-  respostaIA: string;
-  maxTokens: number;
-  status: "Ativo" | "Inativo";
-  criadoEm: string;
-  ultimoUso: string;
-  totalUsos: number;
-}
-
-const mockPrompts: Prompt[] = [
-  {
-    id: "1",
-    nome: "PROMPT 1",
-    descricao: "Atendimento geral para suporte técnico",
-    prompt:
-      "Você é um assistente de suporte técnico especializado em resolver problemas de forma clara e objetiva.",
-    dadosEmpresa:
-      "Empresa de tecnologia focada em soluções de comunicação empresarial.",
-    fila: "Fila 1",
-    respostaIA: "Balanceado",
-    maxTokens: 500,
-    status: "Ativo",
-    criadoEm: "2024-01-15",
-    ultimoUso: "2024-01-20",
-    totalUsos: 245,
-  },
-  {
-    id: "2",
-    nome: "Atendimento Vendas",
-    descricao: "Prompt especializado para equipe de vendas",
-    prompt:
-      "Você é um consultor de vendas experiente, focado em entender as necessidades do cliente e oferecer soluções personalizadas.",
-    dadosEmpresa:
-      "Empresa líder em soluções de comunicação empresarial com mais de 10 anos de mercado.",
-    fila: "Vendas",
-    respostaIA: "Criativo",
-    maxTokens: 750,
-    status: "Ativo",
-    criadoEm: "2024-01-10",
-    ultimoUso: "2024-01-19",
-    totalUsos: 189,
-  },
-  {
-    id: "3",
-    nome: "Suporte Financeiro",
-    descricao: "Assistente para questões financeiras e cobrança",
-    prompt:
-      "Você é um assistente financeiro que ajuda clientes com questões de pagamento, faturas e planos de forma empática e profissional.",
-    dadosEmpresa:
-      "Oferecemos planos flexíveis de comunicação empresarial com diferentes modalidades de pagamento.",
-    fila: "Financeiro",
-    respostaIA: "Preciso",
-    maxTokens: 400,
-    status: "Inativo",
-    criadoEm: "2024-01-05",
-    ultimoUso: "2024-01-18",
-    totalUsos: 67,
-  },
-];
-
-const filas = [
-  "Fila 1",
-  "Vendas",
-  "Suporte",
-  "Financeiro",
-  "Técnico",
-  "Comercial",
-];
-
-const tiposResposta = ["Balanceado", "Criativo", "Preciso", "Rápido"];
+const filas = ["Suporte N1", "Vendas", "Financeiro", "Geral"];
 
 export function OpenAIContent() {
-  const [prompts, setPrompts] = useState<Prompt[]>(mockPrompts);
+  const {
+    prompts,
+    isLoading,
+    isError,
+    createPrompt,
+    updatePrompt,
+    deletePrompt,
+  } = usePrompts();
+  const [data, setData] = useState<Prompt[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
-  const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
+  const [formData, setFormData] = useState<
+    Omit<Prompt, "id" | "apiKey" | "createdAt" | "updatedAt">
+  >({
+    title: "",
     prompt: "",
-    dadosEmpresa: "",
-    fila: "",
-    respostaIA: "",
+    description: "",
+    companyResume: "",
+    queueId: "",
     maxTokens: 500,
+    maxMessages: 500,
+    promptTokens: 1,
+    temperature: 1,
+    completionTokens: 1,
+    totalTokens: 1,
+    assistantId: "",
   });
+  useEffect(() => {
+    if (!isLoading && !isError) {
+      setData(prompts);
+    }
+  }, [prompts, isLoading, isError]);
 
   const filteredPrompts = prompts.filter(
     (prompt) =>
-      prompt.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prompt.fila.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prompt.descricao.toLowerCase().includes(searchTerm.toLowerCase()),
+      prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      prompt.queueId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (prompt.description || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()),
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
-      !formData.nome ||
+      !formData.title ||
+      !formData.maxTokens ||
+      !formData.maxMessages ||
       !formData.prompt ||
-      !formData.fila ||
-      !formData.respostaIA
+      !formData.queueId ||
+      !formData.companyResume
     ) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    if (editingPrompt) {
-      setPrompts(
-        prompts.map((p) =>
-          p.id === editingPrompt.id
-            ? {
-                ...p,
-                ...formData,
-                status: "Ativo" as const,
-              }
-            : p,
-        ),
-      );
-      toast.success("Prompt atualizado com sucesso!");
-    } else {
-      const newPrompt: Prompt = {
-        id: Date.now().toString(),
-        ...formData,
-        status: "Ativo",
-        criadoEm: new Date().toISOString().split("T")[0],
-        ultimoUso: "-",
-        totalUsos: 0,
-      };
-      setPrompts([...prompts, newPrompt]);
-      toast.success("Prompt criado com sucesso!");
-    }
+    const payload = {
+      title: formData.title,
+      apiKey: import.meta.env.API_KEY_AI,
+      prompt: formData.prompt,
+      maxTokens: formData.maxTokens || 500,
+      maxMessages: formData.maxMessages || 500,
+      temperature: formData.temperature || 0.8,
+      description: formData.description || "",
+      companyResume: formData.companyResume,
+      queueId: formData.queueId,
+    };
 
-    resetForm();
+    try {
+      if (editingPrompt) {
+        updatePrompt({ ...editingPrompt, ...payload });
+        toast.success("Prompt atualizado com sucesso!");
+      } else {
+        createPrompt(payload as PromptCreate);
+        toast.success("Prompt criado com sucesso!");
+      }
+      resetForm();
+    } catch (error) {
+      console.error("Falha ao salvar o prompt:", error);
+      toast.error("Ocorreu um erro ao salvar o prompt.");
+    }
   };
 
   const resetForm = () => {
     setFormData({
-      nome: "",
-      descricao: "",
+      title: "",
       prompt: "",
-      dadosEmpresa: "",
-      fila: "",
-      respostaIA: "",
+      description: "",
+      companyResume: "",
+      queueId: "",
       maxTokens: 500,
+      maxMessages: 500,
+      promptTokens: 1,
+      temperature: 0.8,
+      completionTokens: 1,
+      totalTokens: 1,
+      assistantId: "",
     });
     setEditingPrompt(null);
     setIsDialogOpen(false);
@@ -205,48 +159,56 @@ export function OpenAIContent() {
   const handleEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
     setFormData({
-      nome: prompt.nome,
-      descricao: prompt.descricao,
-      prompt: prompt.prompt,
-      dadosEmpresa: prompt.dadosEmpresa,
-      fila: prompt.fila,
-      respostaIA: prompt.respostaIA,
-      maxTokens: prompt.maxTokens,
+      title: formData.title,
+      prompt: formData.prompt,
+      maxTokens: formData.maxTokens || 500,
+      maxMessages: formData.maxMessages || 500,
+      temperature: formData.temperature || 0.8,
+      description: formData.description || "",
+      companyResume: formData.companyResume,
+      queueId: formData.queueId,
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setPrompts(prompts.filter((p) => p.id !== id));
-    toast.success("Prompt excluído com sucesso!");
+  const handleDelete = async (id: string) => {
+    try {
+      deletePrompt(id);
+      toast.success("Prompt excluído com sucesso!");
+    } catch (error) {
+      console.error("Falha ao excluir o prompt:", error);
+      toast.error("Ocorreu um erro ao excluir o prompt.");
+    }
   };
+
+  const handleDuplicate = (promptToDuplicate: Prompt) => {
+    const newPromptPayload: PromptCreate = {
+      ...promptToDuplicate,
+      title: `${promptToDuplicate.title} (Cópia)`,
+    };
+    try {
+      createPrompt(newPromptPayload);
+      toast.success("Prompt duplicado com sucesso!");
+    } catch (error) {
+      console.error("Falha ao duplicar o prompt:", error);
+      toast.error("Ocorreu um erro ao duplicar o prompt.");
+    }
+  };
+
+  // const toggleStatus = async (prompt: Prompt) => {
+  //   // const newStatus = prompt.status === "Ativo" ? "Inativo" : "Ativo";
+  //   // const payload = { status: newStatus };
+  //   // try {
+  //   //   await updatePrompt(prompt.id, payload);
+  //   //   toast.success("Status do prompt alterado!");
+  //   // } catch (error) {
+  //   //   toast.error("Falha ao alterar status.");
+  //   // }
+  //   toast.info("Função 'toggleStatus' precisa ser implementada com o backend.");
+  // };
 
   const handleTest = (prompt: Prompt) => {
-    toast.info(`Testando prompt: ${prompt.nome}`);
-  };
-
-  const handleDuplicate = (prompt: Prompt) => {
-    const newPrompt: Prompt = {
-      ...prompt,
-      id: Date.now().toString(),
-      nome: `${prompt.nome} (Cópia)`,
-      criadoEm: new Date().toISOString().split("T")[0],
-      ultimoUso: "-",
-      totalUsos: 0,
-    };
-    setPrompts([...prompts, newPrompt]);
-    toast.success("Prompt duplicado com sucesso!");
-  };
-
-  const toggleStatus = (id: string) => {
-    setPrompts(
-      prompts.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "Ativo" ? "Inativo" : "Ativo" }
-          : p,
-      ),
-    );
-    toast.success("Status do prompt alterado!");
+    toast.info(`Testando prompt: ${prompt.title}`);
   };
 
   return (
@@ -284,9 +246,9 @@ export function OpenAIContent() {
                   <Label htmlFor="nome">Nome *</Label>
                   <Input
                     id="nome"
-                    value={formData.nome}
+                    value={formData.title}
                     onChange={(e) =>
-                      setFormData({ ...formData, nome: e.target.value })
+                      setFormData({ ...formData, title: e.target.value })
                     }
                     placeholder="Nome do prompt"
                     required
@@ -317,9 +279,9 @@ export function OpenAIContent() {
                 </Label>
                 <Textarea
                   id="descricao"
-                  value={formData.descricao}
+                  value={formData.description}
                   onChange={(e) =>
-                    setFormData({ ...formData, descricao: e.target.value })
+                    setFormData({ ...formData, description: e.target.value })
                   }
                   placeholder="Descreva como a IA deve se comportar..."
                   rows={3}
@@ -346,9 +308,9 @@ export function OpenAIContent() {
                 </Label>
                 <Textarea
                   id="dadosEmpresa"
-                  value={formData.dadosEmpresa}
+                  value={formData.companyResume}
                   onChange={(e) =>
-                    setFormData({ ...formData, dadosEmpresa: e.target.value })
+                    setFormData({ ...formData, companyResume: e.target.value })
                   }
                   placeholder="Informações sobre a empresa que a IA pode usar..."
                   rows={4}
@@ -359,9 +321,9 @@ export function OpenAIContent() {
                 <div className="space-y-2">
                   <Label>Filas *</Label>
                   <Select
-                    value={formData.fila}
+                    value={formData.queueId}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, fila: value })
+                      setFormData({ ...formData, queueId: value })
                     }
                   >
                     <SelectTrigger>
@@ -379,23 +341,17 @@ export function OpenAIContent() {
 
                 <div className="space-y-2">
                   <Label>Resposta da IA *</Label>
-                  <Select
-                    value={formData.respostaIA}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, respostaIA: value })
+                  <Input
+                    id="temperature"
+                    type="number"
+                    value={formData.temperature}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        temperature: Number(e.target.value),
+                      })
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Tipo de resposta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tiposResposta.map((tipo) => (
-                        <SelectItem key={tipo} value={tipo}>
-                          {tipo}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
               </div>
 
@@ -468,10 +424,10 @@ export function OpenAIContent() {
                   <TableCell>
                     <div>
                       <div className="font-medium text-gray-900">
-                        {prompt.nome}
+                        {prompt.title}
                       </div>
                       <div className="max-w-xs truncate text-sm text-gray-500">
-                        {prompt.descricao}
+                        {prompt.description}
                       </div>
                     </div>
                   </TableCell>
@@ -480,13 +436,13 @@ export function OpenAIContent() {
                       variant="outline"
                       className="border-blue-200 bg-blue-50 text-blue-700"
                     >
-                      {prompt.fila}
+                      {prompt.queueId}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">
                     {prompt.maxTokens}
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <Badge
                       variant={
                         prompt.status === "Ativo" ? "default" : "secondary"
@@ -499,22 +455,20 @@ export function OpenAIContent() {
                     >
                       {prompt.status}
                     </Badge>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <Badge
                       variant="outline"
                       className="border-purple-200 bg-purple-50 text-purple-700"
                     >
-                      {prompt.respostaIA}
+                      {prompt.temperature}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">
-                    {prompt.totalUsos.toLocaleString()}
+                    {prompt.totalTokens}
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">
-                    {prompt.ultimoUso === "-"
-                      ? "-"
-                      : new Date(prompt.ultimoUso).toLocaleDateString("pt-BR")}
+                    {new Date(prompt.updatedAt).toLocaleDateString("pt-BR")}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end space-x-2">
@@ -555,12 +509,12 @@ export function OpenAIContent() {
                             <Copy className="mr-2 h-4 w-4" />
                             Duplicar
                           </DropdownMenuItem>
-                          <DropdownMenuItem
+                          {/* <DropdownMenuItem
                             onClick={() => toggleStatus(prompt.id)}
                           >
                             <Eye className="mr-2 h-4 w-4" />
                             {prompt.status === "Ativo" ? "Desativar" : "Ativar"}
-                          </DropdownMenuItem>
+                          </DropdownMenuItem> */}
                           <DropdownMenuItem
                             onClick={() => handleDelete(prompt.id)}
                             className="text-red-600"
@@ -578,6 +532,7 @@ export function OpenAIContent() {
           </TableBody>
         </Table>
       </div>
+      <Toaster />
     </div>
   );
 }
