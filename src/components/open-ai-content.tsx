@@ -43,13 +43,13 @@ import {
   Search,
   Play,
   Copy,
-  Eye,
+  Square,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt, PromptCreate } from "@/interfaces/prompt-interface";
-
-const filas = ["Suporte N1", "Vendas", "Financeiro", "Geral"];
+import { useQueues } from "@/hooks/useQueues";
+import { promptSchema } from "@/validations/promptSchema";
 
 export function OpenAIContent() {
   const {
@@ -60,6 +60,7 @@ export function OpenAIContent() {
     updatePrompt,
     deletePrompt,
   } = usePrompts();
+  const { queues, isLoadingQueues } = useQueues();
   const [data, setData] = useState<Prompt[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,51 +81,67 @@ export function OpenAIContent() {
     totalTokens: 1,
     assistantId: "",
   });
+  const [validationErrors, setValidationErrors] = useState<{
+    title?: string[];
+    prompt?: string[];
+    description?: string[];
+    companyResume?: string[];
+    maxTokens?: string[];
+    temperature?: string[];
+    queueId?: string[];
+  }>({});
   useEffect(() => {
     if (!isLoading && !isError) {
       setData(prompts);
     }
   }, [prompts, isLoading, isError]);
 
-  const filteredPrompts = prompts.filter(
-    (prompt) =>
-      prompt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      prompt.queueId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (prompt.description || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()),
-  );
+  const filteredPrompts = prompts.filter((prompt) => {
+    const term = searchTerm.toLowerCase();
+
+    return (
+      prompt.title.toLowerCase().includes(term) ||
+      prompt.description?.toLowerCase().includes(term) ||
+      (prompt.isActive ? "ativo" : "inativo").includes(term)
+    );
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const result = promptSchema.safeParse(formData);
 
-    if (
-      !formData.title ||
-      !formData.maxTokens ||
-      !formData.maxMessages ||
-      !formData.prompt ||
-      !formData.queueId ||
-      !formData.companyResume
-    ) {
-      toast.error("Preencha todos os campos obrigatórios");
+    if (!result.success) {
+      const fieldErrors: Record<string, string[]> = {};
+
+      result.error.issues.forEach((issue) => {
+        const field = issue.path[0];
+        if (typeof field === "string") {
+          if (!fieldErrors[field]) fieldErrors[field] = [];
+          fieldErrors[field].push(issue.message);
+        }
+      });
+
+      setValidationErrors(fieldErrors);
+      toast.error("Corrija os campos obrigatórios antes de continuar.");
       return;
     }
+    setValidationErrors({});
 
     const payload = {
-      title: formData.title,
-      apiKey: import.meta.env.API_KEY_AI,
-      prompt: formData.prompt,
-      maxTokens: formData.maxTokens || 500,
-      maxMessages: formData.maxMessages || 500,
-      temperature: formData.temperature || 0.8,
-      description: formData.description || "",
-      companyResume: formData.companyResume,
-      queueId: formData.queueId,
+      title: result.data.title,
+      apiKey: import.meta.env.VITE_API_KEY_AI,
+      prompt: result.data.prompt,
+      maxTokens: result.data.maxTokens,
+      maxMessages: result.data.maxMessages,
+      temperature: result.data.temperature || 0.8,
+      description: result.data.description || "",
+      companyResume: result.data.companyResume,
+      queueId: result.data.queueId,
     };
 
     try {
       if (editingPrompt) {
-        updatePrompt({ ...editingPrompt, ...payload });
+        updatePrompt({ ...editingPrompt, ...payload, id: editingPrompt.id });
         toast.success("Prompt atualizado com sucesso!");
       } else {
         createPrompt(payload as PromptCreate);
@@ -132,11 +149,9 @@ export function OpenAIContent() {
       }
       resetForm();
     } catch (error) {
-      console.error("Falha ao salvar o prompt:", error);
-      toast.error("Ocorreu um erro ao salvar o prompt.");
+      toast.error("Ocorreu um erro ao salvar o prompt." + error);
     }
   };
-
   const resetForm = () => {
     setFormData({
       title: "",
@@ -156,17 +171,29 @@ export function OpenAIContent() {
     setIsDialogOpen(false);
   };
 
+  const handleToggleActive = async (prompt: Prompt) => {
+    const newIsActive = !prompt.isActive;
+
+    try {
+      updatePrompt({
+        ...prompt,
+        id: prompt.id,
+        isActive: newIsActive,
+      });
+      toast.success(
+        `Prompt ${newIsActive ? "ativado" : "desativado"} com sucesso!`,
+      );
+    } catch (error) {
+      console.error("Falha ao atualizar o status do prompt:", error);
+      toast.error("Ocorreu um erro ao atualizar o status.");
+    }
+  };
+
   const handleEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
     setFormData({
-      title: formData.title,
-      prompt: formData.prompt,
-      maxTokens: formData.maxTokens || 500,
-      maxMessages: formData.maxMessages || 500,
-      temperature: formData.temperature || 0.8,
-      description: formData.description || "",
-      companyResume: formData.companyResume,
-      queueId: formData.queueId,
+      ...prompt,
+      queueId: prompt.queueId,
     });
     setIsDialogOpen(true);
   };
@@ -211,6 +238,12 @@ export function OpenAIContent() {
     toast.info(`Testando prompt: ${prompt.title}`);
   };
 
+  const getQueueNameById = (queueId: string): string => {
+    return (
+      queues.find((q) => q.id === queueId)?.name || "Nenhuma fila encontrada"
+    );
+  };
+
   return (
     <div className="flex-1 space-y-6 p-6">
       {/* Header */}
@@ -251,8 +284,12 @@ export function OpenAIContent() {
                       setFormData({ ...formData, title: e.target.value })
                     }
                     placeholder="Nome do prompt"
-                    required
                   />
+                  {validationErrors.title && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.title[0]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="maxTokens">Máximo Tokens Resposta</Label>
@@ -267,9 +304,12 @@ export function OpenAIContent() {
                       })
                     }
                     placeholder="500"
-                    min="50"
-                    max="2000"
                   />
+                  {validationErrors.maxTokens && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.maxTokens[0]}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -286,6 +326,11 @@ export function OpenAIContent() {
                   placeholder="Descreva como a IA deve se comportar..."
                   rows={3}
                 />
+                {validationErrors.description && (
+                  <p className="text-sm text-red-500">
+                    {validationErrors.description[0]}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -298,13 +343,17 @@ export function OpenAIContent() {
                   }
                   placeholder="Digite o prompt que será usado pela IA..."
                   rows={6}
-                  required
                 />
+                {validationErrors.prompt && (
+                  <p className="text-sm text-red-500">
+                    {validationErrors.prompt[0]}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="dadosEmpresa">
-                  Dados da empresa para pesquisa e geração de respostas da IA
+                  Dados da empresa para pesquisa e geração de respostas da IA *
                 </Label>
                 <Textarea
                   id="dadosEmpresa"
@@ -315,6 +364,11 @@ export function OpenAIContent() {
                   placeholder="Informações sobre a empresa que a IA pode usar..."
                   rows={4}
                 />
+                {validationErrors.companyResume && (
+                  <p className="text-sm text-red-500">
+                    {validationErrors.companyResume[0]}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -325,18 +379,30 @@ export function OpenAIContent() {
                     onValueChange={(value) =>
                       setFormData({ ...formData, queueId: value })
                     }
+                    disabled={isLoadingQueues}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma fila" />
+                      <SelectValue
+                        placeholder={
+                          isLoadingQueues
+                            ? "Carregando filas..."
+                            : "Selecione uma fila"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {filas.map((fila) => (
-                        <SelectItem key={fila} value={fila}>
-                          {fila}
+                      {queues.map((queue) => (
+                        <SelectItem key={queue.id} value={queue.id.toString()}>
+                          {queue.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {validationErrors.queueId && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.queueId[0]}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -344,6 +410,7 @@ export function OpenAIContent() {
                   <Input
                     id="temperature"
                     type="number"
+                    step="0.1"
                     value={formData.temperature}
                     onChange={(e) =>
                       setFormData({
@@ -352,6 +419,11 @@ export function OpenAIContent() {
                       })
                     }
                   />
+                  {validationErrors.temperature && (
+                    <p className="text-sm text-red-500">
+                      {validationErrors.temperature[0]}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -395,7 +467,7 @@ export function OpenAIContent() {
               <TableHead>Status</TableHead>
               <TableHead>Tipo Resposta</TableHead>
               <TableHead>Total Usos</TableHead>
-              <TableHead>Último Uso</TableHead>
+              <TableHead>Última Atualização</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -426,9 +498,6 @@ export function OpenAIContent() {
                       <div className="font-medium text-gray-900">
                         {prompt.title}
                       </div>
-                      <div className="max-w-xs truncate text-sm text-gray-500">
-                        {prompt.description}
-                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -436,32 +505,38 @@ export function OpenAIContent() {
                       variant="outline"
                       className="border-blue-200 bg-blue-50 text-blue-700"
                     >
-                      {prompt.queueId}
+                      {getQueueNameById(prompt.queueId)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">
                     {prompt.maxTokens}
                   </TableCell>
-                  {/* <TableCell>
+                  <TableCell>
                     <Badge
-                      variant={
-                        prompt.status === "Ativo" ? "default" : "secondary"
-                      }
+                      variant={prompt.isActive ? "default" : "secondary"}
                       className={
-                        prompt.status === "Ativo"
+                        prompt.isActive
                           ? "bg-green-100 text-green-800"
                           : "bg-gray-100 text-gray-800"
                       }
                     >
-                      {prompt.status}
+                      {prompt.isActive ? "Ativo" : "Inativo"}
                     </Badge>
-                  </TableCell> */}
+                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
                       className="border-purple-200 bg-purple-50 text-purple-700"
                     >
-                      {prompt.temperature}
+                      {typeof prompt.temperature === "number"
+                        ? prompt.temperature <= 0.3
+                          ? "Precisão"
+                          : prompt.temperature <= 0.6
+                            ? "Equilibrado"
+                            : prompt.temperature <= 1
+                              ? "Criatividade"
+                              : "Livre"
+                        : "Não definido"}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">
@@ -475,10 +550,15 @@ export function OpenAIContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleTest(prompt)}
+                        onClick={() => handleToggleActive(prompt)}
                         className="h-8 w-8 p-0"
+                        title={prompt.isActive ? "Desativar" : "Ativar"}
                       >
-                        <Play className="h-4 w-4" />
+                        {prompt.isActive ? (
+                          <Square className="h-4 w-4 text-red-500" />
+                        ) : (
+                          <Play className="h-4 w-4 text-green-500" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"

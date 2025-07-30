@@ -26,10 +26,11 @@ import {
   Cog,
   Info,
 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export function Sidebar() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isCampanhasOpen, setIsCampanhasOpen] = useState(false);
 
@@ -101,11 +102,11 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4">
         <div className="space-y-1 px-3">
           {mainItems.map((item) => (
-            <a
+            <button
               key={item.name}
-              href={item.href}
+              onClick={() => navigate(item.href)}
               className={cn(
-                "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 pathname === item.href
                   ? "bg-primary text-white"
                   : "text-gray-700 hover:bg-gray-100",
@@ -113,7 +114,7 @@ export function Sidebar() {
             >
               <item.icon className="mr-3 h-4 w-4" />
               {item.name}
-            </a>
+            </button>
           ))}
         </div>
 
@@ -154,9 +155,9 @@ export function Sidebar() {
                       {item.isOpen && item.subItems && (
                         <div className="mt-1 space-y-1">
                           {item.subItems.map((subItem) => (
-                            <a
+                            <button
                               key={subItem.name}
-                              href={subItem.href}
+                              onClick={() => navigate(subItem.href)}
                               className={cn(
                                 "flex items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
                                 pathname === subItem.href
@@ -166,14 +167,14 @@ export function Sidebar() {
                             >
                               <subItem.icon className="mr-3 h-3 w-3" />
                               {subItem.name}
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
                     </>
                   ) : (
-                    <a
-                      href={item.href}
+                    <button
+                      onClick={() => navigate(item.href || "")}
                       className={cn(
                         "flex items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
                         pathname === item.href
@@ -183,7 +184,7 @@ export function Sidebar() {
                     >
                       <item.icon className="mr-3 h-4 w-4" />
                       {item.name}
-                    </a>
+                    </button>
                   )}
                 </div>
               ))}
@@ -193,7 +194,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-gray-200 p-4">
-        <p className="text-center text-xs text-gray-500">Versão: 5.2.1</p>
+        <p className="text-center text-xs text-gray-500">Versão: 2.0</p>
       </div>
     </div>
   );

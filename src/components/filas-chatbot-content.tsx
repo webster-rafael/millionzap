@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +28,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { useQueues } from "@/hooks/useQueues";
 import type { Queue, QueueCreate } from "@/interfaces/queues-interface";
+import { usePrompts } from "@/hooks/usePrompts";
+import type { Prompt } from "@/interfaces/prompt-interface";
 
 type Schedule = {
   weekday: string;
@@ -110,24 +112,17 @@ const horariosToSchedules = (horarios: Horarios): Schedule[] => {
 };
 
 export default function FilasChatbotContent() {
-  const {
-    queues,
-    isLoading,
-    isError,
-    create,
-    isCreating,
-    isErrorQueues,
-    update,
-    isUpdating,
-    isLoadingQueues,
-    remove,
-  } = useQueues();
+  const { queues, create, isErrorQueues, update, isLoadingQueues, remove } =
+    useQueues();
+
+  const { prompts } = usePrompts();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"dados" | "horarios">("dados");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [editingFilaId, setEditingFilaId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [promptsList, setPromptList] = useState<Prompt[]>([]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -140,6 +135,12 @@ export default function FilasChatbotContent() {
     prompt: "",
     horarios: createInitialHorarios(),
   });
+
+  useEffect(() => {
+    if (prompts.length) {
+      setPromptList(prompts);
+    }
+  }, [prompts]);
 
   const filteredFilas = useMemo(() => {
     return queues.filter(
@@ -279,22 +280,25 @@ export default function FilasChatbotContent() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Cor</TableHead>
-                <TableHead>Ordenação (bot)</TableHead>
-                <TableHead>Mensagem de saudação</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead className="text-center">Nome</TableHead>
+                <TableHead className="text-center">Cor</TableHead>
+                <TableHead className="text-center">Ordenação (bot)</TableHead>
+                <TableHead className="text-center">
+                  Mensagem de saudação
+                </TableHead>
+                <TableHead className="text-center">Prompt</TableHead>
+                <TableHead className="text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && (
+              {isLoadingQueues && (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     Carregando...
                   </TableCell>
                 </TableRow>
               )}
-              {isError && (
+              {isErrorQueues && (
                 <TableRow>
                   <TableCell
                     colSpan={5}
@@ -304,11 +308,11 @@ export default function FilasChatbotContent() {
                   </TableCell>
                 </TableRow>
               )}
-              {!isLoading && !isError && filteredFilas.length > 0
+              {!isLoadingQueues && !isErrorQueues && filteredFilas.length > 0
                 ? filteredFilas.map((fila) => (
-                    <TableRow key={fila.id}>
+                    <TableRow className="text-center" key={fila.id}>
                       <TableCell className="font-medium">{fila.name}</TableCell>
-                      <TableCell>
+                      <TableCell className="flex h-12 items-center justify-center">
                         <div
                           className="h-4 w-16 rounded"
                           style={{ backgroundColor: fila.color }}
@@ -318,8 +322,12 @@ export default function FilasChatbotContent() {
                       <TableCell className="max-w-xs truncate">
                         {fila.greetingMessage || "Não definida"}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end space-x-2">
+                      <TableCell>
+                        {promptsList.find((p) => p.id === fila.promptId)
+                          ?.title || "Não definido"}
+                      </TableCell>
+                      <TableCell className="">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -340,13 +348,15 @@ export default function FilasChatbotContent() {
                     </TableRow>
                   ))
                 : null}
-              {!isLoading && !isError && filteredFilas.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    Nenhuma fila encontrada.
-                  </TableCell>
-                </TableRow>
-              )}
+              {!isLoadingQueues &&
+                !isErrorQueues &&
+                filteredFilas.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      Nenhuma fila encontrada.
+                    </TableCell>
+                  </TableRow>
+                )}
             </TableBody>
           </Table>
         </div>
@@ -492,9 +502,9 @@ export default function FilasChatbotContent() {
                     </Select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                    <Label className="mb-2 block text-sm font-medium text-gray-700">
                       Prompt
-                    </label>
+                    </Label>
                     <Select
                       value={formData.promptId}
                       onValueChange={(value) =>
@@ -505,11 +515,11 @@ export default function FilasChatbotContent() {
                         <SelectValue placeholder="Selecione um prompt" />
                       </SelectTrigger>
                       <SelectContent>
-                        {queues.map((fila) => (
-                          <SelectItem key={fila.id} value={fila.id}>{`${
-                            fila.promptId === undefined
+                        {promptsList.map((prompt) => (
+                          <SelectItem key={prompt.id} value={prompt.id}>{`${
+                            prompt.id === undefined
                               ? "Prompt não definido"
-                              : fila.promptId
+                              : prompt.title
                           }`}</SelectItem>
                         ))}
                       </SelectContent>
