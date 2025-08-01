@@ -1,9 +1,6 @@
-import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -46,7 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import {
   Users,
   Search,
@@ -56,42 +53,36 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
+  Loader2,
 } from "lucide-react";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  profile: "admin" | "manager" | "user";
-  queues: string[];
-  defaultConnection: string;
-  createdAt: string;
-  lastLogin: string;
-}
+import { useUsers } from "@/hooks/useUsers";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+import type { User, UserCreate } from "@/interfaces/user-interface";
+import { useForm } from "react-hook-form";
+import { userSchema, type UserFormData } from "@/validations/userSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export function UsuariosContent() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      name: "Webster",
-      email: "webster@admin.com",
-      profile: "user",
-      queues: ["Suporte", "Vendas"],
-      defaultConnection: "WhatsApp Principal",
-      createdAt: "2024-01-15",
-      lastLogin: "2024-01-20 14:30",
-    },
-    {
-      id: "2",
-      name: "Admin",
-      email: "admin@admin.com",
-      profile: "admin",
-      queues: ["Todas"],
-      defaultConnection: "WhatsApp Principal",
-      createdAt: "2024-01-01",
-      lastLogin: "2024-01-20 16:45",
-    },
-  ]);
+  const {
+    users,
+    isLoading,
+    isError,
+    createUser,
+    isCreating,
+    updateUser,
+    isUpdating,
+    deleteUser,
+  } = useUsers();
+
+  const { whatsappConnections } = useWhatsAppConnections();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,148 +91,129 @@ export function UsuariosContent() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    profile: "user" as "admin" | "manager" | "user",
-    queues: [] as string[],
-    defaultConnection: "",
-  });
-
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.profile.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleAddUser = () => {
-    setEditingUser(null);
-    setFormData({
+  const form = useForm<UserFormData>({
+    resolver: zodResolver(userSchema),
+    defaultValues: {
       name: "",
       email: "",
       password: "",
-      profile: "user",
-      queues: [],
-      defaultConnection: "",
-    });
-    setIsModalOpen(true);
-  };
+      role: "USER",
+      whatsAppConnectionId: "",
+    },
+  });
 
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: "",
-      profile: user.profile,
-      queues: user.queues,
-      defaultConnection: user.defaultConnection,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteUser = (user: User) => {
-    setUserToDelete(user);
-    setDeleteConfirmOpen(true);
-  };
-
-  const confirmDeleteUser = () => {
-    if (userToDelete) {
-      setUsers(users.filter((u) => u.id !== userToDelete.id));
-      toast({
-        title: "Usuário excluído",
-        description: `O usuário "${userToDelete.name}" foi excluído com sucesso.`,
-      });
-    }
-    setDeleteConfirmOpen(false);
-    setUserToDelete(null);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.name ||
-      !formData.email ||
-      (!editingUser && !formData.password)
-    ) {
-      toast({
-        title: "Erro",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (editingUser) {
-      setUsers(
-        users.map((user) =>
-          user.id === editingUser.id
-            ? {
-                ...user,
-                name: formData.name,
-                email: formData.email,
-                profile: formData.profile,
-                queues: formData.queues,
-                defaultConnection: formData.defaultConnection,
-              }
-            : user,
-        ),
-      );
-      toast({
-        title: "Usuário atualizado",
-        description: "As informações do usuário foram atualizadas com sucesso.",
+  const handleOpenModal = (user?: User) => {
+    setEditingUser(user || null);
+    if (user) {
+      form.reset({
+        name: user.name,
+        email: user.email,
+        password: "",
+        role: user.role as "ADMIN" | "USER",
       });
     } else {
-      const newUser: User = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        profile: formData.profile,
-        queues: formData.queues,
-        defaultConnection: formData.defaultConnection,
-        createdAt: new Date().toISOString().split("T")[0],
-        lastLogin: "Nunca",
-      };
-      setUsers([...users, newUser]);
-      toast({
-        title: "Usuário criado",
-        description: "O novo usuário foi criado com sucesso.",
-      });
+      form.reset();
     }
-
-    setIsModalOpen(false);
+    setIsModalOpen(true);
   };
 
-  const getProfileBadge = (profile: string) => {
+  const onSubmit = (data: UserCreate) => {
+    const mutationCallback = {
+      onSuccess: () => {
+        setIsModalOpen(false);
+        toast.success(
+          `Usuário ${editingUser ? "atualizado" : "criado"} com sucesso!`,
+        );
+      },
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onError: (error: any) => {
+        if (error?.code === "P2002") {
+          toast.error("E-mail já cadastrado.");
+        } else {
+          toast.error("Não foi possível criar o contato.");
+        }
+      },
+    };
+
+    if (editingUser) {
+      const payload = { ...data };
+      if (!payload.password) {
+        delete (payload as Partial<UserFormData>).password;
+      }
+      const updatedUserData: User = {
+        ...editingUser,
+        ...payload,
+      };
+
+      updateUser(updatedUserData, mutationCallback);
+    } else {
+      createUser(data, mutationCallback);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      deleteUser(userToDelete.id, {
+        onSuccess: () => {
+          toast.success("Usuário excluído com sucesso!");
+          setUserToDelete(null);
+        },
+        onError: (error) => {
+          toast.error(`Falha ao excluir: ${error.message}`);
+          setUserToDelete(null);
+        },
+      });
+    }
+  };
+
+  const getProfileBadge = (role: string) => {
     const variants = {
-      admin: "bg-red-100 text-red-800 border-red-200",
-      manager: "bg-blue-100 text-blue-800 border-blue-200",
-      user: "bg-green-100 text-green-800 border-green-200",
+      ADMIN: "bg-red-100 text-red-800 border-red-200",
+      USER: "bg-green-100 text-green-800 border-green-200",
     };
-
     const labels = {
-      admin: "Administrador",
-      manager: "Gerente",
-      user: "Usuário",
+      ADMIN: "Administrador",
+      USER: "Usuário",
     };
-
     return (
-      <Badge className={variants[profile as keyof typeof variants]}>
-        {labels[profile as keyof typeof labels]}
+      <Badge
+        className={variants[role as keyof typeof variants] || variants.USER}
+      >
+        {labels[role as keyof typeof labels] || "Usuário"}
       </Badge>
     );
   };
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
+
+  if (isLoading)
+    return (
+      <div className="p-6 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="p-6 text-center text-red-500">
+        Falha ao carregar usuários.
+      </div>
+    );
+
+  const handleOpenModalConfirmDelete = () => {
+    setDeleteConfirmOpen(true);
   };
 
   return (
@@ -258,7 +230,7 @@ export function UsuariosContent() {
             </p>
           </div>
           <Button
-            onClick={handleAddUser}
+            onClick={() => handleOpenModal()}
             className="bg-[#00183E] hover:bg-[#00183E]/90"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -291,16 +263,17 @@ export function UsuariosContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Perfil</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="text-start">Nome</TableHead>
+                  <TableHead className="text-center">Email</TableHead>
+                  <TableHead className="text-center">Perfil</TableHead>
+                  <TableHead className="text-center">Conexão</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
+                  <TableRow className="text-center" key={user.id}>
+                    <TableCell className="text-start">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-blue-100 text-sm font-medium text-blue-600">
@@ -319,27 +292,32 @@ export function UsuariosContent() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div>
+                      <div className="text-center">
                         <div>{user.email}</div>
-                        <div className="text-sm text-gray-500">
-                          Último login: {user.lastLogin}
-                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{getProfileBadge(user.profile)}</TableCell>
+                    <TableCell>{getProfileBadge(user.role)}</TableCell>
+                    <TableCell>
+                      {
+                        whatsappConnections.find(
+                          (connection) =>
+                            connection.id === user.whatsAppConnectionId,
+                        )?.name
+                      }
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEditUser(user)}
+                          onClick={() => handleOpenModal(user)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteUser(user)}
+                          onClick={() => setUserToDelete(user)}
                           className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -380,136 +358,156 @@ export function UsuariosContent() {
                   : "Preencha as informações do novo usuário"}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Senha{" "}
+                        {editingUser && (
+                          <span className="text-xs text-gray-500">
+                            (Deixe em branco para não alterar)
+                          </span>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            {...field}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-0 right-0 h-full"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Perfil</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="USER">Usuário</SelectItem>
+                            <SelectItem value="ADMIN">Administrador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="whatsAppConnectionId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conexão Padrão</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {whatsappConnections.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                      required={!editingUser}
-                      placeholder={editingUser ? "••••••" : ""}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="profile">Perfil</Label>
-                  <Select
-                    value={formData.profile}
-                    onValueChange={(value: "admin" | "manager" | "user") =>
-                      setFormData({ ...formData, profile: value })
-                    }
+                <DialogFooter className="gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsModalOpen(false)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o perfil" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">Usuário</SelectItem>
-                      <SelectItem value="manager">Gerente</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="queues">Filas</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione as filas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="suporte">Suporte</SelectItem>
-                      <SelectItem value="vendas">Vendas</SelectItem>
-                      <SelectItem value="financeiro">Financeiro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="connection">Conexão Padrão</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a conexão padrão" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="whatsapp1">
-                      WhatsApp Principal
-                    </SelectItem>
-                    <SelectItem value="whatsapp2">
-                      WhatsApp Secundário
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <DialogFooter className="gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsModalOpen(false)}
-                >
-                  CANCELAR
-                </Button>
-                <Button
-                  type="submit"
-                  className="bg-[#00183E] hover:bg-[#00183E]/90"
-                >
-                  {editingUser ? "SALVAR" : "ADICIONAR"}
-                </Button>
-              </DialogFooter>
-            </form>
+                    CANCELAR
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isCreating || isUpdating}
+                    className="bg-[#00183E] hover:bg-[#00183E]/90"
+                  >
+                    {(isCreating || isUpdating) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {editingUser ? "SALVAR" : "ADICIONAR"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
 
         {/* Modal de Confirmação de Exclusão */}
         <AlertDialog
-          open={deleteConfirmOpen}
-          onOpenChange={setDeleteConfirmOpen}
+          open={!!userToDelete}
+          onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}
         >
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -528,7 +526,7 @@ export function UsuariosContent() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={confirmDeleteUser}
+                onClick={handleConfirmDelete}
                 className="bg-red-600 hover:bg-red-700"
               >
                 Excluir
@@ -537,6 +535,7 @@ export function UsuariosContent() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      <Toaster />
     </div>
   );
 }

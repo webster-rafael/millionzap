@@ -40,7 +40,7 @@ import {
   Power,
   RotateCcw,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import { useQueues } from "@/hooks/useQueues";
 import { usePrompts } from "@/hooks/usePrompts";
@@ -602,6 +602,7 @@ export function ConexoesContent() {
           </div>
         </DialogContent>
       </Dialog>
+      <Toaster />
     </div>
   );
 }
