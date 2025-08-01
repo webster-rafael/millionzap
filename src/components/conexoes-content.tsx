@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -42,186 +41,120 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Conexao {
-  id: string;
-  nome: string;
-  status: "conectado" | "desconectado" | "conectando" | "erro";
-  sessao: string;
-  ultimaAtualizacao: string;
-  padrao: boolean;
-  mensagemSaudacao: string;
-  mensagemConclusao: string;
-  mensagemForaExpediente: string;
-  mensagemAvaliacao: string;
-  token: string;
-  fila: string;
-  prompt: string;
-  transferirApos: number;
-  filaTransferencia: string;
-  encerrarApos: number;
-  mensagemEncerramento: string;
-}
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+import { useQueues } from "@/hooks/useQueues";
+import { usePrompts } from "@/hooks/usePrompts";
+import {
+  connectionSchema,
+  type ConnectionFormData,
+} from "@/validations/whatsConnectionSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import type { WhatsAppConnection } from "@/interfaces/whatsappConnection-interface";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 export function ConexoesContent() {
-  const [conexoes, setConexoes] = useState<Conexao[]>([
-    {
-      id: "1",
-      nome: "Webster",
-      status: "conectado",
-      sessao: "DESCONECTAR",
-      ultimaAtualizacao: "04/07/25 08:06",
-      padrao: true,
-      mensagemSaudacao: "Olá! Como posso ajudá-lo hoje?",
-      mensagemConclusao: "Obrigado pelo contato! Tenha um ótimo dia!",
-      mensagemForaExpediente:
-        "No momento estamos fora do horário de atendimento.",
-      mensagemAvaliacao: "Por favor, avalie nosso atendimento de 1 a 5.",
-      token: "whatsapp_token_123",
-      fila: "Suporte",
-      prompt: "Atendimento Padrão",
-      transferirApos: 5,
-      filaTransferencia: "Supervisor",
-      encerrarApos: 30,
-      mensagemEncerramento: "Chat encerrado por inatividade.",
-    },
-    {
-      id: "2",
-      nome: "webster22",
-      status: "conectando",
-      sessao: "QR CODE",
-      ultimaAtualizacao: "04/07/25 09:42",
-      padrao: false,
-      mensagemSaudacao: "",
-      mensagemConclusao: "",
-      mensagemForaExpediente: "",
-      mensagemAvaliacao: "",
-      token: "",
-      fila: "",
-      prompt: "",
-      transferirApos: 0,
-      filaTransferencia: "",
-      encerrarApos: 0,
-      mensagemEncerramento: "",
-    },
-  ]);
+  const {
+    whatsappConnections,
+    isLoading,
+    isError,
+    createConnection,
+    isCreating,
+    updateConnection,
+    isUpdating,
+    deleteConnection,
+  } = useWhatsAppConnections();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
-  const [editingConexao, setEditingConexao] = useState<Conexao | null>(null);
-  const [formData, setFormData] = useState<Partial<Conexao>>({
-    nome: "",
-    padrao: false,
-    mensagemSaudacao: "",
-    mensagemConclusao: "",
-    mensagemForaExpediente: "",
-    mensagemAvaliacao: "",
-    token: "",
-    fila: "",
-    prompt: "",
-    transferirApos: 5,
-    filaTransferencia: "",
-    encerrarApos: 30,
-    mensagemEncerramento: "",
+  const [editingConexao, setEditingConexao] =
+    useState<WhatsAppConnection | null>(null);
+  const { queues } = useQueues();
+  const { prompts } = usePrompts();
+  const form = useForm<ConnectionFormData>({
+    resolver: zodResolver(connectionSchema),
+    defaultValues: {
+      name: "",
+      isDefault: false,
+      greetingMessage: "",
+      conclusionMessage: "",
+      outOfOfficeHoursMessage: "",
+      reviewMessage: "",
+      token: "",
+      queueId: "",
+      promptId: "",
+      transferQueueId: "",
+      timeToTransfer: "0",
+      expiresInactiveMessage: "",
+    },
   });
 
-  const filteredConexoes = conexoes.filter((conexao) =>
-    conexao.nome.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredConexoes = whatsappConnections.filter((conexao) =>
+    conexao.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleOpenModal = (conexao?: Conexao) => {
+  const handleOpenModal = (conexao?: WhatsAppConnection) => {
     if (conexao) {
       setEditingConexao(conexao);
-      setFormData(conexao);
+      form.reset({
+        name: conexao.name,
+        isDefault: conexao.isDefault,
+        greetingMessage: conexao.greetingMessage || "",
+        conclusionMessage: conexao.conclusionMessage || "",
+        outOfOfficeHoursMessage: conexao.outOfOfficeHoursMessage || "",
+        reviewMessage: conexao.reviewMessage || "",
+        token: conexao.token || "",
+        queueId: conexao.queueId,
+        promptId: conexao.promptId,
+        transferQueueId: conexao.transferQueueId || "",
+        timeToTransfer: conexao.timeToTransfer || "0",
+        expiresInactiveMessage: conexao.expiresInactiveMessage || "",
+      });
     } else {
       setEditingConexao(null);
-      setFormData({
-        nome: "",
-        padrao: false,
-        mensagemSaudacao: "",
-        mensagemConclusao: "",
-        mensagemForaExpediente: "",
-        mensagemAvaliacao: "",
-        token: "",
-        fila: "",
-        prompt: "",
-        transferirApos: 5,
-        filaTransferencia: "",
-        encerrarApos: 30,
-        mensagemEncerramento: "",
-      });
+      form.reset();
     }
     setIsModalOpen(true);
   };
 
-  const handleSaveConexao = () => {
-    if (!formData.nome?.trim()) {
-      toast.error("Nome é obrigatório");
-      return;
-    }
+  const onSubmit = (data: ConnectionFormData) => {
+    const mutationCallback = () => {
+      setIsModalOpen(false);
+      setEditingConexao(null);
+      toast.success(
+        `Conexão ${editingConexao ? "atualizada" : "criada"} com sucesso!`,
+      );
+    };
 
     if (editingConexao) {
-      setConexoes((prev) =>
-        prev.map((conexao) =>
-          conexao.id === editingConexao.id
-            ? {
-                ...conexao,
-                ...formData,
-                ultimaAtualizacao: new Date().toLocaleString("pt-BR"),
-              }
-            : conexao,
-        ),
+      updateConnection(
+        { ...editingConexao, ...data },
+        { onSuccess: mutationCallback },
       );
-      toast.success("Conexão atualizada com sucesso!");
     } else {
-      const newConexao: Conexao = {
-        id: Date.now().toString(),
-        nome: formData.nome!,
-        status: "desconectado",
-        sessao: "QR CODE",
-        ultimaAtualizacao: new Date().toLocaleString("pt-BR"),
-        padrao: formData.padrao || false,
-        mensagemSaudacao: formData.mensagemSaudacao || "",
-        mensagemConclusao: formData.mensagemConclusao || "",
-        mensagemForaExpediente: formData.mensagemForaExpediente || "",
-        mensagemAvaliacao: formData.mensagemAvaliacao || "",
-        token: formData.token || "",
-        fila: formData.fila || "",
-        prompt: formData.prompt || "",
-        transferirApos: formData.transferirApos || 5,
-        filaTransferencia: formData.filaTransferencia || "",
-        encerrarApos: formData.encerrarApos || 30,
-        mensagemEncerramento: formData.mensagemEncerramento || "",
+      const payload = {
+        ...data,
+        session: "",
+        qrCode: "",
+        status: "CLOSED",
       };
-      setConexoes((prev) => [...prev, newConexao]);
-      toast.success("Conexão criada com sucesso!");
+      createConnection(payload, { onSuccess: mutationCallback });
     }
-
-    setIsModalOpen(false);
-    setEditingConexao(null);
   };
 
-  const handleDeleteConexao = (id: string) => {
-    setConexoes((prev) => prev.filter((conexao) => conexao.id !== id));
-    toast.success("Conexão excluída com sucesso!");
-  };
-
-  const handleToggleStatus = (id: string) => {
-    setConexoes((prev) =>
-      prev.map((conexao) =>
-        conexao.id === id
-          ? {
-              ...conexao,
-              status:
-                conexao.status === "conectado" ? "desconectado" : "conectado",
-              sessao:
-                conexao.status === "conectado" ? "QR CODE" : "DESCONECTAR",
-              ultimaAtualizacao: new Date().toLocaleString("pt-BR"),
-            }
-          : conexao,
-      ),
-    );
+  const handleDelete = (id: string) => {
+    deleteConnection(id, {
+      onSuccess: () => toast.success("Conexão excluída com sucesso!"),
+      onError: (err) => toast.error(`Falha ao excluir: ${err.message}`),
+    });
   };
 
   const handleShowQrCode = () => {
@@ -230,27 +163,25 @@ export function ConexoesContent() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "conectado":
+      case "OPEN":
         return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "desconectado":
+      case "CLOSED":
         return <XCircle className="h-4 w-4 text-red-500" />;
-      case "conectando":
+      case "PENDING":
         return <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />;
-      case "erro":
-        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
         return <XCircle className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const getSessaoButton = (conexao: Conexao) => {
+  const getSessaoButton = (conexao: WhatsAppConnection) => {
     if (conexao.status === "conectado") {
       return (
         <Button
           variant="outline"
           size="sm"
           className="border-red-200 bg-transparent text-red-600 hover:bg-red-50"
-          onClick={() => handleToggleStatus(conexao.id)}
+          // onClick={() => handleToggleStatus(conexao.id)}
         >
           DESCONECTAR
         </Button>
@@ -268,6 +199,24 @@ export function ConexoesContent() {
       );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-[#00183E]" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center text-red-500">
+        <XCircle className="mb-4 h-16 w-16" />
+        <h2 className="text-xl font-semibold">Erro ao carregar conexões</h2>
+        <p>Tente recarregar a página.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6">
@@ -368,7 +317,7 @@ export function ConexoesContent() {
                         </div>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">
-                            {conexao.nome}
+                            {conexao.name}
                           </div>
                         </div>
                       </div>
@@ -377,7 +326,13 @@ export function ConexoesContent() {
                       <div className="flex items-center">
                         {getStatusBadge(conexao.status)}
                         <span className="ml-2 text-sm text-gray-900 capitalize">
-                          {conexao.status}
+                          {conexao.status === "OPEN"
+                            ? "Conectado"
+                            : conexao.status === "PENDING"
+                              ? "Conectando"
+                              : conexao.status === "CLOSED"
+                                ? "Desconectado"
+                                : "Houve um erro"}
                         </span>
                       </div>
                     </td>
@@ -385,10 +340,10 @@ export function ConexoesContent() {
                       {getSessaoButton(conexao)}
                     </td>
                     <td className="px-6 py-4 font-mono text-sm whitespace-nowrap text-gray-900">
-                      {conexao.ultimaAtualizacao}
+                      {new Date(conexao.updatedAt).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {conexao.padrao && (
+                      {conexao.isDefault && (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       )}
                     </td>
@@ -420,10 +375,10 @@ export function ConexoesContent() {
                               Duplicar
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleToggleStatus(conexao.id)}
+                            // onClick={() => handleToggleStatus(conexao.id)}
                             >
                               <Power className="mr-2 h-4 w-4" />
-                              {conexao.status === "conectado"
+                              {conexao.status === "OPEN"
                                 ? "Desconectar"
                                 : "Conectar"}
                             </DropdownMenuItem>
@@ -432,7 +387,7 @@ export function ConexoesContent() {
                               Reiniciar
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDeleteConexao(conexao.id)}
+                              onClick={() => handleDelete(conexao.id)}
                               className="text-red-600"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
@@ -458,284 +413,175 @@ export function ConexoesContent() {
               {editingConexao ? "Editar WhatsApp" : "Adicionar WhatsApp"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            {/* Nome e Padrão */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, nome: e.target.value }))
-                  }
-                  placeholder="Nome da conexão"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Nome e Padrão */}
+              <div className="grid grid-cols-2 items-start gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nome da conexão" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              <div className="flex items-center space-x-2 pt-8">
-                <Checkbox
-                  id="padrao"
-                  checked={formData.padrao || false}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, padrao: !!checked }))
-                  }
-                />
-                <Label htmlFor="padrao">Padrão</Label>
-              </div>
-            </div>
-
-            {/* Mensagens */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="mensagemSaudacao">Mensagem de saudação</Label>
-                <Textarea
-                  id="mensagemSaudacao"
-                  value={formData.mensagemSaudacao || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mensagemSaudacao: e.target.value,
-                    }))
-                  }
-                  placeholder="Mensagem de boas-vindas..."
-                  rows={3}
+                <FormField
+                  control={form.control}
+                  name="isDefault"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2 pt-8">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel>Padrão</FormLabel>
+                    </FormItem>
+                  )}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="mensagemConclusao">Mensagem de conclusão</Label>
-                <Textarea
-                  id="mensagemConclusao"
-                  value={formData.mensagemConclusao || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mensagemConclusao: e.target.value,
-                    }))
-                  }
-                  placeholder="Mensagem de despedida..."
-                  rows={3}
-                />
-              </div>
+              {/* Mensagens */}
+              <FormField
+                control={form.control}
+                name="greetingMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mensagem de saudação</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Mensagem de boas-vindas..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="mensagemForaExpediente">
-                  Mensagem de fora de expediente
-                </Label>
-                <Textarea
-                  id="mensagemForaExpediente"
-                  value={formData.mensagemForaExpediente || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mensagemForaExpediente: e.target.value,
-                    }))
-                  }
-                  placeholder="Mensagem para horário não comercial..."
-                  rows={3}
-                />
-              </div>
+              {/* ... (outros campos de Textarea seguem o mesmo padrão) ... */}
+              <FormField
+                control={form.control}
+                name="conclusionMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mensagem de conclusão</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Mensagem de despedida..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="outOfOfficeHoursMessage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mensagem de fora de expediente</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Mensagem para horário não comercial..."
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="mensagemAvaliacao">Mensagem de avaliação</Label>
-                <Textarea
-                  id="mensagemAvaliacao"
-                  value={formData.mensagemAvaliacao || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mensagemAvaliacao: e.target.value,
-                    }))
-                  }
-                  placeholder="Mensagem para solicitar avaliação..."
-                  rows={3}
-                />
-              </div>
-            </div>
-
-            {/* Token, Filas e Prompt */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="token">Token</Label>
-                <Input
-                  id="token"
-                  value={formData.token || ""}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, token: e.target.value }))
-                  }
-                  placeholder="Token de acesso..."
-                  type="password"
-                />
-              </div>
-
+              {/* Filas e Prompt */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fila">Filas</Label>
-                  <Select
-                    value={formData.fila || ""}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, fila: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma fila" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Suporte">Suporte</SelectItem>
-                      <SelectItem value="Vendas">Vendas</SelectItem>
-                      <SelectItem value="Financeiro">Financeiro</SelectItem>
-                      <SelectItem value="Supervisor">Supervisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="prompt">Prompt</Label>
-                  <Select
-                    value={formData.prompt || ""}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, prompt: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um prompt" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Atendimento Padrão">
-                        Atendimento Padrão
-                      </SelectItem>
-                      <SelectItem value="Suporte Técnico">
-                        Suporte Técnico
-                      </SelectItem>
-                      <SelectItem value="Vendas">Vendas</SelectItem>
-                      <SelectItem value="Financeiro">Financeiro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Redirecionamento de Fila */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
-                  Redirecionamento de Fila
-                </h3>
-                <p className="mb-4 text-sm text-gray-500">
-                  Selecione uma fila para os contatos que não possuem fila serem
-                  redirecionados
-                </p>
+                <FormField
+                  control={form.control}
+                  name="queueId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fila Padrão *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma fila" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {queues.map((q) => (
+                            <SelectItem key={q.id} value={q.id}>
+                              {q.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="promptId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Prompt *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um prompt" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {prompts.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="transferirApos">
-                    Transferir após x (minutos)
-                  </Label>
-                  <Input
-                    id="transferirApos"
-                    type="number"
-                    value={formData.transferirApos || 0}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        transferirApos: Number.parseInt(e.target.value) || 0,
-                      }))
-                    }
-                    placeholder="5"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="filaTransferencia">
-                    Fila de Transferência
-                  </Label>
-                  <Select
-                    value={formData.filaTransferencia || ""}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        filaTransferencia: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma fila" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Suporte">Suporte</SelectItem>
-                      <SelectItem value="Vendas">Vendas</SelectItem>
-                      <SelectItem value="Financeiro">Financeiro</SelectItem>
-                      <SelectItem value="Supervisor">Supervisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Botões */}
+              <div className="flex justify-end space-x-3 border-t pt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsModalOpen(false)}
+                >
+                  CANCELAR
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isCreating || isUpdating}
+                  className="bg-[#00183E] hover:bg-[#00183E]/90"
+                >
+                  {(isCreating || isUpdating) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {editingConexao ? "ATUALIZAR" : "ADICIONAR"}
+                </Button>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="encerrarApos">
-                    Encerrar chat aberto após x minutos
-                  </Label>
-                  <Input
-                    id="encerrarApos"
-                    type="number"
-                    value={formData.encerrarApos || 0}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        encerrarApos: Number.parseInt(e.target.value) || 0,
-                      }))
-                    }
-                    placeholder="30"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mensagemEncerramento">
-                    Mensagem de encerramento por inatividade
-                  </Label>
-                  <Select
-                    value={formData.mensagemEncerramento || ""}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        mensagemEncerramento: value,
-                      }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma mensagem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Chat encerrado por inatividade.">
-                        Chat encerrado por inatividade.
-                      </SelectItem>
-                      <SelectItem value="Sessão finalizada automaticamente.">
-                        Sessão finalizada automaticamente.
-                      </SelectItem>
-                      <SelectItem value="Atendimento encerrado por tempo limite.">
-                        Atendimento encerrado por tempo limite.
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {/* Botões */}
-            <div className="flex justify-end space-x-3 border-t pt-6">
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>
-                CANCELAR
-              </Button>
-              <Button
-                onClick={handleSaveConexao}
-                className="bg-[#00183E] hover:bg-[#00183E]/90"
-              >
-                {editingConexao ? "ATUALIZAR" : "ADICIONAR"}
-              </Button>
-            </div>
-          </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
