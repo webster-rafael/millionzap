@@ -63,6 +63,7 @@ export const useContacts = () => {
   } = useQuery<Contact[]>({
     queryKey,
     queryFn: fetchContacts,
+    refetchInterval: 1000,
   });
 
   const onSuccess = () => {

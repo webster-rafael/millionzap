@@ -56,7 +56,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
-import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import type { User, UserCreate } from "@/interfaces/user-interface";
 import { useForm } from "react-hook-form";
 import { userSchema, type UserFormData } from "@/validations/userSchema";
@@ -82,12 +81,9 @@ export function UsuariosContent() {
     deleteUser,
   } = useUsers();
 
-  const { whatsappConnections } = useWhatsAppConnections();
-
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -104,7 +100,6 @@ export function UsuariosContent() {
       email: "",
       password: "",
       role: "USER",
-      whatsAppConnectionId: "",
     },
   });
 
@@ -212,10 +207,6 @@ export function UsuariosContent() {
       </div>
     );
 
-  const handleOpenModalConfirmDelete = () => {
-    setDeleteConfirmOpen(true);
-  };
-
   return (
     <div className="rounded-lg bg-white shadow-sm">
       <div className="p-6">
@@ -297,14 +288,6 @@ export function UsuariosContent() {
                       </div>
                     </TableCell>
                     <TableCell>{getProfileBadge(user.role)}</TableCell>
-                    <TableCell>
-                      {
-                        whatsappConnections.find(
-                          (connection) =>
-                            connection.id === user.whatsAppConnectionId,
-                        )?.name
-                      }
-                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
@@ -446,33 +429,6 @@ export function UsuariosContent() {
                           <SelectContent>
                             <SelectItem value="USER">Usuário</SelectItem>
                             <SelectItem value="ADMIN">Administrador</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="whatsAppConnectionId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Conexão Padrão</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {whatsappConnections.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
