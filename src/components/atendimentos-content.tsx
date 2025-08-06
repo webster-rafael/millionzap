@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import {
   Search,
   Filter,
-  Phone,
   User,
   Paperclip,
   Mic,
@@ -16,6 +15,7 @@ import {
   CheckCheck,
   MessageSquareX,
   MessageSquareShare,
+  ArrowDown,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,8 @@ export function AtendimentosContent() {
   const { queues, isLoadingQueues, isErrorQueues } = useQueues();
   const sendMessageMutation = useSendMessage();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [isOpenModalTransfer, setIsOpenModalTransfer] = useState(false);
+  const [selectedQueueId, setSelectedQueueId] = useState<string>("");
 
   const handleSendMessage = async () => {
     if (
@@ -118,6 +120,21 @@ export function AtendimentosContent() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedConversation?.messages]);
 
+  const handleTransferConfirm = () => {
+    if (!selectedConversationId || !selectedQueueId) {
+      console.error("Conversa ou Fila não selecionada para transferência.");
+      return;
+    }
+
+    updateConversation({
+      id: selectedConversationId,
+      queueId: selectedQueueId,
+    });
+
+    setIsOpenModalTransfer(false);
+    setSelectedQueueId("");
+  };
+
   return (
     <div className="flex h-full">
       {/* Conversations List */}
@@ -138,22 +155,24 @@ export function AtendimentosContent() {
             <Input placeholder="Buscar conversas..." className="pl-10" />
           </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="flex h-10 w-full items-center">
               <TabsTrigger value="abertas" className="text-xs">
                 ABERTAS
                 <Badge
                   variant="secondary"
                   className="bg-primary-million ml-2 text-white"
                 >
-                  {
-                    conversations.filter(
-                      (c) => c.status === "SERVING" || c.status === "WAITING",
-                    ).length
-                  }
+                  {conversations.filter((c) => c.status === "SERVING").length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="resolvidas" className="text-xs">
                 RESOLVIDAS
+                <Badge
+                  variant="secondary"
+                  className="bg-primary-million ml-2 text-white"
+                >
+                  {conversations.filter((c) => c.status === "SERVING").length}
+                </Badge>
               </TabsTrigger>
               <TabsTrigger value="busca" className="text-xs">
                 BUSCA
@@ -170,9 +189,12 @@ export function AtendimentosContent() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todas">Todas as filas</SelectItem>
-              <SelectItem value="suporte">Suporte</SelectItem>
-              <SelectItem value="vendas">Vendas</SelectItem>
-              <SelectItem value="logistica">Logística</SelectItem>
+
+              {queues?.map((queue: { id: string; name: string }) => (
+                <SelectItem key={queue.id} value={queue.id}>
+                  {queue.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -308,9 +330,12 @@ export function AtendimentosContent() {
                               .find((fila) => fila.id === conversation.queueId)
                               ?.name?.toUpperCase() || "SEM FILA"}
                           </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            ADMIN
-                          </Badge>
+                          {conversation.userId &&
+                            conversation.status === "SERVING" && (
+                              <Badge variant="outline" className="text-xs">
+                                ADMIN
+                              </Badge>
+                            )}
                           {activeSubTab === "aguardando" && (
                             <Badge
                               variant="secondary"
@@ -482,7 +507,12 @@ export function AtendimentosContent() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button title="Transferir" variant="outline" size="sm">
+                  <Button
+                    onClick={() => setIsOpenModalTransfer(true)}
+                    title="Transferir"
+                    variant="outline"
+                    size="sm"
+                  >
                     <MessageSquareShare className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="sm">
@@ -600,6 +630,50 @@ export function AtendimentosContent() {
           </div>
         )}
       </div>
+      <>
+        {isOpenModalTransfer && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="w-full max-w-md space-y-3 rounded-lg bg-white p-6 shadow-lg">
+              <div className="flex h-12 items-center justify-between">
+                <h2 className="text-lg font-semibold text-zinc-800">
+                  Transferir conversa
+                </h2>
+                <MessageSquareShare className="text-secondary-million h-6 w-6" />
+              </div>
+
+              <div className="relative">
+                <select
+                  className="w-full appearance-none rounded border border-gray-300 px-4 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  value={selectedQueueId}
+                  onChange={(e) => setSelectedQueueId(e.target.value)}
+                >
+                  <option value="" disabled>
+                    Selecione uma fila
+                  </option>
+                  {queues.map((queue) => (
+                    <option key={queue.id} value={queue.id}>
+                      {queue.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-zinc-500">
+                  <ArrowDown className="h-4 w-4" />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsOpenModalTransfer(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={handleTransferConfirm}>Confirmar</Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
     </div>
   );
 }
