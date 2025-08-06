@@ -20,7 +20,7 @@ export interface IMessage {
     };
     from: string;
   };
-  timestamp: string;
+  timestamp: number;
   status: string;
   is_read: boolean;
   unreadCount: number;

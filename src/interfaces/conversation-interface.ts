@@ -11,7 +11,6 @@ export interface Conversation {
   closedAt?: Date | null;
   createdAt: Date;
   updatedAt?: Date | null;
-
   contact?: ContactInfo | null;
   user?: UserInfo | null;
   messages?: MessageInfo[];
@@ -32,6 +31,8 @@ interface UserInfo {
 interface MessageInfo {
   id: string;
   content: string;
+  status?: string;
+  direction: string;
   timestamp: number;
   createdAt: Date;
 }
@@ -47,4 +48,5 @@ export interface ConversationCreate {
   lastMessageAt?: Date | null;
   closedAt?: Date | null;
   createdAt: Date;
+  messages?: MessageInfo[];
 }

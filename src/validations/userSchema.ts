@@ -9,6 +9,7 @@ export const userSchema = z.object({
     .min(6, "A senha deve ter no mínimo 6 caracteres.")
     .or(z.literal("")),
   role: UserRole,
+  queueIds: z.array(z.string()).optional(),
 });
 
 export type UserFormData = z.infer<typeof userSchema>;

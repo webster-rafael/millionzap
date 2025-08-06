@@ -124,17 +124,17 @@ export default function FilasChatbotContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [promptsList, setPromptList] = useState<Prompt[]>([]);
 
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     name: "",
-    color: "",
+    color: "#3b82f6",
     priority: 0,
     integrationId: "",
     promptId: "",
     greetingMessage: "",
     outOfOfficeHoursMessage: "",
-    prompt: "",
     horarios: createInitialHorarios(),
-  });
+  };
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
     if (prompts.length) {
@@ -152,6 +152,7 @@ export default function FilasChatbotContent() {
 
   const handleOpenModal = (fila?: Queue) => {
     if (fila) {
+      // A lógica para editar continua a mesma
       setEditingFilaId(fila.id);
       setFormData({
         name: fila.name,
@@ -161,12 +162,11 @@ export default function FilasChatbotContent() {
         promptId: fila.promptId || "",
         greetingMessage: fila.greetingMessage || "",
         outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
-        prompt: fila.promptId || "",
         horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
       });
     } else {
       setEditingFilaId(null);
-      setFormData({ ...formData, ...createInitialHorarios(), name: "" }); // Reseta o formulário
+      setFormData(initialFormData);
     }
     setActiveTab("dados");
     setIsModalOpen(true);

@@ -60,6 +60,8 @@ import type { User, UserCreate } from "@/interfaces/user-interface";
 import { useForm } from "react-hook-form";
 import { userSchema, type UserFormData } from "@/validations/userSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueues } from "@/hooks/useQueues";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Form,
   FormControl,
@@ -80,6 +82,7 @@ export function UsuariosContent() {
     isUpdating,
     deleteUser,
   } = useUsers();
+  const { queues, isLoadingQueues } = useQueues();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -100,6 +103,7 @@ export function UsuariosContent() {
       email: "",
       password: "",
       role: "USER",
+      queueIds: [],
     },
   });
 
@@ -111,6 +115,7 @@ export function UsuariosContent() {
         email: user.email,
         password: "",
         role: user.role as "ADMIN" | "USER",
+        queueIds: user.queues?.map((q) => q.queue.id) || [],
       });
     } else {
       form.reset();
@@ -139,15 +144,16 @@ export function UsuariosContent() {
 
     if (editingUser) {
       const payload = { ...data };
+
       if (!payload.password) {
         delete (payload as Partial<UserFormData>).password;
       }
-      const updatedUserData: User = {
+      const finalPayload = {
         ...editingUser,
         ...payload,
       };
 
-      updateUser(updatedUserData, mutationCallback);
+      updateUser(finalPayload, mutationCallback);
     } else {
       createUser(data, mutationCallback);
     }
@@ -257,7 +263,7 @@ export function UsuariosContent() {
                   <TableHead className="text-start">Nome</TableHead>
                   <TableHead className="text-center">Email</TableHead>
                   <TableHead className="text-center">Perfil</TableHead>
-                  <TableHead className="text-center">Conexão</TableHead>
+                  <TableHead className="text-center">Filas</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -288,6 +294,21 @@ export function UsuariosContent() {
                       </div>
                     </TableCell>
                     <TableCell>{getProfileBadge(user.role)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center justify-center gap-1">
+                        {user.queues?.map((fila) => (
+                          <Badge
+                            key={fila.queue.id}
+                            className="rounded-md border text-white"
+                            style={{
+                              backgroundColor: fila.queue.color,
+                            }}
+                          >
+                            {fila.queue.name || "Sem fila"}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
@@ -436,6 +457,27 @@ export function UsuariosContent() {
                     )}
                   />
                 </div>
+                <FormField
+                  control={form.control}
+                  name="queueIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Filas</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={queues.map((q) => ({
+                            label: q.name,
+                            value: q.id,
+                          }))}
+                          selected={field.value || []}
+                          onChange={field.onChange}
+                          className="w-full"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <DialogFooter className="gap-2 pt-4">
                   <Button
                     type="button"

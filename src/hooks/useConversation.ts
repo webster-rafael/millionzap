@@ -57,6 +57,7 @@ export const useConversations = () => {
   } = useQuery<Conversation[]>({
     queryKey,
     queryFn: fetchConversations,
+    refetchInterval: 5000,
   });
 
   const onSuccess = () => {

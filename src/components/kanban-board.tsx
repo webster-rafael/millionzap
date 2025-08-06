@@ -60,6 +60,7 @@ export function KanbanBoard() {
 
   useEffect(() => {
     setColumns(memoizedColumns);
+    console.log(conversations);
   }, [memoizedColumns]);
 
   const onDragEnd = (result: DropResult) => {
@@ -221,109 +222,116 @@ export function KanbanBoard() {
                                 index={index}
                               >
                                 {(provided, snapshot) => (
-                                  <Card
+                                  <div
                                     ref={provided.innerRef}
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
-                                    className={`cursor-grab gap-3 p-4 transition-shadow hover:shadow-md active:cursor-grabbing ${
-                                      snapshot.isDragging
-                                        ? "rotate-2 shadow-lg"
-                                        : ""
-                                    }`}
                                   >
-                                    <CardHeader className="px-0">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex items-center space-x-2">
-                                          {getTypeIcon(conversation.status)}
-                                          <h4 className="line-clamp-2 text-sm font-medium text-gray-900">
-                                            {conversation.contact?.name ||
-                                              "Usuário"}
-                                          </h4>
-                                        </div>
-                                        {/* <Button
+                                    <Card
+                                      className={`cursor-grab gap-3 p-4 transition-shadow hover:shadow-md active:cursor-grabbing ${
+                                        snapshot.isDragging
+                                          ? "rotate-2 shadow-lg"
+                                          : ""
+                                      }`}
+                                    >
+                                      <CardHeader className="px-0">
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex items-center space-x-2">
+                                            {getTypeIcon(conversation.status)}
+                                            <h4 className="line-clamp-2 text-sm font-medium text-gray-900">
+                                              {conversation.contact?.name ||
+                                                "Usuário"}
+                                            </h4>
+                                          </div>
+                                          {/* <Button
                                       variant="ghost"
                                       size="sm"
                                       className="h-6 w-6 p-0"
                                     >
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button> */}
-                                      </div>
-                                    </CardHeader>
-
-                                    <Separator />
-
-                                    <CardContent className="flex h-12 flex-col justify-center gap-2 px-0">
-                                      <span className="text-center text-xs text-zinc-600">
-                                        {(() => {
-                                          const rawTimestamp =
-                                            conversation.messages?.[0]
-                                              ?.timestamp;
-
-                                          if (!rawTimestamp) return "Sem data";
-
-                                          const date = new Date(
-                                            rawTimestamp * 1000,
-                                          );
-
-                                          return isToday(date)
-                                            ? format(date, "HH:mm", {
-                                                locale: ptBR,
-                                              })
-                                            : format(date, "dd/MM/yyyy HH:mm", {
-                                                locale: ptBR,
-                                              });
-                                        })()}
-                                      </span>
-                                      <p className="truncate text-sm text-gray-600">
-                                        {conversation.messages?.[0].content}
-                                      </p>
-                                    </CardContent>
-
-                                    {conversation.contactId && (
-                                      <div className="flex items-center space-x-2 rounded bg-gray-50 p-2">
-                                        <Phone className="h-3 w-3 text-gray-500" />
-                                        <div className="text-xs">
-                                          <p className="font-medium">
-                                            {conversation.contactId}
-                                          </p>
-                                          <p className="text-gray-500">
-                                            {conversation.contact?.email ||
-                                              "Nenhum e-mail encontrado"}
-                                          </p>
                                         </div>
-                                      </div>
-                                    )}
+                                      </CardHeader>
 
-                                    <div className="flex items-center justify-between">
-                                      <Badge
-                                        className={`text-xs ${getPriorityColor(
-                                          conversation.priority || "NENHUMA",
-                                        )}`}
-                                      >
-                                        {conversation.priority === "LOW"
-                                          ? "BAIXA"
-                                          : conversation.priority === "MEDIUM"
-                                            ? "MÉDIO"
-                                            : conversation.priority === "HIGH"
-                                              ? "ALTA"
-                                              : conversation.priority ===
-                                                  "URGENT"
-                                                ? "URGENTE"
-                                                : "NENHUMA"}
-                                      </Badge>
-                                      {conversation.createdAt && (
-                                        <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                          <Calendar className="h-3 w-3" />
-                                          <span>
-                                            {new Date(
-                                              conversation.createdAt,
-                                            ).toLocaleDateString("pt-BR")}
-                                          </span>
+                                      <Separator />
+
+                                      <CardContent className="flex h-12 flex-col justify-center gap-2 px-0">
+                                        <span className="text-center text-xs text-zinc-600">
+                                          {(() => {
+                                            const rawTimestamp =
+                                              conversation.messages?.[0]
+                                                ?.timestamp;
+
+                                            if (!rawTimestamp)
+                                              return "Sem data";
+
+                                            const date = new Date(
+                                              rawTimestamp * 1000,
+                                            );
+
+                                            return isToday(date)
+                                              ? format(date, "HH:mm", {
+                                                  locale: ptBR,
+                                                })
+                                              : format(
+                                                  date,
+                                                  "dd/MM/yyyy HH:mm",
+                                                  {
+                                                    locale: ptBR,
+                                                  },
+                                                );
+                                          })()}
+                                        </span>
+                                        <p className="truncate text-sm text-gray-600">
+                                          {conversation.messages?.[0].content}
+                                        </p>
+                                      </CardContent>
+
+                                      {conversation.contactId && (
+                                        <div className="flex items-center space-x-2 rounded bg-gray-50 p-2">
+                                          <Phone className="h-3 w-3 text-gray-500" />
+                                          <div className="text-xs">
+                                            <p className="font-medium">
+                                              {conversation.contactId}
+                                            </p>
+                                            <p className="text-gray-500">
+                                              {conversation.contact?.email ||
+                                                "Nenhum e-mail encontrado"}
+                                            </p>
+                                          </div>
                                         </div>
                                       )}
-                                    </div>
 
-                                    {/* {task.assignee && (
+                                      <div className="flex items-center justify-between">
+                                        <Badge
+                                          className={`text-xs ${getPriorityColor(
+                                            conversation.priority || "NENHUMA",
+                                          )}`}
+                                        >
+                                          {conversation.priority === "LOW"
+                                            ? "BAIXA"
+                                            : conversation.priority === "MEDIUM"
+                                              ? "MÉDIO"
+                                              : conversation.priority === "HIGH"
+                                                ? "ALTA"
+                                                : conversation.priority ===
+                                                    "URGENT"
+                                                  ? "URGENTE"
+                                                  : "NENHUMA"}
+                                        </Badge>
+                                        {conversation.createdAt && (
+                                          <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                            <Calendar className="h-3 w-3" />
+                                            <span>
+                                              {new Date(
+                                                conversation.createdAt,
+                                              ).toLocaleDateString("pt-BR")}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* {task.assignee && (
                                     <div className="flex items-center space-x-2">
                                       <Avatar className="h-6 w-6">
                                         <AvatarImage
@@ -341,8 +349,9 @@ export function KanbanBoard() {
                                       </span>
                                     </div>
                                   )} */}
-                                    {/* </CardContent> */}
-                                  </Card>
+                                      {/* </CardContent> */}
+                                    </Card>
+                                  </div>
                                 )}
                               </Draggable>
                             ))}

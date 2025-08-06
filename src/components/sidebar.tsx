@@ -57,7 +57,7 @@ export function Sidebar() {
       subItems: [
         { name: "Listagem", href: "/campanhas", icon: List },
         {
-          name: "Listas de Contatos",
+          name: "Contatos",
           href: "/campanhas/listas-de-contatos",
           icon: Users,
         },
@@ -161,7 +161,7 @@ export function Sidebar() {
                               className={cn(
                                 "flex items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
                                 pathname === subItem.href
-                                  ? "bg-primary text-white"
+                                  ? "bg-primary w-full text-white"
                                   : "text-gray-600 hover:bg-gray-100",
                               )}
                             >
@@ -178,7 +178,7 @@ export function Sidebar() {
                       className={cn(
                         "flex items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
                         pathname === item.href
-                          ? "bg-primary text-white"
+                          ? "bg-primary w-full text-white"
                           : "text-gray-700 hover:bg-gray-100",
                       )}
                     >

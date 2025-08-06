@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -14,6 +14,8 @@ import {
   Play,
   Undo2,
   CheckCheck,
+  MessageSquareX,
+  MessageSquareShare,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,111 +31,77 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Contact } from "@/interfaces/contact-interface";
-import { useParams } from "react-router-dom";
-import { useMessages } from "@/hooks/useMessages";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { IMessage } from "@/interfaces/message-interface";
 import { Skeleton } from "@/components/ui/skeleton";
-
-const updateStatusMutation = async ({
-  contactId,
-  status,
-  is_read,
-}: {
-  contactId: string;
-  status?: string;
-  is_read?: boolean;
-}) => {
-  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/message`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ contactId, status, is_read }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Falha ao atualizar o status da conversa.");
-  }
-
-  return response.json();
-};
+import type { Conversation } from "@/interfaces/conversation-interface";
+import { useConversations } from "@/hooks/useConversation";
+import { format, isSameDay, isToday } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useQueues } from "@/hooks/useQueues";
+import { useSendMessage } from "@/hooks/useSendMessage";
 
 export function AtendimentosContent() {
-  const [selectedConversation, setSelectedConversation] = useState<
+  const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
-  const queryClient = useQueryClient();
   const [messageInput, setMessageInput] = useState("");
   const [activeTab, setActiveTab] = useState("abertas");
   const [activeSubTab, setActiveSubTab] = useState("atendendo");
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const lastMessageRef = useRef<HTMLDivElement | null>(null);
+  const {
+    conversations,
+    isLoadingConversations,
+    isErrorConversations,
+    update: updateConversation,
+  } = useConversations();
+  const { queues, isLoadingQueues, isErrorQueues } = useQueues();
+  const sendMessageMutation = useSendMessage();
+  const bottomRef = useRef<HTMLDivElement>(null);
 
-  const { instagramReceiverId, facebookReceiverId } = useParams<{
-    instagramReceiverId: string;
-    facebookReceiverId: string;
-  }>();
-
-  const { contacts, isLoading, isError, messages } = useMessages({
-    instagramReceiverId,
-    facebookReceiverId,
-  });
-
-  const handleContactSelect = (contact: Contact) => {
-    setSelectedContact(contact);
-    setSelectedConversation(contact.id);
-    if (contact.unreadCount > 0 && selectedContact?.status === "serving") {
-      updateStatus({ contactId: contact.id, is_read: true, status: "serving" });
-      setSelectedContact(null);
+  const handleSendMessage = async () => {
+    if (
+      !selectedConversation ||
+      !messageInput.trim() ||
+      sendMessageMutation.isSending
+    ) {
+      return;
     }
+
+    const recipientNumber = selectedConversation.contact?.phone;
+    if (!recipientNumber) {
+      console.error("Contato sem número de telefone.");
+      return;
+    }
+
+    sendMessageMutation.send({
+      recipientNumber: recipientNumber,
+      messageBody: messageInput,
+      conversationId: selectedConversation.id,
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+
+    setMessageInput("");
   };
 
-  const { mutate: updateStatus } = useMutation({
-    mutationFn: updateStatusMutation,
-    onMutate: async (newData) => {
-      await queryClient.cancelQueries({ queryKey: ["messages"] });
-      const previousMessages = queryClient.getQueryData<IMessage[]>([
-        "messages",
-      ]);
+  const handleConversationSelect = (conversation: Conversation) => {
+    setSelectedConversationId(conversation.id);
+  };
 
-      queryClient.setQueryData<IMessage[]>(["messages"], (oldData) => {
-        if (!oldData) return [];
-        return oldData.map((message) => {
-          if (message.sender_id === newData.contactId) {
-            return {
-              ...message,
-              status:
-                newData.status !== undefined ? newData.status : message.status,
-              is_read:
-                newData.is_read !== undefined
-                  ? newData.is_read
-                  : message.is_read,
-              unreadCount: newData.is_read === true ? 0 : message.unreadCount,
-            };
-          }
-          return message;
-        });
-      });
+  const selectedConversation =
+    conversations.find((c) => c.id === selectedConversationId) || null;
 
-      return { previousMessages };
-    },
-    onError: (err, newData, context) => {
-      if (context?.previousMessages) {
-        queryClient.setQueryData(["messages"], context.previousMessages);
-      }
-      console.error("Erro ao atualizar:", err);
-    },
+  const filteredConversations = conversations.filter((conversation) => {
+    if (activeTab === "abertas") {
+      if (activeSubTab === "aguardando")
+        return conversation.status === "WAITING";
+      if (activeSubTab === "atendendo")
+        return conversation.status === "SERVING";
+    }
+    if (activeTab === "resolvidas") {
+      return (
+        conversation.status === "RESOLVED" || conversation.status === "CLOSED"
+      );
+    }
+    return false;
   });
-
-  const formatTime = (timestamp: Date) => {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat("pt-BR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const getQueueColor = (queue: string) => {
     switch (queue) {
@@ -141,12 +109,14 @@ export function AtendimentosContent() {
         return "bg-blue-100 text-blue-800";
       case "VENDAS":
         return "bg-green-100 text-green-800";
-      case "LOGISTICA":
-        return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [selectedConversation?.messages]);
 
   return (
     <div className="flex h-full">
@@ -176,8 +146,9 @@ export function AtendimentosContent() {
                   className="bg-primary-million ml-2 text-white"
                 >
                   {
-                    contacts.filter((contact) => contact.status === "serving")
-                      .length
+                    conversations.filter(
+                      (c) => c.status === "SERVING" || c.status === "WAITING",
+                    ).length
                   }
                 </Badge>
               </TabsTrigger>
@@ -215,17 +186,14 @@ export function AtendimentosContent() {
                   ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => {
-                setActiveSubTab("atendendo");
-                setSelectedContact(null);
-              }}
+              onClick={() => setActiveSubTab("atendendo")}
             >
               ATENDENDO
               <Badge
                 variant="secondary"
                 className="bg-primary-million ml-2 text-xs text-white"
               >
-                {contacts?.filter((c) => c.status === "serving").length ?? 0}
+                {conversations.filter((c) => c.status === "SERVING").length}
               </Badge>
             </button>
             <button
@@ -234,17 +202,14 @@ export function AtendimentosContent() {
                   ? "border-primary-million text-primary-million border-b-2 bg-blue-50"
                   : "text-gray-500 hover:text-gray-700"
               }`}
-              onClick={() => {
-                setActiveSubTab("aguardando");
-                setSelectedContact(null);
-              }}
+              onClick={() => setActiveSubTab("aguardando")}
             >
               AGUARDANDO
               <Badge
                 variant="secondary"
                 className="ml-2 bg-red-500 text-xs text-white"
               >
-                {contacts?.filter((c) => c.status === "waiting").length ?? 0}
+                {conversations.filter((c) => c.status === "WAITING").length}
               </Badge>
             </button>
           </div>
@@ -253,7 +218,7 @@ export function AtendimentosContent() {
         {/* Conversations */}
         <ScrollArea className="flex-1 overflow-y-auto">
           <div className="w-96 space-y-2 p-4">
-            {isLoading && (
+            {isLoadingConversations && (
               <>
                 <Skeleton className="h-32 bg-zinc-200" />
                 <Skeleton className="h-32 bg-zinc-200" />
@@ -262,248 +227,263 @@ export function AtendimentosContent() {
                 <Skeleton className="h-32 bg-zinc-200" />
               </>
             )}
-            {isError && <Skeleton className="h-32 rounded-full" />}
-            {contacts
-              ?.filter((contact) => {
-                if (activeTab === "abertas") {
-                  if (activeSubTab === "aguardando")
-                    return contact.status === "waiting";
-                  if (activeSubTab === "atendendo")
-                    return contact.status === "serving";
-                }
-                if (activeTab === "resolvidas") {
-                  return contact.status === "finished";
-                }
-                return false;
-              })
-              .map((contact) => {
-                const cardInnerContent = (
-                  <CardContent className="p-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage
-                            src={contact.profilePicture || "/placeholder.svg"}
-                          />
-                          <AvatarFallback className="bg-primary-million text-white">
-                            {contact.name.charAt(0) || "C"}
-                          </AvatarFallback>
-                        </Avatar>
-                        {activeSubTab === "aguardando" && (
-                          <div className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500">
-                            <Clock className="h-2 w-2 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1 flex items-center justify-between">
-                          <h3 className="truncate font-medium text-gray-900">
-                            {contact.phone}
-                          </h3>
-                          <div className="flex items-center space-x-1">
-                            <span className="text-xs text-gray-500">
-                              {formatTime(contact.timestamp)}
-                            </span>
-                            {activeSubTab === "aguardando" && (
-                              <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
-                            )}
-                          </div>
+            {isErrorConversations && (
+              <div className="flex flex-col items-center justify-center">
+                <MessageSquareX />
+                <h1>Não foi possível encontrar conversas</h1>
+              </div>
+            )}
+            {filteredConversations.map((conversation) => {
+              const lastMessage =
+                conversation.messages && conversation.messages.length > 0
+                  ? conversation.messages[conversation.messages.length - 1]
+                  : null;
+
+              const cardInnerContent = (
+                <CardContent className="p-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="relative">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={"/placeholder.svg"} />
+                        <AvatarFallback className="bg-primary-million text-white">
+                          {conversation.contact?.name.charAt(0) || "C"}
+                        </AvatarFallback>
+                      </Avatar>
+                      {activeSubTab === "aguardando" && (
+                        <div className="absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500">
+                          <Clock className="h-2 w-2 text-white" />
                         </div>
-                        <p className="mb-2 truncate text-sm text-gray-600">
-                          {contact.lastMessage}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs ${getQueueColor("SUPORTE")}`}
-                            >
-                              SUPORTE
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              ADMIN
-                            </Badge>
-                            {activeSubTab === "aguardando" && (
-                              <Badge
-                                variant="secondary"
-                                className="bg-yellow-100 text-xs text-yellow-800"
-                              >
-                                AGUARDANDO
-                              </Badge>
-                            )}
-                          </div>
-                          {contact.unreadCount > 0 && (
-                            <Badge
-                              className={`absolute top-2 right-2 flex size-5 items-center justify-center rounded-sm text-xs text-white ${
-                                activeSubTab === "aguardando"
-                                  ? "bg-red-600"
-                                  : "bg-green-400"
-                              }`}
-                            >
-                              {contact.unreadCount}
-                            </Badge>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center justify-between">
+                        <h3 className="truncate font-medium text-gray-900">
+                          {conversation.contact?.phone}
+                        </h3>
+                        <div className="flex items-center space-x-1">
+                          <span className="text-xs text-gray-500">
+                            {(() => {
+                              const rawTimestamp =
+                                conversation.messages?.[
+                                  conversation.messages.length - 1
+                                ]?.timestamp;
+
+                              if (!rawTimestamp) return "Sem data";
+
+                              const date = new Date(
+                                Number(rawTimestamp) * 1000,
+                              );
+
+                              if (isNaN(date.getTime())) return "";
+
+                              return isToday(date)
+                                ? format(date, "HH:mm", { locale: ptBR })
+                                : format(date, "dd/MM/yyyy HH:mm", {
+                                    locale: ptBR,
+                                  });
+                            })()}
+                          </span>
+                          {activeSubTab === "aguardando" && (
+                            <div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
                           )}
                         </div>
                       </div>
+                      <p className="mb-2 truncate text-sm text-gray-600">
+                        {lastMessage?.content || "Nenhuma mensagem"}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Badge
+                            variant="secondary"
+                            className="border-none text-xs"
+                            style={{
+                              backgroundColor:
+                                queues.find(
+                                  (fila) => fila.id === conversation.queueId,
+                                )?.color || "#A1A1AA",
+                              color: "#FFFFFF",
+                            }}
+                          >
+                            {queues
+                              .find((fila) => fila.id === conversation.queueId)
+                              ?.name?.toUpperCase() || "SEM FILA"}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            ADMIN
+                          </Badge>
+                          {activeSubTab === "aguardando" && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-yellow-100 text-xs text-yellow-800"
+                            >
+                              AGUARDANDO
+                            </Badge>
+                          )}
+                        </div>
+                        {/* {conversation.unreadCount > 0 && (
+                          <Badge
+                            className={`absolute top-2 right-2 flex size-5 items-center justify-center rounded-sm text-xs text-white ${
+                              activeSubTab === "aguardando"
+                                ? "bg-red-600"
+                                : "bg-green-400"
+                            }`}
+                          >
+                            {conversation.unreadCount}
+                          </Badge>
+                        )} */}
+                      </div>
                     </div>
-                  </CardContent>
+                  </div>
+                </CardContent>
+              );
+
+              if (activeTab === "resolvidas") {
+                return (
+                  <div
+                    key={conversation.id}
+                    className="relative overflow-hidden rounded-lg"
+                  >
+                    <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
+                      <Play className="h-6 w-6 text-white" />
+                    </div>
+                    <motion.div
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.x < -100) {
+                          updateConversation({
+                            id: conversation.id,
+                            status: "SERVING",
+                          });
+                        }
+                      }}
+                      className="relative z-10 w-full"
+                      onClick={() => handleConversationSelect(conversation)}
+                    >
+                      <Card
+                        className={`relative h-32 cursor-pointer border-l-4 border-gray-300 bg-gray-50 transition-all hover:shadow-md ${
+                          selectedConversationId === conversation.id
+                            ? "ring-1 ring-gray-300"
+                            : ""
+                        }`}
+                      >
+                        {cardInnerContent}
+                      </Card>
+                    </motion.div>
+                  </div>
                 );
+              }
 
-                if (activeTab === "resolvidas") {
-                  return (
-                    <div
-                      key={contact.id}
-                      className="relative overflow-hidden rounded-lg"
+              if (activeSubTab === "aguardando") {
+                return (
+                  <div key={conversation.id} className="relative">
+                    <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
+                      <Play className="h-6 w-6 text-white" />
+                    </div>
+                    <motion.div
+                      drag="x"
+                      // Adicionando constraints para limitar o movimento
+                      dragConstraints={{ left: -150, right: 0 }}
+                      dragElastic={0.2}
+                      onDragEnd={(_, info) => {
+                        // A única ação válida aqui é arrastar para a esquerda para atender
+                        if (info.offset.x < -75) {
+                          updateConversation({
+                            id: conversation.id,
+                            status: "SERVING", // <<< CORRIGIDO
+                          });
+                        }
+                      }}
+                      className="relative z-10 w-full"
+                      onClick={() => handleConversationSelect(conversation)}
                     >
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
-                        <Play className="h-6 w-6 text-white" />
-                      </div>
-                      <motion.div
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={(_, info) => {
-                          if (info.offset.x < -100) {
-                            updateStatus({
-                              contactId: contact.id,
-                              status: "serving",
-                              is_read: false,
-                            });
-                            setSelectedConversation("");
-                            setSelectedContact(null);
-                          }
-                        }}
-                        className="relative z-10 w-full"
-                        onClick={() => handleContactSelect(contact)}
+                      <Card
+                        className={`h-32 cursor-pointer border-l-4 bg-yellow-50 transition-all hover:shadow-md ${
+                          selectedConversationId === conversation.id
+                            ? "ring-1 ring-[#1d5cd362]"
+                            : ""
+                        }`}
                       >
-                        <Card
-                          className={`relative h-32 cursor-pointer border-l-4 border-gray-300 bg-gray-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "ring-1 ring-gray-300" : ""}`}
-                        >
-                          {cardInnerContent}
-                        </Card>
-                      </motion.div>
+                        {cardInnerContent}
+                      </Card>
+                    </motion.div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div
+                    key={conversation.id}
+                    className="relative overflow-hidden rounded-lg"
+                  >
+                    <div className="absolute top-0 left-0 flex h-full items-center justify-center rounded-l-lg bg-orange-200 px-6">
+                      <Undo2 className="h-6 w-6 text-white" />
                     </div>
-                  );
-                }
 
-                if (activeSubTab === "aguardando") {
-                  return (
-                    <div key={contact.id} className="relative">
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
-                        <Play className="h-6 w-6 text-white" />
-                      </div>
-                      <motion.div
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={(_, info) => {
-                          if (info.offset.x < -100) {
-                            updateStatus({
-                              contactId: contact.id,
-                              status: "serving",
-                              is_read: false,
-                            });
-                            setSelectedConversation("");
-                            setSelectedContact(null);
-                          }
-                        }}
-                        className="relative z-10 w-full"
-                        onClick={() => handleContactSelect(contact)}
-                      >
-                        <Card
-                          className={`h-32 cursor-pointer border-l-4 bg-yellow-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "ring-1 ring-[#1d5cd362]" : ""}`}
-                        >
-                          {cardInnerContent}
-                        </Card>
-                      </motion.div>
+                    <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-blue-300 px-6">
+                      <CheckCheck className="h-6 w-6 text-white" />
                     </div>
-                  );
-                } else {
-                  return (
-                    <div
-                      key={contact.id}
-                      className="relative overflow-hidden rounded-lg"
+
+                    <motion.div
+                      drag="x"
+                      onDragEnd={(_, info) => {
+                        const dragThreshold = 100;
+                        if (info.offset.x > dragThreshold) {
+                          updateConversation({
+                            id: conversation.id,
+                            status: "WAITING",
+                          });
+                        } else if (info.offset.x < -dragThreshold) {
+                          updateConversation({
+                            id: conversation.id,
+                            status: "RESOLVED",
+                          });
+                        }
+                      }}
+                      className="relative z-10 w-full"
+                      onClick={() => handleConversationSelect(conversation)}
                     >
-                      {/* Ação de arrastar para a DIREITA (Voltar para Aguardando) */}
-                      <div className="absolute top-0 left-0 flex h-full items-center justify-center rounded-l-lg bg-orange-200 px-6">
-                        <Undo2 className="h-6 w-6 text-white" />
-                      </div>
-
-                      <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-blue-300 px-6">
-                        <CheckCheck className="h-6 w-6 text-white" />
-                      </div>
-
-                      <motion.div
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        onDragEnd={(_, info) => {
-                          const dragThreshold = 100;
-                          // Arrastou para a DIREITA
-                          if (info.offset.x > dragThreshold) {
-                            updateStatus({
-                              contactId: contact.id,
-                              status: "waiting",
-                              is_read: false,
-                            });
-                            setSelectedConversation("");
-                          }
-                          // Arrastou para a ESQUERDA
-                          else if (info.offset.x < -dragThreshold) {
-                            updateStatus({
-                              contactId: contact.id,
-                              status: "finished",
-                              is_read: true,
-                            });
-                            setSelectedConversation("");
-                          }
-                        }}
-                        className="relative z-10 w-full"
-                        onClick={() => handleContactSelect(contact)}
+                      <Card
+                        className={`relative h-32 cursor-pointer border-l-4 bg-green-50 transition-all hover:shadow-md ${selectedConversationId === conversation.id ? "border-y border-[#1d5cd362]" : ""}`}
                       >
-                        <Card
-                          className={`relative h-32 cursor-pointer border-l-4 bg-green-50 transition-all hover:shadow-md ${selectedContact?.id === contact.id ? "border-y border-[#1d5cd362]" : ""}`}
-                        >
-                          {cardInnerContent}
-                        </Card>
-                      </motion.div>
-                    </div>
-                  );
-                }
-              })}
+                        {cardInnerContent}
+                      </Card>
+                    </motion.div>
+                  </div>
+                );
+              }
+            })}
           </div>
         </ScrollArea>
       </div>
 
       {/* Chat Area */}
       <div className="flex flex-1 flex-col bg-gray-50">
-        {selectedConversation && selectedContact ? (
+        {selectedConversation ? (
           <>
             <div className="border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <div className="relative">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage
-                        src={
-                          selectedContact.profilePicture || "/placeholder.svg"
-                        }
-                      />
+                      <AvatarImage src={"/placeholder.svg"} />
                       <AvatarFallback className="bg-primary-million text-white">
-                        {selectedContact.name.charAt(0) || "C"}
+                        {selectedConversation.contact?.name.charAt(0) || "C"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="absolute -right-1 -bottom-1 h-3 w-3 rounded-full border-2 border-white bg-green-500" />
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-900">
-                      {selectedContact.name}
+                      {selectedConversation.contact?.name}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      {selectedContact.phone} • Online
+                      {selectedConversation.contact?.phone}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Phone className="h-4 w-4" />
+                  <Button title="Transferir" variant="outline" size="sm">
+                    <MessageSquareShare className="h-4 w-4" />
                   </Button>
                   <Button variant="outline" size="sm">
                     <User className="h-4 w-4" />
@@ -515,47 +495,60 @@ export function AtendimentosContent() {
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 overflow-y-auto p-4">
               <div className="space-y-4">
-                {(messages ?? [])
-                  .filter(
-                    (msg) =>
-                      msg.sender_id === selectedContact.id ||
-                      msg.recipient_id === selectedContact.id,
-                  )
-                  .map((message) => {
-                    const isAgent = message.sender_id !== selectedContact.id;
+                {[...(selectedConversation.messages || [])]
+                  .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
+                  .map((message, index, arr) => {
+                    const rawTimestamp = message.timestamp;
+                    const date = new Date(Number(rawTimestamp) * 1000);
+                    const previousMessage = arr[index - 1];
+                    const previousDate = previousMessage
+                      ? new Date(Number(previousMessage.timestamp) * 1000)
+                      : null;
+
+                    const isAgent = message.direction === "OUTBOUND";
+                    const isNewDay =
+                      !previousDate || !isSameDay(date, previousDate);
+
                     return (
-                      <div
-                        key={message.id}
-                        className={`flex ${
-                          isAgent ? "justify-end" : "justify-start"
-                        }`}
-                      >
+                      <div key={message.id} className="space-y-1">
+                        {isNewDay && (
+                          <div className="mb-2 text-center text-xs text-gray-500">
+                            {isToday(date)
+                              ? "Hoje"
+                              : format(date, "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                        )}
+
                         <div
-                          className={`max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
-                            isAgent
-                              ? "bg-primary-million text-white"
-                              : "border border-gray-200 bg-white text-gray-900"
-                          }`}
+                          className={`flex ${isAgent ? "justify-end" : "justify-start"}`}
                         >
-                          <p className="text-sm">
-                            {message.content.text?.body}
-                          </p>
-                          <div className="mt-1 flex items-center justify-end space-x-1">
-                            <span
-                              className={`text-xs ${
-                                isAgent ? "text-blue-200" : "text-gray-500"
-                              }`}
-                            >
-                              {formatTime(new Date(message.timestamp))}
-                            </span>
+                          <div
+                            className={`relative flex h-full max-w-xs items-center gap-2 rounded-lg px-4 py-2 lg:max-w-md ${
+                              isAgent
+                                ? "bg-primary-million text-white"
+                                : "border border-gray-200 bg-white text-gray-900"
+                            }`}
+                          >
+                            <p className="mr-10 w-full p-0.5 text-sm">
+                              {message.content}
+                            </p>
+                            <div className="absolute right-2 bottom-2 mt-1 flex h-2 w-10 items-center justify-end space-x-1">
+                              <span
+                                className={`text-xs ${
+                                  isAgent ? "text-blue-200" : "text-gray-500"
+                                }`}
+                              >
+                                {format(date, "HH:mm", { locale: ptBR })}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     );
                   })}
-                <div ref={lastMessageRef} />
+                <div ref={bottomRef} />
               </div>
             </ScrollArea>
 
@@ -570,35 +563,15 @@ export function AtendimentosContent() {
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
                     className="h-12 focus-visible:border-blue-200 focus-visible:ring-0"
-                    // onKeyDown={(e) => {
-                    //   if (e.key === "Enter") {
-                    //     e.preventDefault();
-                    //     handleSendMessage();
-                    //   }
-                    // }}
-                    onClick={() => {
-                      if (
-                        selectedContact &&
-                        selectedContact.status === "waiting"
-                      ) {
-                        updateStatus({
-                          contactId: selectedContact.id,
-                          status: "serving",
-                        });
-                        setActiveSubTab("atendendo");
-                      } else if (
-                        selectedContact &&
-                        selectedContact.unreadCount > 0
-                      ) {
-                        updateStatus({
-                          contactId: selectedContact.id,
-                          status: "serving",
-                          is_read: true,
-                        });
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSendMessage();
                       }
                     }}
                   />
                   <Button
+                    onClick={handleSendMessage}
                     size="sm"
                     className="bg-secondary-million hover:bg-secondary-million/90 absolute top-1/2 right-2 -translate-y-1/2 transform"
                   >
