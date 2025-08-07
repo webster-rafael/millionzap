@@ -30,6 +30,7 @@ import { useQueues } from "@/hooks/useQueues";
 import type { Queue, QueueCreate } from "@/interfaces/queues-interface";
 import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt } from "@/interfaces/prompt-interface";
+import { useAuth } from "@/hooks/useAuth";
 
 type Schedule = {
   weekday: string;
@@ -112,6 +113,7 @@ const horariosToSchedules = (horarios: Horarios): Schedule[] => {
 };
 
 export default function FilasChatbotContent() {
+  const { user } = useAuth();
   const { queues, create, isErrorQueues, update, isLoadingQueues, remove } =
     useQueues();
 
@@ -133,6 +135,7 @@ export default function FilasChatbotContent() {
     greetingMessage: "",
     outOfOfficeHoursMessage: "",
     horarios: createInitialHorarios(),
+    companyId: "",
   };
   const [formData, setFormData] = useState(initialFormData);
 
@@ -163,6 +166,7 @@ export default function FilasChatbotContent() {
         greetingMessage: fila.greetingMessage || "",
         outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
         horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
+        companyId: fila.companyId,
       });
     } else {
       setEditingFilaId(null);
@@ -192,6 +196,7 @@ export default function FilasChatbotContent() {
       greetingMessage: formData.greetingMessage,
       outOfOfficeHoursMessage: formData.outOfOfficeHoursMessage,
       schedules: horariosToSchedules(formData.horarios),
+      companyId: formData.companyId,
     };
 
     if (editingFilaId) {

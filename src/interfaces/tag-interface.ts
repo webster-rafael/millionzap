@@ -4,6 +4,7 @@ export interface Tags {
   color: string;
   order: number;
   description?: string;
+  companyId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -13,4 +14,5 @@ export interface CreateTags {
   color: string;
   order: number;
   description?: string;
+  companyId: string;
 }

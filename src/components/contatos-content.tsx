@@ -75,6 +75,7 @@ export function ContatosContent() {
       name: "",
       phone: "",
       email: "",
+      companyId: "",
     },
   });
 

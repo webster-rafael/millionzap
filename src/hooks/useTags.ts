@@ -7,15 +7,24 @@ const API_URL = import.meta.env.VITE_BACKEND_URL;
 const queryKey = ["tags"];
 
 const fetchTags = async (): Promise<Tags[]> => {
-  const response = await fetch(`${API_URL}/tags`);
+  const token = localStorage.getItem("@million-token");
+  const response = await fetch(`${API_URL}/tags`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
   if (!response.ok) throw new Error("Falha ao buscar tags");
   return response.json();
 };
 
 const createTag = async (data: CreateTags): Promise<Tags> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(`${API_URL}/tags`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error("Falha ao criar tag");
@@ -23,10 +32,14 @@ const createTag = async (data: CreateTags): Promise<Tags> => {
 };
 
 const updateTag = async (data: TagsUpdatePayload): Promise<Tags> => {
+  const token = localStorage.getItem("@million-token");
   const { id, ...payload } = data;
   const response = await fetch(`${API_URL}/tags/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error("Falha ao atualizar tag");
@@ -34,8 +47,12 @@ const updateTag = async (data: TagsUpdatePayload): Promise<Tags> => {
 };
 
 const deleteTag = async (id: string): Promise<void> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(`${API_URL}/tags/${id}`, {
     method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!response.ok) throw new Error("Falha ao deletar tag");
 };

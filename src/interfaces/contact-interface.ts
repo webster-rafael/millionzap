@@ -4,7 +4,7 @@ export interface Contact {
   phone: string;
   email?: string | null;
   whatsappId?: string | null;
-  companyId?: string | null;
+  companyId: string;
   isCostumer?: boolean | null;
   tags?: string[];
   createdAt: Date;
@@ -18,4 +18,5 @@ export interface CreateContact {
   whatsappId?: string | null;
   isCostumer?: boolean | null;
   tags?: string[];
+  companyId: string;
 }

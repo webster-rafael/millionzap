@@ -1,8 +1,197 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { CreateCompanyFormSchema } from "@/validations/loginSchema";
+import { useState } from "react";
+import { Eye, EyeClosed } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCompanies } from "@/hooks/useCompanies";
+import { toast, Toaster } from "sonner";
+
 export function CadastrarContent() {
+  const { create, isCreating } = useCompanies();
+  const [showPassword, setShowPassword] = useState(false);
+  const form = useForm<z.infer<typeof CreateCompanyFormSchema>>({
+    resolver: zodResolver(CreateCompanyFormSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      email: "",
+      password: "",
+      plan: "",
+    },
+  });
+
+  function onSubmit(values: z.infer<typeof CreateCompanyFormSchema>) {
+    const payload = {
+      name: values.name,
+      phone: values.phone,
+      email: values.email,
+      password: values.password,
+      planId: values.plan,
+    };
+
+    create(payload, {
+      onSuccess: () => {
+        toast.success("Empresa criada com sucesso!");
+        form.reset();
+      },
+      onError: (error: any) => {
+        if (error?.code === "P2002") {
+          toast.error("Este e-mail já está cadastrado.");
+        } else {
+          toast.error("Não foi possível criar a empresa.");
+        }
+      },
+    });
+  }
+
   return (
     <main className="grid h-dvh w-full grid-cols-2">
-      <div className="bg-primary-million"></div>
-      <div></div>
+      <div className="bg-primary-million flex items-center justify-center">
+        <img
+          className="h-96 w-96"
+          src="/milliontech.png"
+          alt="Banner Milliontech"
+        />
+      </div>
+      <div className="flex items-center justify-center">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="w-3/4 space-y-8 rounded-md border p-10 shadow-2xl 2xl:w-1/3"
+          >
+            <div>
+              <h1 className="text-secondary-million font-poppins text-center text-2xl font-semibold">
+                Crie sua empresa
+              </h1>
+              <p className="text-center text-xs text-gray-500">
+                Cadastre sua empresa e comece a gerenciar seus leads com nosso
+                CRM inteligente.
+              </p>
+            </div>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da Empresa</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Digite o nome da empresa..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telefone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Digite seu número..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>E-mail</FormLabel>
+                  <FormControl>
+                    <Input placeholder="exemplo@email.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <div className="relative">
+                    <FormControl>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Digite sua senha..."
+                        {...field}
+                      />
+                    </FormControl>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute top-1/2 right-3 -translate-y-1/2 text-zinc-500 hover:text-zinc-800"
+                    >
+                      {showPassword ? (
+                        <Eye size={20} />
+                      ) : (
+                        <EyeClosed size={20} />
+                      )}
+                    </button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="plan"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Planos</FormLabel>
+                  <FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="plano1">Plano 1</SelectItem>
+                        <SelectItem value="plano2">Plano 2</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" disabled={isCreating}>
+              {isCreating ? "Cadastrando..." : "Cadastrar"}
+            </Button>
+          </form>
+        </Form>
+        <Toaster />
+      </div>
     </main>
   );
 }

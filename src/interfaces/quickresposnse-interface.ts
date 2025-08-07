@@ -7,6 +7,7 @@ export interface QuickResponse {
   createdAt: string;
   updatedAt: string;
   usageCount: number;
+  companyId: string;
 }
 
 export interface CreateQuickResponsePayload {
@@ -14,6 +15,7 @@ export interface CreateQuickResponsePayload {
   title: string;
   message: string;
   queueId: string;
+  companyId: string;
 }
 
 export type UpdateQuickResponsePayload = Partial<CreateQuickResponsePayload> & {

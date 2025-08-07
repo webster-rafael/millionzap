@@ -32,6 +32,7 @@ import type { CreateTags, Tags } from "@/interfaces/tag-interface";
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
 import { tagSchema } from "@/validations/tagSchema";
+import { useAuth } from "@/hooks/useAuth";
 
 const predefinedColors = [
   "#EF4444", // Red
@@ -49,6 +50,7 @@ const predefinedColors = [
 ];
 
 export function TagsContent() {
+  const { user } = useAuth();
   const {
     tags,
     create,
@@ -68,6 +70,7 @@ export function TagsContent() {
     color: "",
     order: 0,
     description: "",
+    companyId: "",
   });
   const [validationErrors, setValidationErrors] = useState<{
     title?: string[];
@@ -115,6 +118,7 @@ export function TagsContent() {
           color: "",
           order: 0,
           description: "",
+          companyId: user?.id || "",
         });
         setIsAddingTag(false);
         toast.success("Tag criada com sucesso!");

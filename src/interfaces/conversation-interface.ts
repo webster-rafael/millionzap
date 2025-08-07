@@ -14,6 +14,7 @@ export interface Conversation {
   contact?: ContactInfo | null;
   user?: UserInfo | null;
   messages?: MessageInfo[];
+  companyId: string;
 }
 
 interface ContactInfo {
@@ -49,4 +50,5 @@ export interface ConversationCreate {
   closedAt?: Date | null;
   createdAt: Date;
   messages?: MessageInfo[];
+  companyId: string;
 }

@@ -5,7 +5,7 @@ export interface User {
   password: string;
   role: string;
   isActive: boolean;
-  companyId?: string | null;
+  companyId: string;
   createdAt: Date;
   updatedAt: Date;
   queues?: UserQueue[];
@@ -16,6 +16,7 @@ interface UserQueue {
     id: string;
     name: string;
     color: string;
+    companyId: string;
   };
 }
 
@@ -25,4 +26,5 @@ export interface UserCreate {
   password: string;
   role: string;
   queueIds?: string[];
+  companyId: string;
 }
