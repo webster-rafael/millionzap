@@ -5,15 +5,22 @@ const API_BASE_URL = import.meta.env.VITE_BACKEND_URL + "/prompts";
 const queryKey = ["prompts"];
 
 const fetchPrompts = async (): Promise<Prompt[]> => {
-  const response = await fetch(API_BASE_URL);
+  const token = localStorage.getItem("@million-token");
+  const response = await fetch(API_BASE_URL, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!response.ok) throw new Error("Falha ao buscar prompts");
   return response.json();
 };
 
 const createPrompt = async (newPrompt: PromptCreate): Promise<Prompt> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(API_BASE_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(newPrompt),
   });
   if (!response.ok) throw new Error("Falha ao criar prompt");
@@ -21,10 +28,14 @@ const createPrompt = async (newPrompt: PromptCreate): Promise<Prompt> => {
 };
 
 const updatePrompt = async (prompt: Prompt): Promise<Prompt> => {
+  const token = localStorage.getItem("@million-token");
   const { id, ...payload } = prompt;
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error("Falha ao atualizar prompt");
@@ -32,8 +43,10 @@ const updatePrompt = async (prompt: Prompt): Promise<Prompt> => {
 };
 
 const deletePrompt = async (id: string): Promise<void> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(`${API_BASE_URL}/${id}`, {
     method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
   });
   if (response.status === 204) return;
   if (!response.ok) throw new Error("Falha ao deletar prompt");

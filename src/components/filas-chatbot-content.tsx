@@ -135,7 +135,7 @@ export default function FilasChatbotContent() {
     greetingMessage: "",
     outOfOfficeHoursMessage: "",
     horarios: createInitialHorarios(),
-    companyId: "",
+    companyId: user?.id ? user.id : "",
   };
   const [formData, setFormData] = useState(initialFormData);
 
@@ -166,7 +166,7 @@ export default function FilasChatbotContent() {
         greetingMessage: fila.greetingMessage || "",
         outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
         horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
-        companyId: fila.companyId,
+        companyId: user?.id || "6dfef435-54ba-47e6-b3f3-9d45f839c6f5",
       });
     } else {
       setEditingFilaId(null);

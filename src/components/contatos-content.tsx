@@ -48,6 +48,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useAuth } from "@/hooks/useAuth";
 
 // interface CustomField {
 //   name: string;
@@ -55,6 +56,7 @@ import {
 // }
 
 export function ContatosContent() {
+  const { user } = useAuth();
   const {
     contacts,
     isLoadingContacts,
@@ -75,7 +77,7 @@ export function ContatosContent() {
       name: "",
       phone: "",
       email: "",
-      companyId: "",
+      companyId: user?.id ? user.id : "",
     },
   });
 

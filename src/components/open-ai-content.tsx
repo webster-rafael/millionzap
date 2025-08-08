@@ -50,8 +50,10 @@ import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt, PromptCreate } from "@/interfaces/prompt-interface";
 import { useQueues } from "@/hooks/useQueues";
 import { promptSchema } from "@/validations/promptSchema";
+import { useAuth } from "@/hooks/useAuth";
 
 export function OpenAIContent() {
+  const { user } = useAuth();
   const {
     prompts,
     isLoading,
@@ -80,6 +82,7 @@ export function OpenAIContent() {
     completionTokens: 1,
     totalTokens: 1,
     assistantId: "",
+    companyId: user?.id ? user.id : "",
   });
   const [validationErrors, setValidationErrors] = useState<{
     title?: string[];
@@ -137,6 +140,7 @@ export function OpenAIContent() {
       description: result.data.description || "",
       companyResume: result.data.companyResume,
       queueId: result.data.queueId,
+      companyId: user?.id ? user.id : "",
     };
 
     try {
@@ -166,6 +170,7 @@ export function OpenAIContent() {
       completionTokens: 1,
       totalTokens: 1,
       assistantId: "",
+      companyId: user?.id ? user.id : "",
     });
     setEditingPrompt(null);
     setIsDialogOpen(false);

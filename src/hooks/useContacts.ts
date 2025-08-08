@@ -11,15 +11,22 @@ const API_URL = import.meta.env.VITE_BACKEND_URL;
 const queryKey = ["contacts"];
 
 const fetchContacts = async (): Promise<Contact[]> => {
-  const response = await fetch(`${API_URL}/contacts`);
+  const token = localStorage.getItem("@million-token");
+  const response = await fetch(`${API_URL}/contacts`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (!response.ok) throw new Error("Falha ao buscar contatos");
   return response.json();
 };
 
 const createContact = async (data: CreateContact): Promise<Contact> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(`${API_URL}/contacts`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(data),
   });
 
@@ -36,10 +43,14 @@ const createContact = async (data: CreateContact): Promise<Contact> => {
 };
 
 const updateContact = async (data: ContactUpdatePayload): Promise<Contact> => {
+  const token = localStorage.getItem("@million-token");
   const { id, ...payload } = data;
   const response = await fetch(`${API_URL}/contacts/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error("Falha ao atualizar contato");
@@ -47,8 +58,10 @@ const updateContact = async (data: ContactUpdatePayload): Promise<Contact> => {
 };
 
 const deleteContact = async (id: string): Promise<void> => {
+  const token = localStorage.getItem("@million-token");
   const response = await fetch(`${API_URL}/contacts/${id}`, {
     method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error("Falha ao deletar contato");
 };
