@@ -33,6 +33,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
+import { useAuth } from "@/hooks/useAuth";
 
 const chartData = [
   { hour: "01:00", value: 0 },
@@ -67,6 +68,7 @@ const userData = [
 ];
 
 export function DashboardContent() {
+  const { user } = useAuth();
   // const [startDate, setStartDate] = useState("01/07/2025");
   // const [endDate, setEndDate] = useState("03/07/2025");
 
@@ -76,7 +78,10 @@ export function DashboardContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Olá Admin, Bem vindo à Empresa 1!</p>
+          <p className="text-gray-600">
+            Olá {user?.role === "USER" ? user?.name : "ADMIN"}, Bem vindo à{" "}
+            {user?.companyName}
+          </p>
         </div>
         <div className="flex items-center space-x-4">
           <Button variant="outline" size="sm">

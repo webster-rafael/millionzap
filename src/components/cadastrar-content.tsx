@@ -23,11 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCompanies } from "@/hooks/useCompanies";
 import { toast, Toaster } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 export function CadastrarContent() {
-  const { create, isCreating } = useCompanies();
+  const { signUpUser, isSigningUp } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm<z.infer<typeof CreateCompanyFormSchema>>({
     resolver: zodResolver(CreateCompanyFormSchema),
@@ -49,9 +51,10 @@ export function CadastrarContent() {
       planId: values.plan,
     };
 
-    create(payload, {
+    signUpUser(payload, {
       onSuccess: () => {
         toast.success("Empresa criada com sucesso!");
+        navigate("/entrar");
         form.reset();
       },
       onError: (error: any) => {
@@ -185,8 +188,8 @@ export function CadastrarContent() {
               )}
             />
 
-            <Button type="submit" disabled={isCreating}>
-              {isCreating ? "Cadastrando..." : "Cadastrar"}
+            <Button type="submit" disabled={isSigningUp}>
+              {isSigningUp ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </form>
         </Form>

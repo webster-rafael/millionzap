@@ -1,54 +1,26 @@
 import type { User, UserCreate } from "@/interfaces/user-interface";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/services/api";
 
-interface CustomError extends Error {
-  code?: string;
-}
+type UserUpdatePayload = {
+  id: string;
+  data: Partial<UserCreate>;
+};
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL + "/users";
+const resourceUrl = "/users";
 const queryKey = ["users"];
 
-const fetchUsers = async (): Promise<User[]> => {
-  const response = await fetch(API_BASE_URL);
-  if (!response.ok) throw new Error("Falha ao buscar usuários");
-  return response.json();
+const fetchUsers = (): Promise<User[]> => api.get(resourceUrl);
+
+const createUser = (newUser: UserCreate): Promise<User> =>
+  api.post(resourceUrl, newUser);
+
+const updateUser = ({ id, data }: UserUpdatePayload): Promise<User> => {
+  return api.put(`${resourceUrl}/${id}`, data);
 };
 
-const createUser = async (newUser: UserCreate): Promise<User> => {
-  const response = await fetch(API_BASE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newUser),
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const error = new Error(
-      errorData?.message || "Falha ao criar contato",
-    ) as CustomError;
-    error.code = errorData?.code;
-    throw error;
-  }
-  return response.json();
-};
-
-const updateUser = async (user: User): Promise<User> => {
-  const { id, ...payload } = user;
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar usuário");
-  return response.json();
-};
-
-const deleteUser = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "DELETE",
-  });
-  if (response.status === 204) return;
-  if (!response.ok) throw new Error("Falha ao deletar usuário");
-};
+const deleteUser = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useUsers = () => {
   const queryClient = useQueryClient();

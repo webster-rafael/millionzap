@@ -27,8 +27,10 @@ import {
   Info,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 export function Sidebar() {
+  const { user } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
@@ -118,23 +120,23 @@ export function Sidebar() {
           ))}
         </div>
 
-        <div className="mt-6">
-          <div className="mb-2 px-3">
-            <button
-              onClick={() => setIsAdminOpen(!isAdminOpen)}
-              className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-            >
-              <Settings className="mr-3 h-4 w-4" />
-              <span className="flex-1 text-left">Administração</span>
-              {isAdminOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+        {user?.role === "ADMIN" && (
+          <div className="mt-6">
+            <div className="mb-2 px-3">
+              <button
+                onClick={() => setIsAdminOpen(user?.role !== "ADMIN")}
+                className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                <Settings className="mr-3 h-4 w-4" />
+                <span className="flex-1 text-left">Administração</span>
+                {isAdminOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            </div>
 
-          {isAdminOpen && (
             <div className="space-y-1 px-3">
               {adminItems.map((item) => (
                 <div key={item.name}>
@@ -189,8 +191,8 @@ export function Sidebar() {
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-gray-200 p-4">

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -38,8 +38,10 @@ import { format, isSameDay, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQueues } from "@/hooks/useQueues";
 import { useSendMessage } from "@/hooks/useSendMessage";
+import { useAuth } from "@/hooks/useAuth";
 
 export function AtendimentosContent() {
+  const { user } = useAuth();
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
@@ -56,7 +58,10 @@ export function AtendimentosContent() {
   const sendMessageMutation = useSendMessage();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isOpenModalTransfer, setIsOpenModalTransfer] = useState(false);
+  const [openFilters, setOpenFilters] = useState(false);
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedQueueFilter, setSelectedQueueFilter] = useState("todas");
 
   const handleSendMessage = async () => {
     if (
@@ -90,20 +95,57 @@ export function AtendimentosContent() {
   const selectedConversation =
     conversations.find((c) => c.id === selectedConversationId) || null;
 
-  const filteredConversations = conversations.filter((conversation) => {
-    if (activeTab === "abertas") {
-      if (activeSubTab === "aguardando")
-        return conversation.status === "WAITING";
-      if (activeSubTab === "atendendo")
-        return conversation.status === "SERVING";
-    }
-    if (activeTab === "resolvidas") {
-      return (
-        conversation.status === "RESOLVED" || conversation.status === "CLOSED"
+  const visibleConversations = useMemo(() => {
+    let filtered = conversations;
+
+    if (searchTerm) {
+      const lowercasedTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (conversation) =>
+          conversation.contact?.name?.toLowerCase().includes(lowercasedTerm) ||
+          conversation.contact?.phone?.includes(lowercasedTerm),
       );
     }
-    return false;
-  });
+
+    if (selectedQueueFilter !== "todas") {
+      filtered = filtered.filter(
+        (conversation) => conversation.queueId === selectedQueueFilter,
+      );
+    }
+
+    if (user?.role === "USER") {
+      const userQueueIds = new Set(user.queues.map((q) => q.queue.id));
+      filtered = filtered.filter((conversation) => {
+        if (conversation.status === "SERVING") {
+          return conversation.userId === user.id;
+        }
+        return userQueueIds.has(conversation.queueId || "");
+      });
+    }
+
+    return filtered;
+  }, [conversations, user, searchTerm, selectedQueueFilter]);
+
+  const filteredConversations = useMemo(() => {
+    if (activeTab === "busca" && searchTerm) {
+      return visibleConversations;
+    }
+
+    return visibleConversations.filter((conversation) => {
+      if (activeTab === "abertas") {
+        if (activeSubTab === "aguardando")
+          return conversation.status === "WAITING";
+        if (activeSubTab === "atendendo")
+          return conversation.status === "SERVING";
+      }
+      if (activeTab === "resolvidas") {
+        return (
+          conversation.status === "RESOLVED" || conversation.status === "CLOSED"
+        );
+      }
+      return false;
+    });
+  }, [visibleConversations, activeTab, activeSubTab, searchTerm]);
 
   const getQueueColor = (queue: string) => {
     switch (queue) {
@@ -135,25 +177,39 @@ export function AtendimentosContent() {
     setSelectedQueueId("");
   };
 
+  const handleOpenFilters = () => {
+    setOpenFilters(!openFilters);
+  };
+
   return (
     <div className="flex h-full">
-      {/* Conversations List */}
       <div className="flex w-96 flex-col border-r border-gray-200 bg-white">
-        {/* Header */}
         <div className="border-b border-gray-200 p-4">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-xl font-semibold text-gray-900">
               Atendimentos
             </h1>
-            <Button variant="outline" size="sm">
+            <Button
+              className={`${openFilters ? "bg-primary-million text-white" : ""}`}
+              onClick={handleOpenFilters}
+              variant="outline"
+              size="sm"
+            >
               <Filter className="mr-2 h-4 w-4" />
               Filtros
             </Button>
           </div>
-          <div className="relative mb-4">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-            <Input placeholder="Buscar conversas..." className="pl-10" />
-          </div>
+          {openFilters && (
+            <div className="relative mb-4">
+              <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
+              <Input
+                placeholder="Buscar por nome ou telefone..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex h-10 w-full items-center">
               <TabsTrigger value="abertas" className="text-xs">
@@ -162,7 +218,11 @@ export function AtendimentosContent() {
                   variant="secondary"
                   className="bg-primary-million ml-2 text-white"
                 >
-                  {conversations.filter((c) => c.status === "SERVING").length}
+                  {
+                    visibleConversations.filter(
+                      (c) => c.status === "SERVING" || c.status === "WAITING",
+                    ).length
+                  }
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="resolvidas" className="text-xs">
@@ -171,33 +231,37 @@ export function AtendimentosContent() {
                   variant="secondary"
                   className="bg-primary-million ml-2 text-white"
                 >
-                  {conversations.filter((c) => c.status === "SERVING").length}
+                  {
+                    visibleConversations.filter((c) => c.status === "RESOLVED")
+                      .length
+                  }
                 </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="busca" className="text-xs">
-                BUSCA
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        {/* Queue Filter */}
-        <div className="border-b border-gray-200 p-4">
-          <Select defaultValue="todas">
-            <SelectTrigger>
-              <SelectValue placeholder="Todas as filas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as filas</SelectItem>
+        {user?.role === "ADMIN" && (
+          <div className="border-b border-gray-200 p-4">
+            <Select
+              value={selectedQueueFilter}
+              onValueChange={setSelectedQueueFilter}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todas as filas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as filas</SelectItem>
 
-              {queues?.map((queue: { id: string; name: string }) => (
-                <SelectItem key={queue.id} value={queue.id}>
-                  {queue.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                {queues?.map((queue: { id: string; name: string }) => (
+                  <SelectItem key={queue.id} value={queue.id}>
+                    {queue.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* Sub-tabs */}
         {activeTab === "abertas" && (
@@ -215,7 +279,10 @@ export function AtendimentosContent() {
                 variant="secondary"
                 className="bg-primary-million ml-2 text-xs text-white"
               >
-                {conversations.filter((c) => c.status === "SERVING").length}
+                {
+                  visibleConversations.filter((c) => c.status === "SERVING")
+                    .length
+                }
               </Badge>
             </button>
             <button
@@ -231,7 +298,10 @@ export function AtendimentosContent() {
                 variant="secondary"
                 className="ml-2 bg-red-500 text-xs text-white"
               >
-                {conversations.filter((c) => c.status === "WAITING").length}
+                {
+                  visibleConversations.filter((c) => c.status === "WAITING")
+                    .length
+                }
               </Badge>
             </button>
           </div>
@@ -330,10 +400,15 @@ export function AtendimentosContent() {
                               .find((fila) => fila.id === conversation.queueId)
                               ?.name?.toUpperCase() || "SEM FILA"}
                           </Badge>
+                          {activeTab === "resolvidas" && (
+                            <Badge variant="outline" className="text-xs">
+                              {conversation.user?.name || conversation.userId}
+                            </Badge>
+                          )}
                           {conversation.userId &&
                             conversation.status === "SERVING" && (
                               <Badge variant="outline" className="text-xs">
-                                ADMIN
+                                {conversation.user?.name || conversation.userId}
                               </Badge>
                             )}
                           {activeSubTab === "aguardando" && (
@@ -407,15 +482,21 @@ export function AtendimentosContent() {
                     </div>
                     <motion.div
                       drag="x"
-                      // Adicionando constraints para limitar o movimento
                       dragConstraints={{ left: -150, right: 0 }}
                       dragElastic={0.2}
                       onDragEnd={(_, info) => {
-                        // A única ação válida aqui é arrastar para a esquerda para atender
                         if (info.offset.x < -75) {
+                          if (!user) {
+                            console.error(
+                              "Usuário não logado, não é possível aceitar a conversa.",
+                            );
+                            return;
+                          }
+
                           updateConversation({
                             id: conversation.id,
-                            status: "SERVING", // <<< CORRIGIDO
+                            status: "SERVING",
+                            userId: user.id,
                           });
                         }
                       }}

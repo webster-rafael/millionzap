@@ -1,59 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Company, CreateCompany } from "@/interfaces/company-interface";
+import { api } from "@/services/api";
 
 type CompanyUpdatePayload = Partial<CreateCompany> & { id: string };
 
-interface CustomError extends Error {
-  code?: string;
-}
-
-const API_URL = import.meta.env.VITE_BACKEND_URL;
+const resourceUrl = "/companies";
 const queryKey = ["companies"];
 
-const fetchCompanies = async (): Promise<Company[]> => {
-  const response = await fetch(`${API_URL}/companies`);
-  if (!response.ok) throw new Error("Falha ao buscar empresas");
-  return response.json();
-};
+const fetchCompanies = (): Promise<Company[]> => api.get(resourceUrl);
 
-const createCompany = async (data: CreateCompany): Promise<Company> => {
-  const response = await fetch(`${API_URL}/companies`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+const createCompany = (data: CreateCompany): Promise<Company> =>
+  api.post(resourceUrl, data);
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const error = new Error(
-      errorData?.message || "Falha ao criar empresa",
-    ) as CustomError;
-    error.code = errorData?.code;
-    throw error;
-  }
-
-  return response.json();
-};
-
-const updateCompany = async (data: CompanyUpdatePayload): Promise<Company> => {
+const updateCompany = (data: CompanyUpdatePayload): Promise<Company> => {
   const { id, ...payload } = data;
-  const response = await fetch(`${API_URL}/companies/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) throw new Error("Falha ao atualizar empresa");
-  return response.json();
+  return api.put(`${resourceUrl}/${id}`, payload);
 };
 
-const deleteCompany = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/companies/${id}`, {
-    method: "DELETE",
-  });
-
-  if (!response.ok) throw new Error("Falha ao deletar empresa");
-};
+const deleteCompany = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useCompanies = () => {
   const queryClient = useQueryClient();
@@ -65,7 +30,7 @@ export const useCompanies = () => {
   } = useQuery<Company[]>({
     queryKey,
     queryFn: fetchCompanies,
-    refetchInterval: 1000,
+    refetchInterval: 5000,
   });
 
   const onSuccess = () => {

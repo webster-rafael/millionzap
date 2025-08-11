@@ -1,19 +1,25 @@
+import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+// A interface do usuário deve ser completa
 interface User {
   id: string;
   name: string;
   email: string;
+  role: string;
+  companyId: string;
+  companyName: string;
+  queues: {
+    queue: {
+      id: string;
+      name: string;
+    };
+  }[];
 }
 
 interface LoginCredentials {
   email: string;
   password: string;
-}
-
-interface AuthResponse {
-  company: User;
-  token: string;
 }
 
 type SignUpPayload = {
@@ -24,60 +30,25 @@ type SignUpPayload = {
   planId: string;
 };
 
-const API_URL = import.meta.env.VITE_BACKEND_URL;
 const authQueryKey = ["auth-user"];
 
 const fetchUser = async (): Promise<User | null> => {
-  const token = localStorage.getItem("@million-token");
-  if (!token) return null;
-
-  const response = await fetch(`${API_URL}/companies/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!response.ok) {
-    localStorage.removeItem("@million-token");
+  try {
+    const user = await api.get("/companies/me");
+    return user;
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
     return null;
   }
-
-  return response.json();
 };
 
-const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/companies/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-  });
+const login = (credentials: LoginCredentials): Promise<User> =>
+  api.post("/companies/login", credentials);
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || "Falha ao fazer login");
-  }
+const signUp = (data: SignUpPayload): Promise<User> =>
+  api.post("/companies", data);
 
-  return response.json();
-};
-
-const signUp = async (data: SignUpPayload): Promise<AuthResponse> => {
-  const response = await fetch(`${API_URL}/companies`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    const error = new Error(
-      errorData?.message || "Falha ao criar conta",
-    ) as Error & { code?: string };
-    error.code = errorData?.code;
-    throw error;
-  }
-
-  return response.json();
-};
+const logout = (): Promise<void> => api.post("/companies/logout", {});
 
 export const useAuth = () => {
   const queryClient = useQueryClient();
@@ -87,30 +58,31 @@ export const useAuth = () => {
     queryFn: fetchUser,
     staleTime: Infinity,
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: false,
   });
-
-  const handleAuthSuccess = (data: AuthResponse) => {
-    const { company, token } = data;
-    localStorage.setItem("@million-token", token);
-    queryClient.setQueryData(authQueryKey, company);
-  };
 
   const { mutate: loginUser, isPending: isLoggingIn } = useMutation({
     mutationFn: login,
-    onSuccess: handleAuthSuccess,
+    onSuccess: (userData) => {
+      queryClient.setQueryData(authQueryKey, userData);
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+    },
   });
 
   const { mutate: signUpUser, isPending: isSigningUp } = useMutation({
     mutationFn: signUp,
-    onSuccess: handleAuthSuccess,
+    onSuccess: (userData) => {
+      queryClient.setQueryData(authQueryKey, userData);
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
+    },
   });
 
-  const logoutUser = () => {
-    localStorage.removeItem("@million-token");
-    queryClient.setQueryData(authQueryKey, null);
-    queryClient.invalidateQueries();
-  };
+  const { mutate: logoutUser } = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      queryClient.setQueryData(authQueryKey, null);
+    },
+  });
 
   return {
     user: user ?? null,

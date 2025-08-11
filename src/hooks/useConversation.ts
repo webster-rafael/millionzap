@@ -2,50 +2,28 @@ import type {
   Conversation,
   ConversationCreate,
 } from "@/interfaces/conversation-interface";
+import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 type ConversationUpdatePayload = Partial<ConversationCreate> & { id: string };
 
-const API_URL = import.meta.env.VITE_BACKEND_URL;
+const resourceUrl = "/conversations";
 const queryKey = ["conversations"];
 
-const fetchConversations = async (): Promise<Conversation[]> => {
-  const response = await fetch(`${API_URL}/conversations`);
-  if (!response.ok) throw new Error("Falha ao buscar conversas");
-  return response.json();
-};
+const fetchConversations = (): Promise<Conversation[]> => api.get(resourceUrl);
 
-const createConversation = async (
-  data: ConversationCreate,
-): Promise<Conversation> => {
-  const response = await fetch(`${API_URL}/conversations`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Falha ao criar conversa");
-  return response.json();
-};
+const createConversation = (data: ConversationCreate): Promise<Conversation> =>
+  api.post(resourceUrl, data);
 
-const updateConversation = async (
+const updateConversation = (
   data: ConversationUpdatePayload,
 ): Promise<Conversation> => {
   const { id, ...payload } = data;
-  const response = await fetch(`${API_URL}/conversations/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar conversa");
-  return response.json();
+  return api.put(`${resourceUrl}/${id}`, payload);
 };
 
-const deleteConversation = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_URL}/conversations/${id}`, {
-    method: "DELETE",
-  });
-  if (!response.ok) throw new Error("Falha ao deletar conversa");
-};
+const deleteConversation = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useConversations = () => {
   const queryClient = useQueryClient();

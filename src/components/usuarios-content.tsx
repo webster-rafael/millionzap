@@ -143,17 +143,13 @@ export function UsuariosContent() {
     };
 
     if (editingUser) {
-      const payload = { ...data };
+      const dataToUpdate = { ...data };
 
-      if (!payload.password) {
-        delete (payload as Partial<UserFormData>).password;
+      if (!dataToUpdate.password) {
+        delete (dataToUpdate as Partial<UserFormData>).password;
       }
-      const finalPayload = {
-        ...editingUser,
-        ...payload,
-      };
 
-      updateUser(finalPayload, mutationCallback);
+      updateUser({ id: editingUser.id, data: dataToUpdate }, mutationCallback);
     } else {
       createUser(data, mutationCallback);
     }
