@@ -1,61 +1,24 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Tags, CreateTags } from "@/interfaces/tag-interface";
+import { api } from "@/services/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 type TagsUpdatePayload = Partial<CreateTags> & { id: string };
 
-const API_URL = import.meta.env.VITE_BACKEND_URL;
+const resourceUrl = "/tags";
 const queryKey = ["tags"];
 
-const fetchTags = async (): Promise<Tags[]> => {
-  const token = localStorage.getItem("@million-token");
-  const response = await fetch(`${API_URL}/tags`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) throw new Error("Falha ao buscar tags");
-  return response.json();
-};
+const fetchTags = (): Promise<Tags[]> => api.get(resourceUrl);
 
-const createTag = async (data: CreateTags): Promise<Tags> => {
-  const token = localStorage.getItem("@million-token");
-  const response = await fetch(`${API_URL}/tags`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error("Falha ao criar tag");
-  return response.json();
-};
+const createTag = (data: CreateTags): Promise<Tags> =>
+  api.post(resourceUrl, data);
 
-const updateTag = async (data: TagsUpdatePayload): Promise<Tags> => {
-  const token = localStorage.getItem("@million-token");
+const updateTag = (data: TagsUpdatePayload): Promise<Tags> => {
   const { id, ...payload } = data;
-  const response = await fetch(`${API_URL}/tags/${id}`, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar tag");
-  return response.json();
+  return api.put(`${resourceUrl}/${id}`, payload);
 };
 
-const deleteTag = async (id: string): Promise<void> => {
-  const token = localStorage.getItem("@million-token");
-  const response = await fetch(`${API_URL}/tags/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!response.ok) throw new Error("Falha ao deletar tag");
-};
+const deleteTag = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useTags = () => {
   const queryClient = useQueryClient();

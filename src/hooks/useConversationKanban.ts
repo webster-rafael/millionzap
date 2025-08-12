@@ -1,31 +1,23 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Conversation } from "@/interfaces/conversation-interface";
+import { api } from "@/services/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_URL = import.meta.env.VITE_BACKEND_URL;
-const KANBAN_CONVERSATIONS_KEY = ["conversations", "kanban"];
-
-type ConversationUpdatePayload = {
+type KanbanConversationUpdatePayload = {
   id: string;
   tagId?: string;
 };
 
-const fetchKanbanConversations = async (): Promise<Conversation[]> => {
-  const response = await fetch(`${API_URL}/conversations/kanban`);
-  if (!response.ok) throw new Error("Falha ao buscar conversas para o Kanban");
-  return response.json();
-};
+const resourceUrl = "/conversations/kanban";
+const queryKey = ["conversations", "kanban"];
 
-const updateConversation = async (
-  data: ConversationUpdatePayload,
+const fetchKanbanConversations = (): Promise<Conversation[]> =>
+  api.get(resourceUrl);
+
+const updateKanbanConversation = (
+  data: KanbanConversationUpdatePayload,
 ): Promise<Conversation> => {
   const { id, ...payload } = data;
-  const response = await fetch(`${API_URL}/conversations/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar conversa");
-  return response.json();
+  return api.put(`/conversations/${id}`, payload);
 };
 
 export const useKanbanConversations = () => {
@@ -36,16 +28,18 @@ export const useKanbanConversations = () => {
     isLoading: isLoadingConversations,
     isError: isErrorConversations,
   } = useQuery<Conversation[]>({
-    queryKey: KANBAN_CONVERSATIONS_KEY,
+    queryKey,
     queryFn: fetchKanbanConversations,
     refetchInterval: 5000,
   });
 
+  const onSuccess = () => {
+    queryClient.invalidateQueries({ queryKey });
+  };
+
   const { mutate: update, isPending: isUpdating } = useMutation({
-    mutationFn: updateConversation,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KANBAN_CONVERSATIONS_KEY });
-    },
+    mutationFn: updateKanbanConversation,
+    onSuccess,
     onError: (error) => {
       console.error("Erro ao atualizar conversa no Kanban:", error);
     },

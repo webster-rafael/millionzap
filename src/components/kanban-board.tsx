@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -46,9 +46,7 @@ export function KanbanBoard() {
   const { conversations, isLoadingConversations, update } =
     useKanbanConversations();
 
-  const [columns, setColumns] = useState<Column[]>([]);
-
-  const memoizedColumns = useMemo<Column[]>(() => {
+  const columns = useMemo<Column[]>(() => {
     if (!tags || tags.length === 0) return [];
     return tags.map((tag) => ({
       id: tag.id,
@@ -57,11 +55,6 @@ export function KanbanBoard() {
       conversations: conversations.filter((conv) => conv.tagId === tag.id),
     }));
   }, [tags, conversations]);
-
-  useEffect(() => {
-    setColumns(memoizedColumns);
-    console.log(conversations);
-  }, [memoizedColumns]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -75,36 +68,6 @@ export function KanbanBoard() {
       return;
     }
 
-    const startCol = columns.find((col) => col.id === source.droppableId);
-    const endCol = columns.find((col) => col.id === destination.droppableId);
-
-    if (!startCol || !endCol) return;
-
-    const conversationToMove = startCol.conversations.find(
-      (conv) => conv.id === draggableId,
-    );
-    if (!conversationToMove) return;
-
-    const newStartColConversations = Array.from(startCol.conversations);
-    newStartColConversations.splice(source.index, 1);
-
-    const newEndColConversations =
-      startCol.id === endCol.id
-        ? newStartColConversations
-        : Array.from(endCol.conversations);
-    newEndColConversations.splice(destination.index, 0, conversationToMove);
-
-    const newColumns = columns.map((col) => {
-      if (col.id === source.droppableId) {
-        return { ...col, conversations: newStartColConversations };
-      }
-      if (col.id === destination.droppableId) {
-        return { ...col, conversations: newEndColConversations };
-      }
-      return col;
-    });
-
-    setColumns(newColumns);
     update({ id: draggableId, tagId: destination.droppableId });
   };
 
