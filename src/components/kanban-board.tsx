@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -45,15 +45,21 @@ export function KanbanBoard() {
   const { tags, isLoadingTags, isErrorTags } = useTags();
   const { conversations, isLoadingConversations, update } =
     useKanbanConversations();
+  const [columns, setColumns] = useState<Column[]>([]);
 
-  const columns = useMemo<Column[]>(() => {
-    if (!tags || tags.length === 0) return [];
-    return tags.map((tag) => ({
-      id: tag.id,
-      title: tag.title,
-      color: tag.color,
-      conversations: conversations.filter((conv) => conv.tagId === tag.id),
-    }));
+  useEffect(() => {
+    if (!tags || tags.length === 0) {
+      setColumns([]);
+      return;
+    }
+    setColumns(
+      tags.map((tag) => ({
+        id: tag.id,
+        title: tag.title,
+        color: tag.color,
+        conversations: conversations.filter((conv) => conv.tagId === tag.id),
+      })),
+    );
   }, [tags, conversations]);
 
   const onDragEnd = (result: DropResult) => {
@@ -68,6 +74,35 @@ export function KanbanBoard() {
       return;
     }
 
+    const startCol = columns.find((col) => col.id === source.droppableId);
+    const endCol = columns.find((col) => col.id === destination.droppableId);
+    if (!startCol || !endCol) return;
+
+    const conversationToMove = startCol.conversations.find(
+      (conv) => conv.id === draggableId,
+    );
+    if (!conversationToMove) return;
+
+    const newStartConvs = Array.from(startCol.conversations);
+    newStartConvs.splice(source.index, 1);
+
+    const newEndConvs =
+      startCol.id === endCol.id
+        ? newStartConvs
+        : Array.from(endCol.conversations);
+    newEndConvs.splice(destination.index, 0, conversationToMove);
+
+    const newColumns = columns.map((col) => {
+      if (col.id === source.droppableId) {
+        return { ...col, conversations: newStartConvs };
+      }
+      if (col.id === destination.droppableId) {
+        return { ...col, conversations: newEndConvs };
+      }
+      return col;
+    });
+
+    setColumns(newColumns);
     update({ id: draggableId, tagId: destination.droppableId });
   };
 
@@ -160,16 +195,14 @@ export function KanbanBoard() {
 
                   <Droppable droppableId={column.id}>
                     {(provided, snapshot) => (
-                      <>
+                      <div ref={provided.innerRef}>
                         {isLoadingConversations ? (
-                          <>
-                            <div className="flex flex-col gap-3 p-4">
-                              <Skeleton className="h-54 bg-zinc-200 p-4" />
-                              <Skeleton className="h-54 bg-zinc-200 p-4" />
-                              <Skeleton className="h-54 bg-zinc-200 p-4" />
-                              <Skeleton className="h-54 bg-zinc-200 p-4" />
-                            </div>
-                          </>
+                          <div className="flex flex-col gap-3 p-4">
+                            <Skeleton className="h-54 bg-zinc-200 p-4" />
+                            <Skeleton className="h-54 bg-zinc-200 p-4" />
+                            <Skeleton className="h-54 bg-zinc-200 p-4" />
+                            <Skeleton className="h-54 bg-zinc-200 p-4" />
+                          </div>
                         ) : (
                           <div
                             ref={provided.innerRef}
@@ -321,7 +354,7 @@ export function KanbanBoard() {
                             {provided.placeholder}
                           </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </Droppable>
                 </div>

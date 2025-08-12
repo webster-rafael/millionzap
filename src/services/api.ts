@@ -8,11 +8,13 @@ const client = async (
   endpoint: string,
   { data, headers: customHeaders, ...customConfig }: RequestOptions = {},
 ) => {
+  const hasBody = data !== undefined;
+
   const config: RequestInit = {
-    method: data ? "POST" : "GET",
-    body: JSON.stringify(data),
+    method: customConfig.method ?? (hasBody ? "POST" : "GET"),
+    ...(hasBody && { body: JSON.stringify(data) }),
     headers: {
-      "Content-Type": "application/json",
+      ...(hasBody && { "Content-Type": "application/json" }),
       ...customHeaders,
     },
     credentials: "include",
