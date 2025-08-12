@@ -16,6 +16,8 @@ import {
   MessageSquareX,
   MessageSquareShare,
   ArrowDown,
+  Loader,
+  Trash,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,17 +41,21 @@ import { ptBR } from "date-fns/locale";
 import { useQueues } from "@/hooks/useQueues";
 import { useSendMessage } from "@/hooks/useSendMessage";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate, useParams } from "react-router-dom";
+import { toast, Toaster } from "sonner";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
-  const [selectedConversationId, setSelectedConversationId] = useState<
-    string | null
-  >(null);
+  const navigate = useNavigate();
+  const { conversationId: selectedConversationId } = useParams<{
+    conversationId: string;
+  }>();
   const [messageInput, setMessageInput] = useState("");
   const [activeTab, setActiveTab] = useState("abertas");
   const [activeSubTab, setActiveSubTab] = useState("atendendo");
   const {
     conversations,
+    remove,
     isLoadingConversations,
     isErrorConversations,
     update: updateConversation,
@@ -89,7 +95,7 @@ export function AtendimentosContent() {
   };
 
   const handleConversationSelect = (conversation: Conversation) => {
-    setSelectedConversationId(conversation.id);
+    navigate(`/atendimentos/${conversation.id}`);
   };
 
   const selectedConversation =
@@ -147,17 +153,6 @@ export function AtendimentosContent() {
     });
   }, [visibleConversations, activeTab, activeSubTab, searchTerm]);
 
-  const getQueueColor = (queue: string) => {
-    switch (queue) {
-      case "SUPORTE":
-        return "bg-blue-100 text-blue-800";
-      case "VENDAS":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selectedConversation?.messages]);
@@ -179,6 +174,16 @@ export function AtendimentosContent() {
 
   const handleOpenFilters = () => {
     setOpenFilters(!openFilters);
+  };
+
+  const deleteConversation = (id: string) => {
+    try {
+      remove(id);
+      toast.success("Conversa excluída com sucesso!");
+    } catch (error) {
+      console.error("Erro ao excluir conversa:", error);
+      toast.error("Erro ao excluir conversa.");
+    }
   };
 
   return (
@@ -385,21 +390,27 @@ export function AtendimentosContent() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <Badge
-                            variant="secondary"
-                            className="border-none text-xs"
-                            style={{
-                              backgroundColor:
-                                queues.find(
+                          {isLoadingQueues ? (
+                            <Loader className="animation-spin h-3 w-3" />
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="border-none text-xs"
+                              style={{
+                                backgroundColor:
+                                  queues.find(
+                                    (fila) => fila.id === conversation.queueId,
+                                  )?.color || "#A1A1AA",
+                                color: "#FFFFFF",
+                              }}
+                            >
+                              {queues
+                                .find(
                                   (fila) => fila.id === conversation.queueId,
-                                )?.color || "#A1A1AA",
-                              color: "#FFFFFF",
-                            }}
-                          >
-                            {queues
-                              .find((fila) => fila.id === conversation.queueId)
-                              ?.name?.toUpperCase() || "SEM FILA"}
-                          </Badge>
+                                )
+                                ?.name?.toUpperCase() || "SEM FILA"}
+                            </Badge>
+                          )}
                           {activeTab === "resolvidas" && (
                             <Badge variant="outline" className="text-xs">
                               {conversation.user?.name || conversation.userId}
@@ -599,8 +610,13 @@ export function AtendimentosContent() {
                   <Button variant="outline" size="sm">
                     <User className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <MoreVertical className="h-4 w-4" />
+                  <Button
+                    className="hover:bg-red-500 hover:text-white"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteConversation(selectedConversation.id)}
+                  >
+                    <Trash className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -755,6 +771,7 @@ export function AtendimentosContent() {
           </div>
         )}
       </>
+      <Toaster />
     </div>
   );
 }

@@ -56,9 +56,7 @@ export const useAuth = () => {
   const { data: user, isLoading: isLoadingUser } = useQuery({
     queryKey: authQueryKey,
     queryFn: fetchUser,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    retry: false,
+    retry: true,
   });
 
   const { mutate: loginUser, isPending: isLoggingIn } = useMutation({

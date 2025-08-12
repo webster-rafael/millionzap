@@ -36,6 +36,7 @@ import TagsPage from "@/pages/tags/page";
 import TarefasPage from "@/pages/tarefas/page";
 import UsuariosPage from "@/pages/usuarios/page";
 import { ProtectedRoute } from "@/components/protectRoutes";
+import { AtendimentosContent } from "@/components/atendimentos-content";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,10 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardContent />} />
         <Route path="/atendimentos" element={<AtendimentosPage />} />
+        <Route
+          path="/atendimentos/:conversationId"
+          element={<AtendimentosContent />}
+        />
         <Route path="/kanban" element={<KanbanPage />} />
         <Route path="/respostas-rapidas" element={<RespostasRapidasPage />} />
         <Route path="/tarefas" element={<TarefasPage />} />

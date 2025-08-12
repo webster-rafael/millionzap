@@ -35,6 +35,7 @@ export const useConversations = () => {
   } = useQuery<Conversation[]>({
     queryKey,
     queryFn: fetchConversations,
+    retry: true,
     refetchInterval: 5000,
   });
 

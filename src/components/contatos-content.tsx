@@ -49,6 +49,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { useConversations } from "@/hooks/useConversation";
 
 // interface CustomField {
 //   name: string;
@@ -67,10 +69,14 @@ export function ContatosContent() {
     isUpdating,
     remove,
   } = useContacts();
+  const { conversations, create: createConversation } = useConversations();
+  const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [startingConversationContactId, setStartingConversationContactId] =
+    useState<string | null>(null);
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -163,6 +169,46 @@ export function ContatosContent() {
         ? []
         : filteredContacts.map((c) => c.id),
     );
+  };
+
+  const handleStartConversation = (contact: Contact) => {
+    setStartingConversationContactId(contact.id);
+    const existingConversation = conversations.find(
+      (conv) =>
+        conv.contactId === contact.id &&
+        conv.status !== "RESOLVED" &&
+        conv.status !== "CLOSED",
+    );
+
+    if (existingConversation) {
+      toast.info("Abrindo conversa existente...");
+      navigate(`/atendimentos/${existingConversation.id}`);
+      setStartingConversationContactId(null);
+    } else {
+      toast.info("Criando nova conversa...");
+      createConversation(
+        {
+          contactId: contact.id,
+          status: "SERVING",
+          companyId: user?.companyId || "",
+          createdAt: new Date(),
+        },
+        {
+          onSuccess: (newConversation) => {
+            toast.success("Conversa iniciada com sucesso!");
+            navigate(`/atendimentos/${newConversation.id}`);
+          },
+          onError: () => {
+            toast.error(
+              "Não foi possível iniciar a conversa. Tente novamente.",
+            );
+          },
+          onSettled: () => {
+            setStartingConversationContactId(null);
+          },
+        },
+      );
+    }
   };
 
   if (isLoadingContacts) {
@@ -416,7 +462,12 @@ export function ContatosContent() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm" title="Conversar">
+                      <Button
+                        onClick={() => handleStartConversation(contact)}
+                        variant="ghost"
+                        size="sm"
+                        title="Conversar"
+                      >
                         <MessageCircle className="h-4 w-4 text-green-600" />
                       </Button>
                       <Button
