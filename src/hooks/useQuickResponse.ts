@@ -3,60 +3,40 @@ import type {
   QuickResponse,
   UpdateQuickResponsePayload,
 } from "@/interfaces/quickresposnse-interface";
+import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL + "/quick-responses";
+type QuickResponseUpdatePayload = Partial<UpdateQuickResponsePayload> & {
+  id: string;
+};
+
+const resourceUrl = "/quick-responses";
 const queryKey = ["quickResponses"];
 
-const fetchQuickResponses = async (): Promise<QuickResponse[]> => {
-  const response = await fetch(API_BASE_URL);
-  if (!response.ok) throw new Error("Falha ao buscar respostas rápidas");
-  return response.json();
-};
+const fetchQuickResponses = (): Promise<QuickResponse[]> =>
+  api.get(resourceUrl);
 
-const createQuickResponse = async (
-  newResponse: CreateQuickResponsePayload,
-): Promise<QuickResponse> => {
-  const response = await fetch(API_BASE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newResponse),
-  });
-  if (!response.ok) throw new Error("Falha ao criar resposta rápida");
-  return response.json();
-};
+const createQuickResponse = (
+  data: CreateQuickResponsePayload,
+): Promise<QuickResponse> => api.post(resourceUrl, data);
 
-const updateQuickResponse = async (
-  data: UpdateQuickResponsePayload,
+const updateQuickResponse = (
+  data: QuickResponseUpdatePayload,
 ): Promise<QuickResponse> => {
   const { id, ...payload } = data;
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar resposta rápida");
-  return response.json();
+  return api.put(`${resourceUrl}/${id}`, payload);
 };
 
-const deleteQuickResponse = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "DELETE",
-  });
-  if (response.status === 204) {
-    return;
-  }
-  if (!response.ok) throw new Error("Falha ao deletar resposta rápida");
-  return;
-};
+const deleteQuickResponse = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useQuickResponses = () => {
   const queryClient = useQueryClient();
 
   const {
-    data: responses = [],
-    isLoading,
-    isError,
+    data: quickResponses = [],
+    isLoading: isLoadingQuickResponses,
+    isError: isErrorQuickResponses,
   } = useQuery<QuickResponse[]>({
     queryKey,
     queryFn: fetchQuickResponses,
@@ -66,7 +46,7 @@ export const useQuickResponses = () => {
     queryClient.invalidateQueries({ queryKey });
   };
 
-  const { mutate: createResponse, isPending: isCreating } = useMutation({
+  const { mutate: create, isPending: isCreating } = useMutation({
     mutationFn: createQuickResponse,
     onSuccess,
     onError: (error) => {
@@ -74,7 +54,7 @@ export const useQuickResponses = () => {
     },
   });
 
-  const { mutate: updateResponse, isPending: isUpdating } = useMutation({
+  const { mutate: update, isPending: isUpdating } = useMutation({
     mutationFn: updateQuickResponse,
     onSuccess,
     onError: (error) => {
@@ -82,24 +62,22 @@ export const useQuickResponses = () => {
     },
   });
 
-  const { mutate: deleteResponse } = useMutation({
+  const { mutate: remove } = useMutation({
     mutationFn: deleteQuickResponse,
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey });
-    },
+    onSuccess,
     onError: (error) => {
       console.error("Erro ao deletar resposta rápida:", error);
     },
   });
 
   return {
-    responses,
-    isLoading,
-    isError,
-    createResponse,
+    quickResponses,
+    isLoadingQuickResponses,
+    isErrorQuickResponses,
+    create,
     isCreating,
-    updateResponse,
+    update,
     isUpdating,
-    deleteResponse,
+    remove,
   };
 };

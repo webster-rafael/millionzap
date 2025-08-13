@@ -57,7 +57,7 @@ export function AudioPlayer({ src, isAgent }: AudioPlayerProps) {
   const progressFillColor = isAgent ? "bg-white" : "bg-primary-million";
 
   return (
-    <div className="flex w-64 items-center gap-2">
+    <div className="flex w-64 mr-4 items-center gap-2">
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <Button

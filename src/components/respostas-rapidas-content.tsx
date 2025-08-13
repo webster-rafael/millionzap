@@ -9,6 +9,7 @@ import {
   Clock,
   User,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import type { QuickResponse } from "@/interfaces/quickresposnse-interface";
 import { useQueues } from "@/hooks/useQueues";
 import type { Queue } from "@/interfaces/queues-interface";
 import { toast, Toaster } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 const availableVariables = [
   {
@@ -80,15 +82,15 @@ const availableVariables = [
 ];
 
 export function RespostasRapidasContent() {
+  const { user } = useAuth();
   const {
-    responses,
-    isLoading,
-    createResponse,
+    quickResponses,
+    isLoadingQuickResponses,
+    isErrorQuickResponses,
+    create,
     isCreating,
-    updateResponse,
-    deleteResponse,
-    isUpdating,
-    isError,
+    update,
+    remove,
   } = useQuickResponses();
   const { queues, isLoadingQueues } = useQueues();
   const [isAddingResponse, setIsAddingResponse] = useState(false);
@@ -102,6 +104,7 @@ export function RespostasRapidasContent() {
     title: "",
     message: "",
     queueId: "",
+    companyId: user?.companyId || "",
   });
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export function RespostasRapidasContent() {
     }
   }, [queues, isLoadingQueues, newResponse.queueId]);
 
-  const filteredResponses = responses.filter((response) => {
+  const filteredResponses = quickResponses.filter((response) => {
     const matchesSearch =
       response.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       response.shortcut.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -174,13 +177,14 @@ export function RespostasRapidasContent() {
         : `/${newResponse.shortcut}`,
     };
 
-    createResponse(payload, {
+    create(payload, {
       onSuccess: () => {
         setNewResponse({
           shortcut: "",
           title: "",
           message: "",
           queueId: queues.length > 0 ? queues[0].id : "",
+          companyId: user?.companyId || "",
         });
         setIsAddingResponse(false);
       },
@@ -193,7 +197,7 @@ export function RespostasRapidasContent() {
 
   const handleUpdate = () => {
     if (!editingResponse) return;
-    updateResponse(
+    update(
       {
         id: editingResponse.id,
         title: editingResponse.title,
@@ -204,7 +208,7 @@ export function RespostasRapidasContent() {
       {
         onSuccess: () => {
           toast("Resposta rápida atualizada com sucesso!");
-          setEditingResponse(null); // Fecha o modal
+          setEditingResponse(null);
         },
         onError: (error) => {
           toast("Erro ao atualizar resposta rápida" + error.message);
@@ -214,7 +218,7 @@ export function RespostasRapidasContent() {
   };
 
   const handleDelete = (id: string) => {
-    deleteResponse(id, {
+    remove(id, {
       onSuccess: () => {
         toast("Resposta rápida deletada com sucesso!");
       },
@@ -241,6 +245,23 @@ export function RespostasRapidasContent() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
+
+  if (isLoadingQuickResponses) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00183E]" />
+        <p className="ml-2 text-lg">Carregando contatos...</p>
+      </div>
+    );
+  }
+
+  if (isErrorQuickResponses) {
+    return (
+      <div className="flex h-screen items-center justify-center text-red-600">
+        <p>Falha ao carregar os contatos. Tente novamente mais tarde.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -390,7 +411,7 @@ export function RespostasRapidasContent() {
             <div className="flex items-center space-x-2">
               <MessageSquare className="h-8 w-8 text-[#00183E]" />
               <div>
-                <p className="text-2xl font-bold">{responses.length}</p>
+                <p className="text-2xl font-bold">{quickResponses.length}</p>
                 <p className="text-sm text-gray-600">Total de Respostas</p>
               </div>
             </div>
@@ -402,7 +423,7 @@ export function RespostasRapidasContent() {
               <Tag className="h-8 w-8 text-green-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {responses.filter((r) => r.queueId === "vendas").length}
+                  {quickResponses.filter((r) => r.queueId === "vendas").length}
                 </p>
                 <p className="text-sm text-gray-600">Vendas</p>
               </div>
@@ -415,7 +436,7 @@ export function RespostasRapidasContent() {
               <User className="h-8 w-8 text-purple-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {responses.filter((r) => r.queueId === "suporte").length}
+                  {quickResponses.filter((r) => r.queueId === "suporte").length}
                 </p>
                 <p className="text-sm text-gray-600">Suporte</p>
               </div>
@@ -428,7 +449,7 @@ export function RespostasRapidasContent() {
               <Clock className="h-8 w-8 text-blue-600" />
               <div>
                 <p className="text-2xl font-bold">
-                  {responses.reduce((acc, r) => acc + r.usageCount, 0)}
+                  {quickResponses.reduce((acc, r) => acc + r.usageCount, 0)}
                 </p>
                 <p className="text-sm text-gray-600">Usos Totais</p>
               </div>
@@ -489,14 +510,14 @@ export function RespostasRapidasContent() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {isLoadingQuickResponses ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center">
                     Carregando respostas...
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredResponses.map((response) => {
+                quickResponses.map((response) => {
                   const queue = getQueueFromId(response.queueId);
                   return (
                     <TableRow key={response.id}>

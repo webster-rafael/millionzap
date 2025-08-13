@@ -43,6 +43,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import { AudioPlayer } from "@/components/audioPlayer";
+import { PhotoViewer } from "@/components/imageViewer";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -660,7 +661,12 @@ export function AtendimentosContent() {
                           >
                             {message?.messageType === "audio" ? (
                               <AudioPlayer
-                                src={message?.mediaUrl}
+                                src={message?.mediaUrl || ""}
+                                isAgent={isAgent}
+                              />
+                            ) : message?.messageType === "image" ? (
+                              <PhotoViewer
+                                src={message?.mediaUrl || ""}
                                 isAgent={isAgent}
                               />
                             ) : (
