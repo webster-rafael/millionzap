@@ -36,6 +36,7 @@ interface MessageInfo {
   direction: string;
   timestamp: number;
   createdAt: Date;
+  messageType?: string;
 }
 
 export interface ConversationCreate {

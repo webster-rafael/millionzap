@@ -7,7 +7,6 @@ import {
   Paperclip,
   Mic,
   Send,
-  MoreVertical,
   MessageSquare,
   Clock,
   Play,
@@ -43,6 +42,7 @@ import { useSendMessage } from "@/hooks/useSendMessage";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
+import { AudioPlayer } from "@/components/audioPlayer";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -658,9 +658,16 @@ export function AtendimentosContent() {
                                 : "border border-gray-200 bg-white text-gray-900"
                             }`}
                           >
-                            <p className="mr-10 w-full p-0.5 text-sm">
-                              {message.content}
-                            </p>
+                            {message?.messageType === "audio" ? (
+                              <AudioPlayer
+                                src={message?.mediaUrl}
+                                isAgent={isAgent}
+                              />
+                            ) : (
+                              <p className="mr-10 w-full p-0.5 text-sm">
+                                {message.content}
+                              </p>
+                            )}
                             <div className="absolute right-2 bottom-2 mt-1 flex h-2 w-10 items-center justify-end space-x-1">
                               <span
                                 className={`text-xs ${
