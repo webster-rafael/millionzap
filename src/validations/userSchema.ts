@@ -10,6 +10,7 @@ export const userSchema = z.object({
     .or(z.literal("")),
   role: UserRole,
   queueIds: z.array(z.string()).optional(),
+  companyId: z.string(),
 });
 
 export type UserFormData = z.infer<typeof userSchema>;

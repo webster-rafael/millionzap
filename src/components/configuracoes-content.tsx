@@ -59,11 +59,7 @@ interface HelpItem {
 
 export function ConfiguracoesContent() {
   const [activeTab, setActiveTab] = useState("opcoes");
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
-  // Estados para Opções
   const [options, setOptions] = useState({
     autoAccept: "Desabilitadas",
     acceptCampaigns: "Não Aceitar",
@@ -76,7 +72,7 @@ export function ConfiguracoesContent() {
   });
 
   // Estados para Empresas
-  const [companies, setCompanies] = useState<Company[]>([
+  const [companies] = useState<Company[]>([
     {
       id: "1",
       name: "Empresa 1",
@@ -135,11 +131,7 @@ export function ConfiguracoesContent() {
 
   const handleSavePlan = () => {
     if (!planForm.name) {
-      toast({
-        title: "Erro",
-        description: "Nome do plano é obrigatório",
-        variant: "destructive",
-      });
+      toast.error("Nome do plano é obrigatório");
       return;
     }
 
@@ -174,20 +166,12 @@ export function ConfiguracoesContent() {
       openAi: "Habilitadas",
       integrations: "Habilitadas",
     });
-    setIsPlanModalOpen(false);
-    toast({
-      title: "Sucesso",
-      description: "Plano criado com sucesso!",
-    });
+    toast.success("Plano criado com sucesso!");
   };
 
   const handleSaveHelp = () => {
     if (!helpForm.title || !helpForm.description) {
-      toast({
-        title: "Erro",
-        description: "Título e descrição são obrigatórios",
-        variant: "destructive",
-      });
+      toast.error("Título e descrição são obrigatórios");
       return;
     }
 
@@ -204,10 +188,7 @@ export function ConfiguracoesContent() {
       videoCode: "",
       description: "",
     });
-    toast({
-      title: "Sucesso",
-      description: "Item de ajuda criado com sucesso!",
-    });
+    toast.success("Item de ajuda criado com sucesso!");
   };
 
   const handleClearHelp = () => {

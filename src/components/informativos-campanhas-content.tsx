@@ -219,19 +219,12 @@ export function InformativosCampanhasContent() {
     });
     setIsCreateModalOpen(false);
 
-    toast({
-      title: "Informativo criado",
-      description: "O informativo foi criado com sucesso.",
-    });
+      toast.success("Informativo criado com sucesso!");
   };
 
   const handleDeleteInformativo = (id: string) => {
     setInformativos(informativos.filter((info) => info.id !== id));
-    toast({
-      title: "Informativo excluído",
-      description: "O informativo foi excluído com sucesso.",
-      variant: "destructive",
-    });
+      toast.success("Informativo excluído com sucesso!");
   };
 
   const stats = {
@@ -303,6 +296,7 @@ export function InformativosCampanhasContent() {
                   <Label htmlFor="tipo">Tipo</Label>
                   <Select
                     value={newInformativo.tipo}
+                    // eslint-disable-next-line
                     onValueChange={(value: any) =>
                       setNewInformativo({ ...newInformativo, tipo: value })
                     }
@@ -323,6 +317,7 @@ export function InformativosCampanhasContent() {
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={newInformativo.status}
+                    // eslint-disable-next-line
                     onValueChange={(value: any) =>
                       setNewInformativo({ ...newInformativo, status: value })
                     }

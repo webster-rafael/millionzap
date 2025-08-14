@@ -1,5 +1,3 @@
-// src/components/ui/multi-select.tsx
-
 import * as React from "react";
 import { X } from "lucide-react";
 
@@ -13,8 +11,6 @@ export function MultiSelect({
   options,
   selected,
   onChange,
-  className,
-  ...props
 }: {
   options: Option[];
   selected: string[];

@@ -63,7 +63,8 @@ export function OpenAIContent() {
     deletePrompt,
   } = usePrompts();
   const { queues, isLoadingQueues } = useQueues();
-  const [data, setData] = useState<Prompt[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setData] = useState<Prompt[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);

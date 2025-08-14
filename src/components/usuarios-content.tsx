@@ -70,8 +70,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useAuth } from "@/hooks/useAuth";
 
 export function UsuariosContent() {
+  const { user } = useAuth();
   const {
     users,
     isLoading,
@@ -104,6 +106,7 @@ export function UsuariosContent() {
       password: "",
       role: "USER",
       queueIds: [],
+      companyId: user?.companyId || "",
     },
   });
 
@@ -116,6 +119,7 @@ export function UsuariosContent() {
         password: "",
         role: user.role as "ADMIN" | "USER",
         queueIds: user.queues?.map((q) => q.queue.id) || [],
+        companyId: user.companyId || "",
       });
     } else {
       form.reset();
@@ -196,7 +200,7 @@ export function UsuariosContent() {
       .toUpperCase()
       .slice(0, 2);
 
-  if (isLoading)
+  if (isLoading || isLoadingQueues)
     return (
       <div className="p-6 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin" />

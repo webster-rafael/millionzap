@@ -13,7 +13,8 @@ import { DollarSign, Edit, Users } from "lucide-react";
 import { useState } from "react";
 
 export function FinanceiroContent() {
-  const [subscriptionPlan, setSubscriptionPlan] = useState([
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [subscriptionPlan, _] = useState([
     {
       id: "1",
       name: "Plano Básico",

@@ -38,6 +38,7 @@ interface MessageInfo {
   createdAt: Date;
   messageType?: string;
   mediaUrl?: string | null;
+  mediaCaption?: string | null;
 }
 
 export interface ConversationCreate {

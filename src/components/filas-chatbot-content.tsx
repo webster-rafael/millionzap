@@ -123,7 +123,8 @@ export default function FilasChatbotContent() {
   const [activeTab, setActiveTab] = useState<"dados" | "horarios">("dados");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [editingFilaId, setEditingFilaId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [searchTerm, _] = useState("");
   const [promptsList, setPromptList] = useState<Prompt[]>([]);
 
   const initialFormData = {

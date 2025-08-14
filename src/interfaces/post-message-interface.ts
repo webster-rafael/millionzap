@@ -4,4 +4,5 @@ export interface IPostMessage {
   messaging_type?: string;
   tag?: string;
   companyId: string;
+  
 }

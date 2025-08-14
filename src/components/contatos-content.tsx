@@ -75,7 +75,8 @@ export function ContatosContent() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
-  const [startingConversationContactId, setStartingConversationContactId] =
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setStartingConversationContactId] =
     useState<string | null>(null);
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),

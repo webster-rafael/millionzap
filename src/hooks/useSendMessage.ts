@@ -2,28 +2,67 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Conversation } from "@/interfaces/conversation-interface";
 
 const API_URL = import.meta.env.VITE_SEND_MESSAGE_WEBHOOK;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const queryKey = ["conversations"];
 
-type SendMessagePayload = {
+export type SendMessagePayload = {
   recipientNumber: string;
-  messageBody: string;
   conversationId: string;
   timestamp: number;
+  type: "text" | "audio";
+  messageBody?: string;
+  audioBase64?: string;
 };
 
 const sendMessageApi = async (data: SendMessagePayload) => {
+  let body: Record<string, unknown> = {};
+
+  if (data.type === "audio" && data.audioBase64) {
+    const fileName = `audio_${Date.now()}.ogg`;
+    const uploadResp = await fetch(`${BACKEND_URL}/media/audios/save`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "x-api-key": "sk_live_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890aBcDeF" // ✅ chave de API
+      },
+      body: JSON.stringify({
+        fileName,
+        data: data.audioBase64,
+        mimeType: "audio/ogg",
+      }),
+    });
+
+    if (!uploadResp.ok) throw new Error("Falha ao enviar áudio para o backend");
+    const uploadData = await uploadResp.json();
+    const audioUrl = uploadData.url; // ✅ URL pública retornada pelo backend
+
+    body = {
+      type: "audio",
+      recipientNumber: data.recipientNumber,
+      audioUrl, // enviar a URL para o n8n
+      conversationId: data.conversationId,
+      timestamp: data.timestamp,
+    };
+  } else {
+    body = {
+      type: "text",
+      recipientNumber: data.recipientNumber,
+      messageBody: data.messageBody || "",
+      conversationId: data.conversationId,
+      timestamp: data.timestamp,
+    };
+  }
+
   const response = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    throw new Error("Falha ao enviar mensagem");
-  }
-
+  if (!response.ok) throw new Error("Falha ao enviar mensagem");
   return response.json();
 };
+
 
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
@@ -39,11 +78,15 @@ export const useSendMessage = () => {
     onMutate: async (newMessageData) => {
       await queryClient.cancelQueries({ queryKey });
 
-      const previousConversations = queryClient.getQueryData<Conversation[]>(queryKey);
+      const previousConversations =
+        queryClient.getQueryData<Conversation[]>(queryKey);
 
       const optimisticMessage = {
         id: `temp-${Date.now()}`,
-        content: newMessageData.messageBody,
+        content:
+          newMessageData.type === "audio" && newMessageData.audioBase64
+            ? "[Áudio enviado]"
+            : newMessageData.messageBody || "",
         timestamp: newMessageData.timestamp,
         status: "PENDING",
         direction: "OUTBOUND",
@@ -58,7 +101,7 @@ export const useSendMessage = () => {
                   ...convo,
                   messages: [...(convo.messages || []), optimisticMessage],
                 }
-              : convo
+              : convo,
           ) || []
         );
       });
@@ -66,14 +109,12 @@ export const useSendMessage = () => {
       return { previousConversations };
     },
 
-    onError: (err, newMessage, context) => {
+    onError: (err, _newMessage, context) => {
       if (context?.previousConversations) {
         queryClient.setQueryData(queryKey, context.previousConversations);
       }
       console.error("Erro ao enviar mensagem:", err);
     },
-
-   
   });
 
   return {

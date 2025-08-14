@@ -38,12 +38,16 @@ import { useConversations } from "@/hooks/useConversation";
 import { format, isSameDay, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQueues } from "@/hooks/useQueues";
-import { useSendMessage } from "@/hooks/useSendMessage";
+import {
+  useSendMessage,
+  type SendMessagePayload,
+} from "@/hooks/useSendMessage";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import { AudioPlayer } from "@/components/audioPlayer";
 import { PhotoViewer } from "@/components/imageViewer";
+import { FileViewer } from "@/components/fileViewer";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -69,30 +73,49 @@ export function AtendimentosContent() {
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedQueueFilter, setSelectedQueueFilter] = useState("todas");
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  const handleSendMessage = async () => {
-    if (
-      !selectedConversation ||
-      !messageInput.trim() ||
-      sendMessageMutation.isSending
-    ) {
-      return;
-    }
+  const handleSendMessage = async (audioBlob?: Blob) => {
+    if (!selectedConversation || sendMessageMutation.isSending) return;
 
     const recipientNumber = selectedConversation.contact?.phone;
-    if (!recipientNumber) {
-      console.error("Contato sem número de telefone.");
-      return;
+    if (!recipientNumber) return;
+
+    if (audioBlob) {
+      // converte o blob em base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () =>
+          resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
+
+      const payload: SendMessagePayload = {
+        recipientNumber,
+        conversationId: selectedConversation.id,
+        timestamp: Math.floor(Date.now() / 1000),
+        type: "audio",
+        audioBase64: base64Data, // ✅ envia para o hook
+      };
+
+      sendMessageMutation.send(payload);
+    } else {
+      if (!messageInput.trim()) return;
+
+      const payload: SendMessagePayload = {
+        recipientNumber,
+        conversationId: selectedConversation.id,
+        timestamp: Math.floor(Date.now() / 1000),
+        type: "text",
+        messageBody: messageInput.trim(),
+      };
+
+      sendMessageMutation.send(payload);
+      setMessageInput("");
     }
-
-    sendMessageMutation.send({
-      recipientNumber: recipientNumber,
-      messageBody: messageInput,
-      conversationId: selectedConversation.id,
-      timestamp: Math.floor(Date.now() / 1000),
-    });
-
-    setMessageInput("");
   };
 
   const handleConversationSelect = (conversation: Conversation) => {
@@ -186,6 +209,48 @@ export function AtendimentosContent() {
       toast.error("Erro ao excluir conversa.");
     }
   };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: "audio/ogg",
+        });
+        handleSendMessage(audioBlob);
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Erro ao iniciar gravação:", error);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream
+        .getTracks()
+        .forEach((track) => track.stop());
+      setIsRecording(false);
+    }
+  };
+
+  if (isErrorQueues) {
+    toast.error("Erro ao buscar filas.");
+  }
 
   return (
     <div className="flex h-full">
@@ -653,7 +718,7 @@ export function AtendimentosContent() {
                           className={`flex ${isAgent ? "justify-end" : "justify-start"}`}
                         >
                           <div
-                            className={`relative flex h-full max-w-xs items-center gap-2 rounded-lg px-4 py-2 lg:max-w-md ${
+                            className={`relative flex h-full max-w-xs items-center gap-2 rounded-lg ${message.messageType === "image" || message.messageType === "document" ? "p-0" : "px-4 py-2"} lg:max-w-md ${
                               isAgent
                                 ? "bg-primary-million text-white"
                                 : "border border-gray-200 bg-white text-gray-900"
@@ -665,10 +730,23 @@ export function AtendimentosContent() {
                                 isAgent={isAgent}
                               />
                             ) : message?.messageType === "image" ? (
-                              <PhotoViewer
-                                src={message?.mediaUrl || ""}
-                                isAgent={isAgent}
-                              />
+                              <div className="flex w-52 flex-col gap-2 p-2 pb-4">
+                                <PhotoViewer
+                                  src={message?.mediaUrl || ""}
+                                  isAgent={isAgent}
+                                />
+                                <span className="text-sm text-gray-500">
+                                  {message?.mediaCaption || ""}
+                                </span>
+                              </div>
+                            ) : message?.messageType === "document" ? (
+                              <div className="flex">
+                                <FileViewer
+                                  src={message?.mediaUrl || ""}
+                                  isAgent={isAgent}
+                                  name={message?.content || ""}
+                                />
+                              </div>
                             ) : (
                               <p className="mr-10 w-full p-0.5 text-sm">
                                 {message.content}
@@ -711,14 +789,18 @@ export function AtendimentosContent() {
                     }}
                   />
                   <Button
-                    onClick={handleSendMessage}
+                    onClick={() => handleSendMessage()}
                     size="sm"
                     className="bg-secondary-million hover:bg-secondary-million/90 absolute top-1/2 right-2 -translate-y-1/2 transform"
                   >
                     <Send className="size-4" />
                   </Button>
                 </div>
-                <Button variant="outline" className="size-12">
+                <Button
+                  variant={isRecording ? "destructive" : "outline"}
+                  className="size-12"
+                  onClick={isRecording ? stopRecording : startRecording}
+                >
                   <Mic className="size-4" />
                 </Button>
               </div>
