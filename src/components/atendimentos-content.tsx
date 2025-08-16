@@ -384,7 +384,7 @@ export function AtendimentosContent() {
 
         {/* Conversations */}
         <ScrollArea className="flex w-full overflow-y-auto lg:flex-1">
-          <div className="flex flex-col gap-3 p-3 lg:mx-auto lg:w-94">
+          <div className="flex w-full flex-col gap-3 p-3 lg:mx-auto lg:w-96">
             {isLoadingConversations && (
               <>
                 <Skeleton className="h-32 bg-zinc-200" />
@@ -647,11 +647,11 @@ export function AtendimentosContent() {
       <div
         className={`${
           selectedConversationId ? "flex w-full" : "hidden"
-        } flex-1 flex-col bg-gray-50 lg:flex`}
+        } flex-1 flex-col overflow-y-hidden bg-gray-50 lg:flex`}
       >
         {selectedConversation ? (
           <>
-            <div className="border-b border-gray-200 bg-white p-4">
+            <div className="border-b border-gray-200 bg-white p-4 overflow-y-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Button
