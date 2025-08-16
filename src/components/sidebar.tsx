@@ -96,7 +96,6 @@ export function Sidebar() {
           </div>
           <div>
             <img src="/logo.png" alt="Logo do millionzap" className="w-40" />
-            {/* <p className="text-xs text-gray-500">ERP Dashboard</p> */}
           </div>
         </div>
       </div>

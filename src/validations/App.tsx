@@ -37,6 +37,7 @@ import TarefasPage from "@/pages/tarefas/page";
 import UsuariosPage from "@/pages/usuarios/page";
 import { ProtectedRoute } from "@/components/protectRoutes";
 import { AtendimentosContent } from "@/components/atendimentos-content";
+import { Header } from "@/components/header";
 
 const queryClient = new QueryClient();
 
@@ -46,8 +47,9 @@ function MainLayout({ children }: { children: React.ReactNode }) {
     location.pathname === "/cadastrar" || location.pathname === "/entrar";
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {!hideSidebar && <Sidebar />}
+    <div className="flex h-screen flex-col bg-gray-50 lg:flex-row">
+      <div className="hidden lg:block">{!hideSidebar && <Sidebar />}</div>
+      <div className="lg:hidden">{!hideSidebar && <Header />}</div>
       <main className="flex-1 overflow-auto">{children}</main>
     </div>
   );

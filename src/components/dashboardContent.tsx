@@ -73,12 +73,11 @@ export function DashboardContent() {
   // const [endDate, setEndDate] = useState("03/07/2025");
 
   return (
-    <aside className="space-y-6 p-6">
-      {/* Header */}
+    <main className="space-y-6 p-6 pt-24 lg:pt-0">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">
+          <p className="text-xs text-gray-600 lg:text-base">
             Olá {user?.role === "USER" ? user?.name : "ADMIN"}, Bem vindo à{" "}
             {user?.companyName}
           </p>
@@ -92,7 +91,7 @@ export function DashboardContent() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="hidden lg:block">
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <div className="flex-1">
@@ -237,7 +236,7 @@ export function DashboardContent() {
       </Card>
 
       {/* Second Filter Section */}
-      <Card>
+      <Card className="hidden lg:block">
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <div className="flex-1">
@@ -324,6 +323,6 @@ export function DashboardContent() {
           </Table>
         </CardContent>
       </Card>
-    </aside>
+    </main>
   );
 }

@@ -68,25 +68,26 @@ export function CadastrarContent() {
   }
 
   return (
-    <main className="grid h-dvh w-full grid-cols-2">
-      <div className="bg-primary-million flex items-center justify-center">
+    <main className="grid h-dvh w-full grid-cols-1 lg:grid-cols-2">
+      <div className="bg-primary-million absolute inset-0 flex items-center justify-center lg:static">
         <img
           className="h-96 w-96"
           src="/milliontech.png"
           alt="Banner Milliontech"
         />
+        <div className="absolute inset-0 bg-black opacity-50 lg:hidden"></div>
       </div>
-      <div className="flex items-center justify-center">
+      <div className="z-10 flex items-center justify-center">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="w-3/4 space-y-8 rounded-md border p-10 shadow-2xl 2xl:w-1/3"
+            className="lg:3/5 w-4/5 space-y-8 rounded-md border bg-zinc-100 p-4 shadow-2xl lg:bg-none 2xl:w-1/3"
           >
             <div>
               <h1 className="text-secondary-million font-poppins text-center text-2xl font-semibold">
                 Crie sua empresa
               </h1>
-              <p className="text-center text-xs text-gray-500">
+              <p className="hidden text-center text-xs text-gray-500 lg:block">
                 Cadastre sua empresa e comece a gerenciar seus leads com nosso
                 CRM inteligente.
               </p>
@@ -188,7 +189,11 @@ export function CadastrarContent() {
               )}
             />
 
-            <Button type="submit" disabled={isSigningUp}>
+            <Button
+              className="w-full lg:w-auto"
+              type="submit"
+              disabled={isSigningUp}
+            >
               {isSigningUp ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </form>

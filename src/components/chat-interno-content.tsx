@@ -13,6 +13,7 @@ import {
   X,
   Users,
   MessageCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -414,7 +415,11 @@ export function ChatInternoContent() {
   return (
     <div className="flex h-full">
       {/* Conversations List */}
-      <div className="flex w-96 flex-col border-r border-gray-200 bg-white">
+      <div
+        className={`${
+          selectedConversation ? "hidden lg:flex" : "flex w-full"
+        } flex-col border-r border-gray-200 bg-white lg:w-96`}
+      >
         {/* Header */}
         <div className="border-b border-gray-200 p-4">
           <div className="mb-4 flex items-center justify-between">
@@ -541,7 +546,7 @@ export function ChatInternoContent() {
 
         {/* Conversations */}
         <ScrollArea className="flex-1 overflow-y-auto">
-          <div className="w-96 p-4">
+          <div className="p-4">
             {filteredConversations.map((conversation) => (
               <Card
                 key={conversation.id}
@@ -625,13 +630,25 @@ export function ChatInternoContent() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex flex-1 flex-col bg-gray-50">
+      <div
+        className={`${
+          selectedConversation ? "flex w-full" : "hidden"
+        } flex-1 flex-col bg-gray-50 lg:flex`}
+      >
         {selectedConversation && currentConversation ? (
           <>
             {/* Chat Header */}
             <div className="border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden"
+                    onClick={() => setSelectedConversation(null)}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
                   <div className="flex -space-x-2">
                     {getConversationParticipants(currentConversation)
                       .slice(0, 3)

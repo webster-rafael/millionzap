@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -46,19 +45,20 @@ export function EntrarContent() {
   }
 
   return (
-    <main className="grid h-dvh w-full grid-cols-2">
-      <div className="bg-primary-million flex items-center justify-center">
+    <main className="grid h-dvh w-full grid-cols-1 lg:grid-cols-2">
+      <div className="bg-primary-million absolute inset-0 flex items-center justify-center lg:static">
         <img
           className="h-96 w-96"
           src="/milliontech.png"
           alt="Banner Milliontech"
         />
+        <div className="absolute inset-0 bg-black opacity-50 lg:hidden"></div>
       </div>
-      <div className="flex flex-col items-center justify-center">
+      <div className="z-10 flex flex-col items-center justify-center">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleLogin)}
-            className="w-3/5 space-y-8 rounded-md border p-4 shadow-2xl 2xl:w-1/3"
+            className="lg:3/5 w-4/5 space-y-8 rounded-md border bg-zinc-100 p-4 shadow-2xl lg:bg-none 2xl:w-1/3"
           >
             <h2 className="text-center text-2xl font-bold">Acessar Conta</h2>
             <FormField
@@ -68,7 +68,11 @@ export function EntrarContent() {
                 <FormItem>
                   <FormLabel>E-mail</FormLabel>
                   <FormControl>
-                    <Input placeholder="exemplo@email.com" {...field} />
+                    <Input
+                      className="border-secondary-million/50 h-10 lg:border-zinc-300"
+                      placeholder="exemplo@email.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -83,6 +87,7 @@ export function EntrarContent() {
                   <div className="relative">
                     <FormControl>
                       <Input
+                        className="border-secondary-million/50 h-10 lg:border-zinc-300"
                         type={showPassword ? "text" : "password"}
                         placeholder="Digite sua senha..."
                         {...field}
@@ -110,9 +115,12 @@ export function EntrarContent() {
             </Button>
           </form>
         </Form>
-        <p className="mt-4">
+        <p className="lg:text-primary mt-4 text-zinc-50">
           Não tem uma conta?{" "}
-          <a href="/cadastrar" className="text-primary hover:underline">
+          <a
+            href="/cadastrar"
+            className="lg:text-primary text-zinc-50 hover:underline"
+          >
             Cadastre-se
           </a>
         </p>

@@ -17,6 +17,7 @@ import {
   ArrowDown,
   Loader,
   Trash,
+  ArrowLeft,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,6 @@ export function AtendimentosContent() {
     if (!recipientNumber) return;
 
     if (audioBlob) {
-      // converte o blob em base64
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () =>
@@ -253,9 +253,13 @@ export function AtendimentosContent() {
   }
 
   return (
-    <div className="flex h-full">
-      <div className="flex w-96 flex-col border-r border-gray-200 bg-white">
-        <div className="border-b border-gray-200 p-4">
+    <div className="flex h-full w-full pt-20 lg:pt-0">
+      <div
+        className={`${
+          selectedConversationId ? "hidden lg:flex" : "flex w-full"
+        } flex-col border-r border-gray-200 bg-white lg:w-96`}
+      >
+        <div className="w-full border-b border-gray-200 p-4">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-xl font-semibold text-gray-900">
               Atendimentos
@@ -379,8 +383,8 @@ export function AtendimentosContent() {
         )}
 
         {/* Conversations */}
-        <ScrollArea className="flex-1 overflow-y-auto">
-          <div className="w-96 space-y-2 p-4">
+        <ScrollArea className="flex w-full overflow-y-auto lg:flex-1">
+          <div className="flex flex-col gap-3 p-3 lg:mx-auto lg:w-94">
             {isLoadingConversations && (
               <>
                 <Skeleton className="h-32 bg-zinc-200" />
@@ -403,7 +407,7 @@ export function AtendimentosContent() {
                   : null;
 
               const cardInnerContent = (
-                <CardContent className="p-3">
+                <CardContent className="w-90 p-3">
                   <div className="flex items-start space-x-3">
                     <div className="relative">
                       <Avatar className="h-12 w-12">
@@ -640,12 +644,24 @@ export function AtendimentosContent() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex flex-1 flex-col bg-gray-50">
+      <div
+        className={`${
+          selectedConversationId ? "flex w-full" : "hidden"
+        } flex-1 flex-col bg-gray-50 lg:flex`}
+      >
         {selectedConversation ? (
           <>
             <div className="border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden"
+                    onClick={() => navigate("/atendimentos")}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
                   <div className="relative">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={"/placeholder.svg"} />
