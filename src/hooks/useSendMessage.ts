@@ -21,9 +21,9 @@ const sendMessageApi = async (data: SendMessagePayload) => {
     const fileName = `audio_${Date.now()}.mp4`;
     const uploadResp = await fetch(`${BACKEND_URL}/media/audios/save`, {
       method: "POST",
-      headers: {
+      headers: { 
         "Content-Type": "application/json",
-        "x-api-key": "[REDACTED:stripe-secret-token]", // ✅ chave de API
+        "x-api-key": "sk_live_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890aBcDeF" // ✅ chave de API
       },
       body: JSON.stringify({
         fileName,
@@ -62,6 +62,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
   if (!response.ok) throw new Error("Falha ao enviar mensagem");
   return response.json();
 };
+
 
 export const useSendMessage = () => {
   const queryClient = useQueryClient();
