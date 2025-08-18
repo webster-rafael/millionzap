@@ -18,7 +18,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
   let body: Record<string, unknown> = {};
 
   if (data.type === "audio" && data.audioBase64) {
-    const fileName = `audio_${Date.now()}.ogg`;
+    const fileName = `audio_${Date.now()}.mpeg`;
     const uploadResp = await fetch(`${BACKEND_URL}/media/audios/save`, {
       method: "POST",
       headers: { 
@@ -28,18 +28,18 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       body: JSON.stringify({
         fileName,
         data: data.audioBase64,
-        mimeType: "audio/ogg",
+        mimeType: "audio/mpeg",
       }),
     });
 
     if (!uploadResp.ok) throw new Error("Falha ao enviar áudio para o backend");
     const uploadData = await uploadResp.json();
-    const audioUrl = uploadData.url; // ✅ URL pública retornada pelo backend
+    const audioUrl = uploadData.url;
 
     body = {
       type: "audio",
       recipientNumber: data.recipientNumber,
-      audioUrl, // enviar a URL para o n8n
+      audioUrl,
       conversationId: data.conversationId,
       timestamp: data.timestamp,
     };
