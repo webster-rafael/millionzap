@@ -87,7 +87,6 @@ export function UsuariosContent() {
   } = useUsers();
   const { queues, isLoadingQueues } = useQueues();
   const { connections, isLoadingConnection } = useWhatsAppConnections();
-  const [selectedConnection, setSelectedConnection] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
