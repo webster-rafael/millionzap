@@ -9,6 +9,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   queues?: UserQueue[];
+  connectionId?: string | null;
 }
 
 interface UserQueue {
@@ -27,4 +28,5 @@ export interface UserCreate {
   role: string;
   queueIds?: string[];
   companyId: string;
+  connectionId?: string | null;
 }

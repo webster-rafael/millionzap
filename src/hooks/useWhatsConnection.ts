@@ -2,49 +2,28 @@ import type {
   CreateWhatsAppConnection,
   WhatsAppConnection,
 } from "@/interfaces/whatsappConnection-interface";
+import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL + "/whatsapp-connections";
+const resourceUrl = "/connections";
 const queryKey = ["whatsappConnections"];
 
-const fetchConnections = async (): Promise<WhatsAppConnection[]> => {
-  const response = await fetch(API_BASE_URL);
-  if (!response.ok) throw new Error("Falha ao buscar conexões WhatsApp");
-  return response.json();
-};
+const fetchConnections = (): Promise<WhatsAppConnection[]> =>
+  api.get(resourceUrl);
 
-const createConnection = async (
+const createConnection = (
   newConnection: CreateWhatsAppConnection,
-): Promise<WhatsAppConnection> => {
-  const response = await fetch(API_BASE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(newConnection),
-  });
-  if (!response.ok) throw new Error("Falha ao criar conexão WhatsApp");
-  return response.json();
-};
+): Promise<WhatsAppConnection> => api.post(resourceUrl, newConnection);
 
-const updateConnection = async (
+const updateConnection = (
   connection: WhatsAppConnection,
 ): Promise<WhatsAppConnection> => {
   const { id, ...payload } = connection;
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error("Falha ao atualizar conexão WhatsApp");
-  return response.json();
+  return api.put(`${resourceUrl}/${id}`, payload);
 };
 
-const deleteConnection = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/${id}`, {
-    method: "DELETE",
-  });
-  if (response.status === 204) return;
-  if (!response.ok) throw new Error("Falha ao deletar conexão WhatsApp");
-};
+const deleteConnection = (id: string): Promise<void> =>
+  api.delete(`${resourceUrl}/${id}`);
 
 export const useWhatsAppConnections = () => {
   const queryClient = useQueryClient();
@@ -91,9 +70,9 @@ export const useWhatsAppConnections = () => {
   });
 
   return {
-    whatsappConnections,
-    isLoading,
-    isError,
+    connections: whatsappConnections,
+    isLoadingConnection: isLoading,
+    isErrorConnection: isError,
     createConnection: createConnectionMutation,
     isCreating,
     updateConnection: updateConnectionMutation,

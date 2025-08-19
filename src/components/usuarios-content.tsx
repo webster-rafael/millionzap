@@ -71,6 +71,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuth } from "@/hooks/useAuth";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 export function UsuariosContent() {
   const { user } = useAuth();
@@ -85,7 +86,8 @@ export function UsuariosContent() {
     deleteUser,
   } = useUsers();
   const { queues, isLoadingQueues } = useQueues();
-
+  const { connections, isLoadingConnection } = useWhatsAppConnections();
+  const [selectedConnection, setSelectedConnection] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -107,6 +109,7 @@ export function UsuariosContent() {
       role: "USER",
       queueIds: [],
       companyId: user?.companyId || "",
+      connectionId: user?.connectionId || "",
     },
   });
 
@@ -120,6 +123,7 @@ export function UsuariosContent() {
         role: user.role as "ADMIN" | "USER",
         queueIds: user.queues?.map((q) => q.queue.id) || [],
         companyId: user.companyId || "",
+        connectionId: user?.connectionId || "",
       });
     } else {
       form.reset();
@@ -149,8 +153,8 @@ export function UsuariosContent() {
     if (editingUser) {
       const dataToUpdate = { ...data };
 
-      if (!dataToUpdate.password) {
-        delete (dataToUpdate as Partial<UserFormData>).password;
+      if (dataToUpdate.password === "") {
+        delete (dataToUpdate as Partial<UserCreate>).password;
       }
 
       updateUser({ id: editingUser.id, data: dataToUpdate }, mutationCallback);
@@ -474,6 +478,39 @@ export function UsuariosContent() {
                           className="w-full"
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="connectionId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conexão WhatsApp</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma conexão" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingConnection ? (
+                            <SelectItem value="" disabled>
+                              Carregando...
+                            </SelectItem>
+                          ) : (
+                            connections.map((con) => (
+                              <SelectItem key={con.id} value={con.id}>
+                                {con.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

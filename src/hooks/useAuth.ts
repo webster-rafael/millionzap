@@ -9,6 +9,7 @@ interface User {
   role: string;
   companyId: string;
   companyName: string;
+  connectionId?: string | null;
   queues: {
     queue: {
       id: string;

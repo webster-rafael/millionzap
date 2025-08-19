@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +31,6 @@ import {
   Smartphone,
   CheckCircle,
   XCircle,
-  QrCode,
   Loader2,
   Settings,
   Copy,
@@ -62,9 +59,9 @@ import {
 
 export function ConexoesContent() {
   const {
-    whatsappConnections,
-    isLoading,
-    isError,
+    connections,
+    isLoadingConnection,
+    isErrorConnection,
     createConnection,
     isCreating,
     updateConnection,
@@ -76,6 +73,9 @@ export function ConexoesContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [editingConexao, setEditingConexao] =
+    useState<WhatsAppConnection | null>(null);
+  const [qrCodeImage, setQrCodeImage] = useState("");
+  const [currentConnection, setCurrentConnection] =
     useState<WhatsAppConnection | null>(null);
   const { queues } = useQueues();
   const { prompts } = usePrompts();
@@ -97,7 +97,7 @@ export function ConexoesContent() {
     },
   });
 
-  const filteredConexoes = whatsappConnections.filter((conexao) =>
+  const filteredConexoes = connections.filter((conexao) =>
     conexao.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
@@ -112,8 +112,8 @@ export function ConexoesContent() {
         outOfOfficeHoursMessage: conexao.outOfOfficeHoursMessage || "",
         reviewMessage: conexao.reviewMessage || "",
         token: conexao.token || "",
-        queueId: conexao.queueId,
-        promptId: conexao.promptId,
+        queueId: conexao.queueId || "",
+        promptId: conexao.promptId || "",
         transferQueueId: conexao.transferQueueId || "",
         timeToTransfer: conexao.timeToTransfer || "0",
         expiresInactiveMessage: conexao.expiresInactiveMessage || "",
@@ -157,8 +157,36 @@ export function ConexoesContent() {
     });
   };
 
-  const handleShowQrCode = () => {
+  const handleShowQrCode = async (connection: WhatsAppConnection) => {
+    setCurrentConnection(connection);
     setIsQrModalOpen(true);
+    setQrCodeImage("");
+
+    try {
+      const webhookUrl = import.meta.env.VITE_CONNECTION_WEBHOOK;
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          instanceName: connection.name,
+          userId: connection.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao gerar o QR Code. Status: ${response.status}`);
+      }
+
+      const imageBlob = await response.blob();
+      const imageObjectURL = URL.createObjectURL(imageBlob);
+      setQrCodeImage(imageObjectURL);
+    } catch (error) {
+      console.error("Falha ao gerar o QR Code:", error);
+      toast.error("Não foi possível gerar o QR Code.");
+      setIsQrModalOpen(false);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -192,7 +220,7 @@ export function ConexoesContent() {
           variant="outline"
           size="sm"
           className="border-blue-200 bg-transparent text-blue-600 hover:bg-blue-50"
-          onClick={handleShowQrCode}
+          onClick={() => handleShowQrCode(conexao)}
         >
           QR CODE
         </Button>
@@ -200,7 +228,7 @@ export function ConexoesContent() {
     }
   };
 
-  if (isLoading) {
+  if (isLoadingConnection) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin text-[#00183E]" />
@@ -208,7 +236,7 @@ export function ConexoesContent() {
     );
   }
 
-  if (isError) {
+  if (isErrorConnection) {
     return (
       <div className="flex h-screen flex-col items-center justify-center text-red-500">
         <XCircle className="mb-4 h-16 w-16" />
@@ -509,7 +537,7 @@ export function ConexoesContent() {
                   name="queueId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fila Padrão *</FormLabel>
+                      <FormLabel>Fila Padrão</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -536,7 +564,7 @@ export function ConexoesContent() {
                   name="promptId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Prompt *</FormLabel>
+                      <FormLabel>Prompt</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -595,8 +623,15 @@ export function ConexoesContent() {
           </DialogHeader>
           <div className="flex justify-center py-6">
             <div className="rounded-lg border-2 border-gray-200 bg-white p-4">
-              <div className="flex h-64 w-64 items-center justify-center bg-black">
-                <QrCode className="h-32 w-32 text-white" />
+              <div className="flex h-64 w-64 items-center justify-center">
+                {qrCodeImage ? (
+                  <img
+                    src={qrCodeImage}
+                    alt="QR Code para conexão do WhatsApp"
+                  />
+                ) : (
+                  <Loader2 className="h-16 w-16 animate-spin text-[#00183E]" />
+                )}
               </div>
             </div>
           </div>

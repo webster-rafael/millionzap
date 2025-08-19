@@ -76,8 +76,7 @@ export function ContatosContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, setStartingConversationContactId] =
-    useState<string | null>(null);
+  const [_, setStartingConversationContactId] = useState<string | null>(null);
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -189,6 +188,7 @@ export function ContatosContent() {
       toast.info("Criando nova conversa...");
       createConversation(
         {
+          id: contact.id,
           contactId: contact.id,
           status: "SERVING",
           companyId: user?.companyId || "",

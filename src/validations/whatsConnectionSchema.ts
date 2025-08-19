@@ -10,8 +10,8 @@ export const connectionSchema = z.object({
   reviewMessage: z.string().optional(),
 
   token: z.string().optional(),
-  queueId: z.string().min(1, { message: "A fila é obrigatória." }),
-  promptId: z.string().min(1, { message: "O prompt é obrigatório." }),
+  queueId: z.string().optional(),
+  promptId: z.string().optional(),
 
   transferQueueId: z.string().optional(),
   timeToTransfer: z.string().optional(),

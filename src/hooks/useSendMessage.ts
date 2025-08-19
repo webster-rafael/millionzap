@@ -12,9 +12,11 @@ export type SendMessagePayload = {
   type: "text" | "audio";
   messageBody?: string;
   audioBase64?: string;
+  instance: string;
 };
 
 const sendMessageApi = async (data: SendMessagePayload) => {
+  const instanceName = data.instance;
   let body: Record<string, unknown> = {};
 
   if (data.type === "audio" && data.audioBase64) {
@@ -50,6 +52,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       messageBody: data.messageBody || "",
       conversationId: data.conversationId,
       timestamp: data.timestamp,
+      instance: instanceName,
     };
   }
 

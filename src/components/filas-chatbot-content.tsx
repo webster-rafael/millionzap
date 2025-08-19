@@ -31,8 +31,9 @@ import type { Queue, QueueCreate } from "@/interfaces/queues-interface";
 import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt } from "@/interfaces/prompt-interface";
 import { useAuth } from "@/hooks/useAuth";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
-type Schedule = {
+type Schedule = {  
   weekday: string;
   startTime: string;
   endTime: string;
@@ -118,7 +119,7 @@ export default function FilasChatbotContent() {
     useQueues();
 
   const { prompts } = usePrompts();
-
+  const { connections, isLoadingConnection } = useWhatsAppConnections();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"dados" | "horarios">("dados");
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -126,6 +127,9 @@ export default function FilasChatbotContent() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [searchTerm, _] = useState("");
   const [promptsList, setPromptList] = useState<Prompt[]>([]);
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>(
+    [],
+  );
 
   const initialFormData = {
     name: "",
@@ -137,6 +141,7 @@ export default function FilasChatbotContent() {
     outOfOfficeHoursMessage: "",
     horarios: createInitialHorarios(),
     companyId: user?.id ? user.id : "",
+    connections: [] as string[],
   };
   const [formData, setFormData] = useState(initialFormData);
 
@@ -167,11 +172,14 @@ export default function FilasChatbotContent() {
         greetingMessage: fila.greetingMessage || "",
         outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
         horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
-        companyId: user?.id || "6dfef435-54ba-47e6-b3f3-9d45f839c6f5",
+        companyId: user?.id || "",
+        connections: fila.connections || [],
       });
+      setSelectedConnectionIds(fila.connections || []);
     } else {
       setEditingFilaId(null);
       setFormData(initialFormData);
+      setSelectedConnectionIds([]);
     }
     setActiveTab("dados");
     setIsModalOpen(true);
@@ -198,6 +206,7 @@ export default function FilasChatbotContent() {
       outOfOfficeHoursMessage: formData.outOfOfficeHoursMessage,
       schedules: horariosToSchedules(formData.horarios),
       companyId: formData.companyId,
+      connections: formData.connections,
     };
 
     if (editingFilaId) {

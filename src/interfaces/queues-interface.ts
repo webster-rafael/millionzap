@@ -12,6 +12,7 @@ export interface Queue {
   createdAt: Date;
   updatedAt: Date;
   companyId: string;
+  connections?: string[];
 }
 
 export interface QueueCreate {
@@ -19,12 +20,13 @@ export interface QueueCreate {
   color?: string;
   greetingMessage?: string;
   outOfOfficeHoursMessage?: string;
-  promptId?: string;
-  integrationId?: string;
+  promptId?: string | null;
+  integrationId?: string | null;
   isActive?: boolean;
   priority?: number;
   schedules?: Schedule[];
   companyId: string;
+  connections: string[];
 }
 
 export interface Schedule {

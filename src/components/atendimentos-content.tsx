@@ -49,6 +49,7 @@ import { toast, Toaster } from "sonner";
 import { AudioPlayer } from "@/components/audioPlayer";
 import { PhotoViewer } from "@/components/imageViewer";
 import { FileViewer } from "@/components/fileViewer";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -66,6 +67,7 @@ export function AtendimentosContent() {
     isErrorConversations,
     update: updateConversation,
   } = useConversations();
+  const { connections } = useWhatsAppConnections();
   const { queues, isLoadingQueues, isErrorQueues } = useQueues();
   const sendMessageMutation = useSendMessage();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -84,6 +86,15 @@ export function AtendimentosContent() {
     const recipientNumber = selectedConversation.contact?.phone;
     if (!recipientNumber) return;
 
+    const activeConnection =
+      connections.find((c) => c.status === "OPEN") ||
+      connections.find((c) => c.isDefault);
+    if (!activeConnection) {
+      toast.error("Nenhuma conexão ativa ou padrão encontrada.");
+      return;
+    }
+    const instanceName = activeConnection.name;
+
     if (audioBlob) {
       const base64Data = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -98,7 +109,8 @@ export function AtendimentosContent() {
         conversationId: selectedConversation.id,
         timestamp: Math.floor(Date.now() / 1000),
         type: "audio",
-        audioBase64: base64Data, // ✅ envia para o hook
+        audioBase64: base64Data,
+        instance: instanceName,
       };
 
       sendMessageMutation.send(payload);
@@ -111,6 +123,7 @@ export function AtendimentosContent() {
         timestamp: Math.floor(Date.now() / 1000),
         type: "text",
         messageBody: messageInput.trim(),
+        instance: instanceName,
       };
 
       sendMessageMutation.send(payload);
@@ -651,7 +664,7 @@ export function AtendimentosContent() {
       >
         {selectedConversation ? (
           <>
-            <div className="border-b border-gray-200 bg-white p-4 overflow-y-hidden">
+            <div className="overflow-y-hidden border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Button

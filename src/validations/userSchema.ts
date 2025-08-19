@@ -11,6 +11,7 @@ export const userSchema = z.object({
   role: UserRole,
   queueIds: z.array(z.string()).optional(),
   companyId: z.string(),
+  connectionId: z.string(),
 });
 
 export type UserFormData = z.infer<typeof userSchema>;

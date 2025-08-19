@@ -7,10 +7,10 @@ export interface WhatsAppConnection {
   outOfOfficeHoursMessage?: string | null;
   reviewMessage?: string | null;
   token?: string | null;
-  queueId: string;
+  queueId?: string | null;
   integrationId?: string | null;
   userId?: string | null;
-  promptId: string;
+  promptId?: string | null;
   transferQueueId?: string | null;
   timeToTransfer?: string | null;
   expiresInactiveMessage?: string | null;
@@ -30,9 +30,9 @@ export interface CreateWhatsAppConnection {
   outOfOfficeHoursMessage?: string | null;
   reviewMessage?: string | null;
   token?: string | null;
-  queueId: string;
+  queueId?: string | null;
   companyId?: string | null;
-  promptId: string;
+  promptId?: string | null;
   transferQueueId?: string | null;
   timeToTransfer?: string | null;
   expiresInactiveMessage?: string | null;
