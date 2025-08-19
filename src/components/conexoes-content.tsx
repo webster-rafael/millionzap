@@ -75,7 +75,8 @@ export function ConexoesContent() {
   const [editingConexao, setEditingConexao] =
     useState<WhatsAppConnection | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState("");
-  const [currentConnection, setCurrentConnection] =
+   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setCurrentConnection] =
     useState<WhatsAppConnection | null>(null);
   const { queues } = useQueues();
   const { prompts } = usePrompts();

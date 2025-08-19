@@ -31,7 +31,6 @@ import type { Queue, QueueCreate } from "@/interfaces/queues-interface";
 import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt } from "@/interfaces/prompt-interface";
 import { useAuth } from "@/hooks/useAuth";
-import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 type Schedule = {  
   weekday: string;
@@ -119,7 +118,6 @@ export default function FilasChatbotContent() {
     useQueues();
 
   const { prompts } = usePrompts();
-  const { connections, isLoadingConnection } = useWhatsAppConnections();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"dados" | "horarios">("dados");
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -245,6 +243,7 @@ export default function FilasChatbotContent() {
   const handleColorSelect = (color: string) => {
     setFormData((prev) => ({ ...prev, color }));
     setShowColorPicker(false);
+    console.log(selectedConnectionIds)
   };
 
   const handleHorarioChange = (
