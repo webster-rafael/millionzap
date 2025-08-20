@@ -15,27 +15,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Search,
   Plus,
-  Edit,
-  Trash2,
-  MoreHorizontal,
   Smartphone,
-  CheckCircle,
   XCircle,
   Loader2,
-  Settings,
-  Copy,
-  Power,
-  RotateCcw,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
@@ -56,6 +42,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { ConnectionRow } from "@/components/connectionRow";
 
 export function ConexoesContent() {
   const {
@@ -68,6 +55,8 @@ export function ConexoesContent() {
     isUpdating,
     deleteConnection,
   } = useWhatsAppConnections();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setCurrentConnection] = useState<WhatsAppConnection | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -75,8 +64,6 @@ export function ConexoesContent() {
   const [editingConexao, setEditingConexao] =
     useState<WhatsAppConnection | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, setCurrentConnection] = useState<WhatsAppConnection | null>(null);
   const { queues } = useQueues();
   const { prompts } = usePrompts();
   const form = useForm<ConnectionFormData>({
@@ -100,6 +87,23 @@ export function ConexoesContent() {
   const filteredConexoes = connections.filter((conexao) =>
     conexao.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // const handleConnectionSuccess = () => {
+  //   toast.success("Instância conectada com sucesso!");
+  //   setIsQrModalOpen(false);
+  //   if (currentConnection) {
+  //     updateConnection({ ...currentConnection, status: "OPEN" });
+  //   } else {
+  //     console.error("Erro: A conexão atual é nula e não pode ser atualizada.");
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (connectionStatus === "open") {
+  //     handleConnectionSuccess();
+  //     setIsQrModalOpen(false);
+  //   }
+  // }, [connectionStatus]);
 
   const handleOpenModal = (conexao?: WhatsAppConnection) => {
     if (conexao) {
@@ -172,6 +176,7 @@ export function ConexoesContent() {
         body: JSON.stringify({
           instanceName: connection.name,
           userId: connection.id,
+          connectionId: connection.id,
         }),
       });
 
@@ -189,42 +194,27 @@ export function ConexoesContent() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "OPEN":
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case "CLOSED":
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case "PENDING":
-        return <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />;
-      default:
-        return <XCircle className="h-4 w-4 text-gray-500" />;
-    }
-  };
+  const handleDesconnect = async (connection: WhatsAppConnection) => {
+    setCurrentConnection(connection);
+    try {
+      const webhookUrl = import.meta.env.VITE_DESCONECTION_WEBHOOK;
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          instanceName: connection.name,
+          connectionId: connection.id,
+        }),
+      });
 
-  const getSessaoButton = (conexao: WhatsAppConnection) => {
-    if (conexao.status === "conectado") {
-      return (
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-red-200 bg-transparent text-red-600 hover:bg-red-50"
-          // onClick={() => handleToggleStatus(conexao.id)}
-        >
-          DESCONECTAR
-        </Button>
-      );
-    } else {
-      return (
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-blue-200 bg-transparent text-blue-600 hover:bg-blue-50"
-          onClick={() => handleShowQrCode(conexao)}
-        >
-          QR CODE
-        </Button>
-      );
+      if (!response.ok) {
+        throw new Error(`Erro ao desconectar.`);
+      }
+    } catch (error) {
+      console.error("Falha ao desconectar", error);
+      toast.error("Não foi possível desconectar.");
     }
   };
 
@@ -337,95 +327,15 @@ export function ConexoesContent() {
                 </tr>
               ) : (
                 filteredConexoes.map((conexao) => (
-                  <tr key={conexao.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100">
-                          <Smartphone className="h-4 w-4 text-green-600" />
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {conexao.name}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusBadge(conexao.status)}
-                        <span className="ml-2 text-sm text-gray-900 capitalize">
-                          {conexao.status === "OPEN"
-                            ? "Conectado"
-                            : conexao.status === "PENDING"
-                              ? "Conectando"
-                              : conexao.status === "CLOSED"
-                                ? "Desconectado"
-                                : "Houve um erro"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getSessaoButton(conexao)}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-sm whitespace-nowrap text-gray-900">
-                      {new Date(conexao.updatedAt).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {conexao.isDefault && (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenModal(conexao)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleOpenModal(conexao)}
-                            >
-                              <Settings className="mr-2 h-4 w-4" />
-                              Configurações
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Duplicar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                            // onClick={() => handleToggleStatus(conexao.id)}
-                            >
-                              <Power className="mr-2 h-4 w-4" />
-                              {conexao.status === "OPEN"
-                                ? "Desconectar"
-                                : "Conectar"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <RotateCcw className="mr-2 h-4 w-4" />
-                              Reiniciar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(conexao.id)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
-                  </tr>
+                  <ConnectionRow
+                    key={conexao.id}
+                    connection={conexao}
+                    handleOpenModal={handleOpenModal}
+                    handleDelete={handleDelete}
+                    handleShowQrCode={handleShowQrCode}
+                    handleDesconnect={handleDesconnect}
+                    showQrCode={setIsQrModalOpen}
+                  />
                 ))
               )}
             </tbody>
