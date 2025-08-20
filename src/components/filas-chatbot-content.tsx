@@ -134,11 +134,11 @@ export default function FilasChatbotContent() {
     color: "#3b82f6",
     priority: 0,
     integrationId: "",
-    promptId: "",
+    promptIds: [] as string[],
     greetingMessage: "",
     outOfOfficeHoursMessage: "",
     horarios: createInitialHorarios(),
-    companyId: user?.id ? user.id : "",
+    companyId: user?.companyId ? user.companyId : "",
     connections: [] as string[],
   };
   const [formData, setFormData] = useState(initialFormData);
@@ -159,18 +159,19 @@ export default function FilasChatbotContent() {
 
   const handleOpenModal = (fila?: Queue) => {
     if (fila) {
-      // A lógica para editar continua a mesma
       setEditingFilaId(fila.id);
       setFormData({
         name: fila.name,
         color: fila.color,
         priority: fila.priority,
         integrationId: fila.integrationId || "",
-        promptId: fila.promptId || "",
+        promptIds: Array.isArray(fila.promptIds)
+          ? fila.promptIds
+          : [fila.promptIds].filter(Boolean),
         greetingMessage: fila.greetingMessage || "",
         outOfOfficeHoursMessage: fila.outOfOfficeHoursMessage || "",
         horarios: schedulesToHorarios(fila.schedules as unknown as Schedule[]),
-        companyId: user?.id || "",
+        companyId: user?.companyId || "",
         connections: fila.connections || [],
       });
       setSelectedConnectionIds(fila.connections || []);
@@ -199,10 +200,17 @@ export default function FilasChatbotContent() {
       color: formData.color,
       priority: formData.priority || 0,
       integrationId: formData.integrationId || "",
-      promptId: formData.promptId || "",
+      promptIds: Array.isArray(formData.promptIds)
+        ? formData.promptIds
+        : [formData.promptIds].filter(Boolean),
       greetingMessage: formData.greetingMessage,
       outOfOfficeHoursMessage: formData.outOfOfficeHoursMessage,
-      schedules: horariosToSchedules(formData.horarios),
+      schedules: horariosToSchedules(formData.horarios).map((s) => ({
+        weekday: s.weekday,
+        startTime: s.startTime,
+        endTime: s.endTime,
+        weekdayEn: s.weekdayEn,
+      })),
       companyId: formData.companyId,
       connections: formData.connections,
     };
@@ -244,7 +252,7 @@ export default function FilasChatbotContent() {
     console.error(selectedConnectionIds);
     setFormData((prev) => ({ ...prev, color }));
     setShowColorPicker(false);
-    console.log(selectedConnectionIds)
+    console.log(selectedConnectionIds);
   };
 
   const handleHorarioChange = (
@@ -338,7 +346,7 @@ export default function FilasChatbotContent() {
                         {fila.greetingMessage || "Não definida"}
                       </TableCell>
                       <TableCell>
-                        {promptsList.find((p) => p.id === fila.promptId)
+                        {promptsList.find((p) => p.id === fila.promptIds[0])
                           ?.title || "Não definido"}
                       </TableCell>
                       <TableCell className="">
@@ -521,9 +529,12 @@ export default function FilasChatbotContent() {
                       Prompt
                     </Label>
                     <Select
-                      value={formData.promptId}
+                      value={formData.promptIds[0]}
                       onValueChange={(value) =>
-                        setFormData((prev) => ({ ...prev, promptId: value }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          promptIds: value ? [value] : [],
+                        }))
                       }
                     >
                       <SelectTrigger>

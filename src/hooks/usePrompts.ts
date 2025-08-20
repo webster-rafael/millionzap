@@ -34,23 +34,25 @@ export const usePrompts = () => {
     queryClient.invalidateQueries({ queryKey });
   };
 
-  const { mutate: createPromptMutation, isPending: isCreating } = useMutation({
-    mutationFn: createPrompt,
-    onSuccess,
-    onError: (error) => {
-      console.error("Erro ao criar prompt:", error);
-    },
-  });
+  const { mutateAsync: createPromptMutation, isPending: isCreating } =
+    useMutation({
+      mutationFn: createPrompt,
+      onSuccess,
+      onError: (error) => {
+        console.error("Erro ao criar prompt:", error);
+      },
+    });
 
-  const { mutate: updatePromptMutation, isPending: isUpdating } = useMutation({
-    mutationFn: updatePrompt,
-    onSuccess,
-    onError: (error) => {
-      console.error("Erro ao atualizar prompt:", error);
-    },
-  });
+  const { mutateAsync: updatePromptMutation, isPending: isUpdating } =
+    useMutation({
+      mutationFn: updatePrompt,
+      onSuccess,
+      onError: (error) => {
+        console.error("Erro ao atualizar prompt:", error);
+      },
+    });
 
-  const { mutate: deletePromptMutation } = useMutation({
+  const { mutateAsync: deletePromptMutation } = useMutation({
     mutationFn: deletePrompt,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey });

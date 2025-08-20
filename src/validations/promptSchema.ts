@@ -32,5 +32,5 @@ export const promptSchema = z.object({
   description: z.string().optional(),
 
   companyResume: z.string().min(1, "O resumo da empresa é obrigatório."),
-  queueId: z.string().min(1, "O ID da fila é obrigatório."),
+  queueId: z.string().optional(),
 });

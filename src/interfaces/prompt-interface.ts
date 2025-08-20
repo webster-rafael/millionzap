@@ -15,8 +15,8 @@ export interface Prompt {
   createdAt: Date;
   updatedAt: Date;
   isActive?: boolean;
-  queueId: string;
   companyId: string;
+  queueId?: string;
 }
 export interface PromptCreate {
   title: string;
@@ -32,6 +32,6 @@ export interface PromptCreate {
   description?: string;
   companyResume: string;
   isActive?: boolean;
-  queueId: string;
   companyId: string;
+  queueId?: string;
 }

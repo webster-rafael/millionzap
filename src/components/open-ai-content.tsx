@@ -13,13 +13,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -62,7 +55,7 @@ export function OpenAIContent() {
     updatePrompt,
     deletePrompt,
   } = usePrompts();
-  const { queues, isLoadingQueues } = useQueues();
+  const { queues } = useQueues();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setData] = useState<Prompt[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +68,6 @@ export function OpenAIContent() {
     prompt: "",
     description: "",
     companyResume: "",
-    queueId: "",
     maxTokens: 500,
     maxMessages: 500,
     promptTokens: 1,
@@ -84,6 +76,7 @@ export function OpenAIContent() {
     totalTokens: 1,
     assistantId: "",
     companyId: user?.id ? user.id : "",
+    queueId: "",
   });
   const [validationErrors, setValidationErrors] = useState<{
     title?: string[];
@@ -92,7 +85,7 @@ export function OpenAIContent() {
     companyResume?: string[];
     maxTokens?: string[];
     temperature?: string[];
-    queueId?: string[];
+    queueId?: string;
   }>({});
   useEffect(() => {
     if (!isLoading && !isError) {
@@ -140,16 +133,20 @@ export function OpenAIContent() {
       temperature: result.data.temperature || 0.8,
       description: result.data.description || "",
       companyResume: result.data.companyResume,
-      queueId: result.data.queueId,
+      queueId: result.data.queueId || "",
       companyId: user?.id ? user.id : "",
     };
 
     try {
       if (editingPrompt) {
-        updatePrompt({ ...editingPrompt, ...payload, id: editingPrompt.id });
+        await updatePrompt({
+          ...editingPrompt,
+          ...payload,
+          id: editingPrompt.id,
+        });
         toast.success("Prompt atualizado com sucesso!");
       } else {
-        createPrompt(payload as PromptCreate);
+        await createPrompt(payload as PromptCreate);
         toast.success("Prompt criado com sucesso!");
       }
       resetForm();
@@ -199,7 +196,7 @@ export function OpenAIContent() {
     setEditingPrompt(prompt);
     setFormData({
       ...prompt,
-      queueId: prompt.queueId,
+      queueId: prompt.queueId || "",
     });
     setIsDialogOpen(true);
   };
@@ -379,39 +376,6 @@ export function OpenAIContent() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Filas *</Label>
-                  <Select
-                    value={formData.queueId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, queueId: value })
-                    }
-                    disabled={isLoadingQueues}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          isLoadingQueues
-                            ? "Carregando filas..."
-                            : "Selecione uma fila"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {queues.map((queue) => (
-                        <SelectItem key={queue.id} value={queue.id.toString()}>
-                          {queue.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {validationErrors.queueId && (
-                    <p className="text-sm text-red-500">
-                      {validationErrors.queueId[0]}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
                   <Label>Resposta da IA *</Label>
                   <Input
                     id="temperature"
@@ -511,7 +475,7 @@ export function OpenAIContent() {
                       variant="outline"
                       className="border-blue-200 bg-blue-50 text-blue-700"
                     >
-                      {getQueueNameById(prompt.queueId)}
+                      {getQueueNameById(prompt.queueId || "")}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono">

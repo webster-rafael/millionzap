@@ -4,7 +4,7 @@ export interface Queue {
   color: string;
   greetingMessage: string | null;
   outOfOfficeHoursMessage: string | null;
-  promptId: string | null;
+  promptIds: string[];
   integrationId: string | null;
   isActive: boolean;
   priority: number;
@@ -20,13 +20,13 @@ export interface QueueCreate {
   color?: string;
   greetingMessage?: string;
   outOfOfficeHoursMessage?: string;
-  promptId?: string | null;
+  promptIds?: string[];
   integrationId?: string | null;
   isActive?: boolean;
   priority?: number;
   schedules?: Schedule[];
   companyId: string;
-  connections: string[];
+  connections?: string[];
 }
 
 export interface Schedule {
