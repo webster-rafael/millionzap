@@ -75,9 +75,14 @@ export function ConexoesContent() {
   const [editingConexao, setEditingConexao] =
     useState<WhatsAppConnection | null>(null);
   const [qrCodeImage, setQrCodeImage] = useState("");
+<<<<<<< HEAD
    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setCurrentConnection] =
     useState<WhatsAppConnection | null>(null);
+=======
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setCurrentConnection] = useState<WhatsAppConnection | null>(null);
+>>>>>>> 9733758895e5c40bb71a599d962d86b701dfee2d
   const { queues } = useQueues();
   const { prompts } = usePrompts();
   const form = useForm<ConnectionFormData>({

@@ -32,7 +32,7 @@ import { usePrompts } from "@/hooks/usePrompts";
 import type { Prompt } from "@/interfaces/prompt-interface";
 import { useAuth } from "@/hooks/useAuth";
 
-type Schedule = {  
+type Schedule = {
   weekday: string;
   startTime: string;
   endTime: string;
@@ -241,6 +241,7 @@ export default function FilasChatbotContent() {
   };
 
   const handleColorSelect = (color: string) => {
+    console.error(selectedConnectionIds);
     setFormData((prev) => ({ ...prev, color }));
     setShowColorPicker(false);
     console.log(selectedConnectionIds)
