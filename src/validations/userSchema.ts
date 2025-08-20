@@ -4,6 +4,7 @@ const UserRole = z.enum(["ADMIN", "USER"]);
 export const userSchema = z.object({
   name: z.string().min(1, "O nome é obrigatório."),
   email: z.email("Formato de e-mail inválido."),
+  phone: z.string().regex(/^\+?[\d\s()-]{10,15}$/, "Telefone inválido"),
   password: z
     .string()
     .min(6, "A senha deve ter no mínimo 6 caracteres.")

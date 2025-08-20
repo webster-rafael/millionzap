@@ -104,6 +104,7 @@ export function UsuariosContent() {
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       password: "",
       role: "USER",
       queueIds: [],
@@ -118,6 +119,7 @@ export function UsuariosContent() {
       form.reset({
         name: user.name,
         email: user.email,
+        phone: user.phone,
         password: "",
         role: user.role as "ADMIN" | "USER",
         queueIds: user.queues?.map((q) => q.queue.id) || [],
