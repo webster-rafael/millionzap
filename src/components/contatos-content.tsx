@@ -87,6 +87,7 @@ export function ContatosContent() {
       phone: "",
       email: "",
       companyId: user?.id ? user.id : "",
+      userId: user?.id ? user.id : "",
     },
   });
 
@@ -216,30 +217,31 @@ export function ContatosContent() {
   };
 
   const handleImportWhatsContacts = async () => {
-    const activeConnection =
-      connections.find((c) => c.status === "OPEN") ||
-      connections.find((c) => c.isDefault);
-    if (!activeConnection) {
-      toast.error("Nenhuma conexão ativa ou padrão encontrada.");
+    if (!user || !user.connectionId) {
+      toast.error("Usuário não conectado ou sem conexão associada.");
       return;
     }
-    const instanceName = activeConnection.name;
+
+    const userConnection = connections.find((c) => c.id === user.connectionId);
+    if (!userConnection) {
+      toast.error("A conexão associada ao seu usuário não foi encontrada.");
+      return;
+    }
+
+    const instanceName = userConnection.name;
     toast.info("Importando contatos do WhatsApp...");
     try {
-      await fetch(
-        "https://n8n.milliontech.com.br/webhook-test/f933f30d-8661-4534-9c6f-c1b2022ff053",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: user?.id,
-            instance: instanceName,
-            companyId: user?.companyId,
-          }),
+      await fetch(import.meta.env.VITE_FIND_CONTACTS_WEBHOOK, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          userId: user?.id,
+          instance: instanceName,
+          companyId: user?.companyId,
+        }),
+      });
       toast.success("Contatos importados com sucesso!");
     } catch (error) {
       toast.error(`Erro ao importar contatos do WhatsApp: ${error}`);

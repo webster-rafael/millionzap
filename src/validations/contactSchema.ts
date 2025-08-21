@@ -8,6 +8,7 @@ export const contactSchema = z.object({
     .regex(/^\d+$/, "Telefone deve conter apenas números"),
   email: z.email("E-mail inválido").optional().or(z.literal("")),
   companyId: z.string(),
+  userId: z.string().optional(),
 });
 
 export type ContactFormData = z.infer<typeof contactSchema>;
