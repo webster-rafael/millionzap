@@ -1,5 +1,5 @@
 // components/ConnectionRow.tsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useQrCodeStatus } from "@/hooks/useQrCodeStatus";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import type { WhatsAppConnection } from "@/interfaces/whatsappConnection-interface";

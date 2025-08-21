@@ -42,11 +42,7 @@ interface MessageInfo {
 }
 
 export interface ConversationCreate {
-<<<<<<< HEAD
-  id: string
-=======
   id: string;
->>>>>>> 9733758895e5c40bb71a599d962d86b701dfee2d
   contactId: string;
   userId?: string | null;
   queueId?: string | null;
