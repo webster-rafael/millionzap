@@ -51,6 +51,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useConversations } from "@/hooks/useConversation";
+import { FaWhatsapp } from "react-icons/fa";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 // interface CustomField {
 //   name: string;
@@ -69,6 +71,7 @@ export function ContatosContent() {
     isUpdating,
     remove,
   } = useContacts();
+  const { connections } = useWhatsAppConnections();
   const { conversations, create: createConversation } = useConversations();
   const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -212,6 +215,37 @@ export function ContatosContent() {
     }
   };
 
+  const handleImportWhatsContacts = async () => {
+    const activeConnection =
+      connections.find((c) => c.status === "OPEN") ||
+      connections.find((c) => c.isDefault);
+    if (!activeConnection) {
+      toast.error("Nenhuma conexão ativa ou padrão encontrada.");
+      return;
+    }
+    const instanceName = activeConnection.name;
+    toast.info("Importando contatos do WhatsApp...");
+    try {
+      await fetch(
+        "https://n8n.milliontech.com.br/webhook-test/f933f30d-8661-4534-9c6f-c1b2022ff053",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user?.id,
+            instance: instanceName,
+            companyId: user?.companyId,
+          }),
+        },
+      );
+      toast.success("Contatos importados com sucesso!");
+    } catch (error) {
+      toast.error(`Erro ao importar contatos do WhatsApp: ${error}`);
+    }
+  };
+
   if (isLoadingContacts) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -242,6 +276,14 @@ export function ContatosContent() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
+          <Button
+            onClick={handleImportWhatsContacts}
+            variant="outline"
+            className="bg-green-200"
+          >
+            <FaWhatsapp className="h-4 w-4" />
+            Importar do Whatsapp
+          </Button>
           <Button variant="outline">
             <Upload className="mr-2 h-4 w-4" />
             Importar

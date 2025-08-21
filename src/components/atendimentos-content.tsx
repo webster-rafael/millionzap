@@ -85,15 +85,19 @@ export function AtendimentosContent() {
 
     const recipientNumber = selectedConversation.contact?.phone;
     if (!recipientNumber) return;
-
-    const activeConnection =
-      connections.find((c) => c.status === "OPEN") ||
-      connections.find((c) => c.isDefault);
-    if (!activeConnection) {
-      toast.error("Nenhuma conexão ativa ou padrão encontrada.");
+    if (!user || !user.connectionId) {
+      toast.error("Usuário não conectado ou sem conexão associada.");
       return;
     }
-    const instanceName = activeConnection.name;
+
+    const userConnection = connections.find((c) => c.id === user.connectionId);
+
+    if (!userConnection) {
+      toast.error("A conexão associada ao seu usuário não foi encontrada.");
+      return;
+    }
+
+    const instanceName = userConnection.name;
 
     if (audioBlob) {
       const base64Data = await new Promise<string>((resolve, reject) => {
