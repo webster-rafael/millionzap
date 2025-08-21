@@ -1,4 +1,3 @@
-// components/ConnectionRow.tsx
 import { useEffect } from "react";
 import { useQrCodeStatus } from "@/hooks/useQrCodeStatus";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
