@@ -72,10 +72,6 @@ export function DashboardContent() {
   const { user } = useAuth();
   const {
     conversations,
-    remove,
-    isLoadingConversations,
-    isErrorConversations,
-    update: updateConversation,
   } = useConversations();
   // const [startDate, setStartDate] = useState("01/07/2025");
   // const [endDate, setEndDate] = useState("03/07/2025");
