@@ -288,7 +288,7 @@ export function KanbanBoard() {
                                           <Phone className="h-3 w-3 text-gray-500" />
                                           <div className="text-xs">
                                             <p className="font-medium">
-                                              {conversation.contactId}
+                                              {conversation.contact?.phone}
                                             </p>
                                             <p className="text-gray-500">
                                               {conversation.contact?.email ||
