@@ -34,6 +34,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
+import { useConversations } from "@/hooks/useConversation";
 
 const chartData = [
   { hour: "01:00", value: 0 },
@@ -69,6 +70,13 @@ const userData = [
 
 export function DashboardContent() {
   const { user } = useAuth();
+  const {
+    conversations,
+    remove,
+    isLoadingConversations,
+    isErrorConversations,
+    update: updateConversation,
+  } = useConversations();
   // const [startDate, setStartDate] = useState("01/07/2025");
   // const [endDate, setEndDate] = useState("03/07/2025");
 
@@ -136,7 +144,9 @@ export function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-200">Atd. Pendentes</p>
-                <p className="text-3xl font-bold">11</p>
+                <p className="text-3xl font-bold">
+                  {conversations.filter((c) => c.status === "WAITING").length}
+                </p>
               </div>
               <Phone className="h-12 w-12 text-blue-200" />
             </div>
@@ -148,7 +158,9 @@ export function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-200">Atd. Acontecendo</p>
-                <p className="text-3xl font-bold">3</p>
+                <p className="text-3xl font-bold">
+                  {conversations.filter((c) => c.status === "SERVING").length}
+                </p>
               </div>
               <Timer className="h-12 w-12 text-blue-200" />
             </div>
@@ -160,7 +172,9 @@ export function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-200">Finalizados</p>
-                <p className="text-3xl font-bold">16</p>
+                <p className="text-3xl font-bold">
+                  {conversations.filter((c) => c.status === "RESOLVED").length}
+                </p>
               </div>
               <CheckCircle className="h-12 w-12 text-blue-200" />
             </div>
