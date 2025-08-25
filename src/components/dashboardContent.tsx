@@ -70,9 +70,7 @@ const userData = [
 
 export function DashboardContent() {
   const { user } = useAuth();
-  const {
-    conversations,
-  } = useConversations();
+  const { conversations } = useConversations();
   // const [startDate, setStartDate] = useState("01/07/2025");
   // const [endDate, setEndDate] = useState("03/07/2025");
 
@@ -141,7 +139,15 @@ export function DashboardContent() {
               <div>
                 <p className="text-sm text-blue-200">Atd. Pendentes</p>
                 <p className="text-3xl font-bold">
-                  {conversations.filter((c) => c.status === "WAITING").length}
+                  {
+                    conversations.filter(
+                      (c) =>
+                        c.status === "WAITING" &&
+                        user?.queues
+                          .map((q) => q.queue.id)
+                          .includes(c.queueId || ""),
+                    ).length
+                  }
                 </p>
               </div>
               <Phone className="h-12 w-12 text-blue-200" />

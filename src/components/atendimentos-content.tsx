@@ -204,9 +204,12 @@ export function AtendimentosContent() {
       return;
     }
 
+    const queueIdToSend =
+      selectedQueueId === "sem-fila" ? null : selectedQueueId;
+
     updateConversation({
       id: selectedConversationId,
-      queueId: selectedQueueId,
+      queueId: queueIdToSend,
     });
 
     setIsOpenModalTransfer(false);
@@ -875,6 +878,7 @@ export function AtendimentosContent() {
                   <option value="" disabled>
                     Selecione uma fila
                   </option>
+                  <option value={"sem-fila"}>Sem fila</option>
                   {queues.map((queue) => (
                     <option key={queue.id} value={queue.id}>
                       {queue.name}
