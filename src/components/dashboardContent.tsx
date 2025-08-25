@@ -139,15 +139,15 @@ export function DashboardContent() {
               <div>
                 <p className="text-sm text-blue-200">Atd. Pendentes</p>
                 <p className="text-3xl font-bold">
-                  {
-                    conversations.filter(
-                      (c) =>
-                        c.status === "WAITING" &&
-                        user?.queues
-                          .map((q) => q.queue.id)
-                          .includes(c.queueId || ""),
-                    ).length
-                  }
+                  {user?.role === "ADMIN"
+                    ? conversations.filter((c) => c.status === "WAITING").length
+                    : conversations.filter(
+                        (c) =>
+                          c.status === "WAITING" &&
+                          user?.queues
+                            .map((q) => q.queue.id)
+                            .includes(c.queueId || ""),
+                      ).length}
                 </p>
               </div>
               <Phone className="h-12 w-12 text-blue-200" />
@@ -161,7 +161,15 @@ export function DashboardContent() {
               <div>
                 <p className="text-sm text-blue-200">Atd. Acontecendo</p>
                 <p className="text-3xl font-bold">
-                  {conversations.filter((c) => c.status === "SERVING").length}
+                  {user?.role === "ADMIN"
+                    ? conversations.filter((c) => c.status === "SERVING").length
+                    : conversations.filter(
+                        (c) =>
+                          c.status === "SERVING" &&
+                          user?.queues
+                            .map((q) => q.queue.id)
+                            .includes(c.queueId || ""),
+                      ).length}
                 </p>
               </div>
               <Timer className="h-12 w-12 text-blue-200" />
