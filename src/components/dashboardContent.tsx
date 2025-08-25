@@ -5,6 +5,7 @@ import {
   CheckCircle,
   UserPlus,
   Timer,
+  LogOut,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ const userData = [
 ];
 
 export function DashboardContent() {
-  const { user } = useAuth();
+  const { user, logoutUser } = useAuth();
   const { conversations } = useConversations();
   // const [startDate, setStartDate] = useState("01/07/2025");
   // const [endDate, setEndDate] = useState("03/07/2025");
@@ -88,6 +89,14 @@ export function DashboardContent() {
           <Button variant="outline" size="sm">
             <CalendarIcon className="mr-2 h-4 w-4" />
             Hoje
+          </Button>
+          <Button
+            onClick={() => logoutUser()}
+            className="bg-secondary-million"
+            size="sm"
+          >
+            Sair
+            <LogOut />
           </Button>
         </div>
       </div>

@@ -6,9 +6,9 @@ import {
   Trash2,
   MessageCircle,
   Phone,
-  Upload,
   Download,
   Loader2,
+  List,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,7 @@ import { useNavigate } from "react-router-dom";
 import { useConversations } from "@/hooks/useConversation";
 import { FaWhatsapp } from "react-icons/fa";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+import { useContactLists } from "@/hooks/useContactsList";
 
 // interface CustomField {
 //   name: string;
@@ -72,12 +73,15 @@ export function ContatosContent() {
     remove,
   } = useContacts();
   const { connections } = useWhatsAppConnections();
+  const { contactLists, updateContactList } = useContactLists();
   const { conversations, create: createConversation } = useConversations();
   const navigate = useNavigate();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [isSelectListDialogOpen, setIsSelectListDialogOpen] = useState(false);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setStartingConversationContactId] = useState<string | null>(null);
   const form = useForm<ContactFormData>({
@@ -284,11 +288,22 @@ export function ContatosContent() {
             className="bg-green-200"
           >
             <FaWhatsapp className="h-4 w-4" />
-            Importar do Whatsapp
+            <span className="hidden xl:block">Whatsapp</span>
           </Button>
-          <Button variant="outline">
-            <Upload className="mr-2 h-4 w-4" />
-            Importar
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (selectedContacts.length === 0) {
+                toast.error(
+                  "Selecione ao menos um contato para adicionar à lista",
+                );
+                return;
+              }
+              setIsSelectListDialogOpen(true);
+            }}
+          >
+            <List className="mr-2 h-4 w-4" />
+            Criar Lista
           </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
@@ -306,8 +321,8 @@ export function ContatosContent() {
                 onClick={() => setIsAddDialogOpen(true)}
                 className="bg-[#00183E] hover:bg-[#00183E]/90"
               >
-                <Plus className="mr-2 h-4 w-4" />
-                Adicionar Contato
+                <Plus className="mr-0 h-4 w-4 xl:mr-2" />
+                <span className="hidden xl:block">Adicionar</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
@@ -540,6 +555,92 @@ export function ContatosContent() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add Contact List */}
+      <Dialog
+        open={isSelectListDialogOpen}
+        onOpenChange={setIsSelectListDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar contatos à lista</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Label>Selecione a lista</Label>
+            <select
+              className="w-full rounded border p-2"
+              value={selectedListId ?? ""}
+              onChange={(e) => setSelectedListId(e.target.value)}
+            >
+              <option value="" disabled>
+                Selecione uma lista
+              </option>
+              {contactLists.map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsSelectListDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="bg-[#00183E] hover:bg-[#00183E]/90"
+                onClick={() => {
+                  if (!selectedListId) {
+                    toast.error("Selecione uma lista");
+                    return;
+                  }
+
+                  if (selectedContacts.length === 0) {
+                    toast.error(
+                      "Selecione ao menos um contato para adicionar.",
+                    );
+                    return;
+                  }
+
+                  const contactsToAdd = contacts.filter((c) =>
+                    selectedContacts.includes(c.id),
+                  );
+
+                  const contactIdsToAdd = contactsToAdd.map(
+                    (contact) => contact.id,
+                  );
+
+                  updateContactList(
+                    {
+                      id: selectedListId,
+                      contactIds: contactIdsToAdd,
+                    },
+                    {
+                      onSuccess: () => {
+                        toast.success(
+                          "Contatos adicionados à lista com sucesso!",
+                        );
+                        setSelectedContacts([]);
+                        setIsSelectListDialogOpen(false);
+                        setSelectedListId(null);
+                      },
+                      onError: () => {
+                        toast.error(
+                          "Não foi possível atualizar a lista de contatos.",
+                        );
+                      },
+                    },
+                  );
+                }}
+              >
+                Adicionar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       <Dialog

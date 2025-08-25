@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,156 +38,181 @@ import {
   FileText,
   UserPlus,
   Calendar,
+  Loader2,
 } from "lucide-react";
+import { useContactLists } from "@/hooks/useContactsList";
+import type {
+  ContactList,
+  CreateContactList,
+} from "@/interfaces/contactList-interface";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { toast, Toaster } from "sonner";
 
-interface ContactList {
-  id: string;
-  name: string;
-  description: string;
+type ContactListWithDefaults = ContactList & {
   contactCount: number;
-  createdAt: string;
-  updatedAt: string;
   status: "active" | "inactive";
-  source: "manual" | "import" | "api";
-}
-
-const mockContactLists: ContactList[] = [
-  {
-    id: "1",
-    name: "Clientes Premium",
-    description: "Lista de clientes com plano premium ativo",
-    contactCount: 1250,
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-20",
-    status: "active",
-    source: "import",
-  },
-  {
-    id: "2",
-    name: "Leads Qualificados",
-    description: "Prospects que demonstraram interesse nos produtos",
-    contactCount: 890,
-    createdAt: "2024-01-10",
-    updatedAt: "2024-01-18",
-    status: "active",
-    source: "manual",
-  },
-  {
-    id: "3",
-    name: "Newsletter Subscribers",
-    description: "Usuários inscritos na newsletter mensal",
-    contactCount: 3200,
-    createdAt: "2024-01-05",
-    updatedAt: "2024-01-19",
-    status: "active",
-    source: "api",
-  },
-  {
-    id: "4",
-    name: "Carrinho Abandonado",
-    description: "Clientes que abandonaram itens no carrinho",
-    contactCount: 567,
-    createdAt: "2024-01-12",
-    updatedAt: "2024-01-17",
-    status: "active",
-    source: "import",
-  },
-  {
-    id: "5",
-    name: "Clientes Inativos",
-    description: "Clientes sem compras nos últimos 6 meses",
-    contactCount: 445,
-    createdAt: "2024-01-08",
-    updatedAt: "2024-01-16",
-    status: "inactive",
-    source: "manual",
-  },
-];
-
-const getSourceBadge = (source: ContactList["source"]) => {
-  const sourceConfig = {
-    manual: { label: "Manual", color: "bg-blue-100 text-blue-800" },
-    import: { label: "Importação", color: "bg-green-100 text-green-800" },
-    api: { label: "API", color: "bg-purple-100 text-purple-800" },
-  };
-
-  const config = sourceConfig[source];
-  return <Badge className={config.color}>{config.label}</Badge>;
 };
 
-const formatNumber = (num: number) => {
-  return num.toLocaleString("pt-BR");
-};
-
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("pt-BR");
-};
+const formatNumber = (num: number) => num.toLocaleString("pt-BR");
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString("pt-BR");
 
 export function ListasDeContatosContent() {
-  const [contactLists, setContactLists] =
-    useState<ContactList[]>(mockContactLists);
+  const { user } = useAuth();
+  const {
+    contactLists,
+    isLoadingContactLists,
+    createContactList,
+    removeContactList,
+    updateContactList,
+    fetchContactListById,
+  } = useContactLists();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newList, setNewList] = useState({
+  const [listIdToEdit, setListIdToEdit] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingList, setEditingList] = useState<ContactList | null>(null);
+  const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] =
+    useState(false);
+  const [contactToDelete, setContactToDelete] = useState<{
+    listId: string;
+    contactId: string;
+  } | null>(null);
+  const [newList, setNewList] = useState<CreateContactList>({
     name: "",
     description: "",
+    companyId: user?.companyId || "",
+    isActive: true,
   });
 
-  const filteredLists = contactLists.filter(
-    (list) =>
-      list.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      list.description.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  const {
+    data: detailedContactList,
+    isLoading: isLoadingDetails,
+    isSuccess,
+  } = useQuery({
+    queryKey: ["contactList", listIdToEdit],
+    queryFn: () => fetchContactListById(listIdToEdit!),
+    enabled: !!listIdToEdit,
+  });
 
-  const stats = {
-    total: contactLists.length,
-    active: contactLists.filter((list) => list.status === "active").length,
-    totalContacts: contactLists.reduce(
-      (sum, list) => sum + list.contactCount,
-      0,
-    ),
-    avgContacts: Math.round(
-      contactLists.reduce((sum, list) => sum + list.contactCount, 0) /
-        contactLists.length,
-    ),
-  };
+  useEffect(() => {
+    if (isSuccess && detailedContactList) {
+      setEditingList(detailedContactList);
+      setIsEditModalOpen(true);
+    }
+  }, [isSuccess, detailedContactList]);
+
+  const filteredLists = useMemo(() => {
+    return contactLists.filter(
+      (list) =>
+        list.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        list.description?.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [contactLists, searchTerm]);
+
+  const stats = useMemo(() => {
+    const withDefaults: ContactListWithDefaults[] = contactLists.map((l) => ({
+      ...l,
+      contactCount: l.contactCount ?? 0,
+      status: l.isActive ? "active" : "inactive",
+    }));
+
+    return {
+      total: withDefaults.length,
+      active: withDefaults.filter((list) => list.status === "active").length,
+      totalContacts: withDefaults.reduce(
+        (sum, list) => sum + list.contactCount,
+        0,
+      ),
+      avgContacts: withDefaults.length
+        ? Math.round(
+            withDefaults.reduce((sum, list) => sum + list.contactCount, 0) /
+              withDefaults.length,
+          )
+        : 0,
+    };
+  }, [contactLists]);
 
   const handleCreateList = () => {
     if (newList.name.trim()) {
-      const newContactList: ContactList = {
-        id: Date.now().toString(),
-        name: newList.name,
-        description: newList.description,
-        contactCount: 0,
-        createdAt: new Date().toISOString().split("T")[0],
-        updatedAt: new Date().toISOString().split("T")[0],
-        status: "active",
-        source: "manual",
-      };
+      createContactList(newList, {
+        onSuccess: () => {
+          setNewList({
+            name: "",
+            description: "",
+            companyId: "",
+            isActive: true,
+          });
+          setIsCreateModalOpen(false);
+        },
+      });
+    }
+  };
 
-      setContactLists([newContactList, ...contactLists]);
-      setNewList({ name: "", description: "" });
-      setIsCreateModalOpen(false);
+  const handleEditList = () => {
+    if (editingList && editingList.name.trim()) {
+      updateContactList(editingList, {
+        onSuccess: () => {
+          setEditingList(null);
+          setIsEditModalOpen(false);
+        },
+      });
     }
   };
 
   const handleDeleteList = (id: string) => {
-    setContactLists(contactLists.filter((list) => list.id !== id));
+    removeContactList(id);
+  };
+
+  const handleConfirmDeleteContact = () => {
+    if (!editingList || !contactToDelete) return;
+    const updatedContactIds = editingList.contacts
+      .filter((relation) => relation.contactId !== contactToDelete.contactId)
+      .map((relation) => relation.contactId);
+
+    updateContactList(
+      {
+        id: editingList.id,
+        contactIds: updatedContactIds,
+      },
+      {
+        onSuccess: (updatedList) => {
+          setEditingList(updatedList);
+          setIsConfirmDeleteDialogOpen(false);
+          setContactToDelete(null);
+        },
+        onError: () => {
+          toast.error("Erro ao remover contato da lista");
+        },
+      },
+    );
   };
 
   const toggleListStatus = (id: string) => {
-    setContactLists(
-      contactLists.map((list) =>
-        list.id === id
-          ? {
-              ...list,
-              status: list.status === "active" ? "inactive" : "active",
-              updatedAt: new Date().toISOString().split("T")[0],
-            }
-          : list,
-      ),
-    );
+    const list = contactLists.find((l) => l.id === id);
+    if (list) {
+      updateContactList({
+        ...list,
+        isActive: !list.isActive,
+      });
+    }
   };
+
+  const handleOpenEditModal = (listId: string) => {
+    setListIdToEdit(listId); // 6. Gatilho: Apenas define o ID que queremos buscar
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setListIdToEdit(null);
+    setEditingList(null);
+  };
+
+  if (isLoadingContactLists) {
+    return <p className="p-6">Carregando listas...</p>;
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -239,7 +264,7 @@ export function ListasDeContatosContent() {
                   <Textarea
                     id="description"
                     placeholder="Descreva o propósito desta lista..."
-                    value={newList.description}
+                    value={newList.description ?? ""}
                     onChange={(e) =>
                       setNewList({ ...newList, description: e.target.value })
                     }
@@ -259,6 +284,114 @@ export function ListasDeContatosContent() {
                   className="bg-[#00183E] hover:bg-[#00183E]/90"
                 >
                   Criar Lista
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={isEditModalOpen} onOpenChange={handleCloseEditModal}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Editar Lista de Contatos</DialogTitle>
+              </DialogHeader>
+              {/* Mostra um loader enquanto busca os detalhes */}
+              {isLoadingDetails && (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              )}
+
+              {/* Mostra o formulário APENAS quando os detalhes estiverem prontos */}
+              {editingList && !isLoadingDetails && (
+                <div className="space-y-4 py-4">
+                  {/* ... (seus Inputs para nome, descrição, etc.) ... */}
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-name">Nome da Lista</Label>
+                    <Input
+                      id="edit-name"
+                      value={editingList.name}
+                      onChange={(e) =>
+                        setEditingList({ ...editingList, name: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Descrição</Label>
+                    <Textarea
+                      id="edit-description"
+                      value={editingList.description ?? ""}
+                      onChange={(e) =>
+                        setEditingList({
+                          ...editingList,
+                          description: e.target.value,
+                        })
+                      }
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Contatos da Lista</Label>
+                    {editingList.contacts && editingList.contacts.length > 0 ? (
+                      <Table className="mt-2">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nome</TableHead>
+                            <TableHead>Telefone</TableHead>
+                            <TableHead>Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {editingList.contacts.map((contactRelation) => (
+                            <TableRow
+                              key={
+                                contactRelation.contact?.id ||
+                                contactRelation.contactId
+                              }
+                            >
+                              <TableCell>
+                                {contactRelation.contact?.name ||
+                                  "Não encontrado"}
+                              </TableCell>
+                              <TableCell>
+                                {contactRelation.contact?.phone ||
+                                  "Não encontrado"}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setContactToDelete({
+                                      listId: editingList.id,
+                                      contactId: contactRelation.contactId,
+                                    });
+                                    setIsConfirmDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="mt-1 text-sm text-gray-500">
+                        Nenhum contato nesta lista.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={handleCloseEditModal}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleEditList}
+                  className="bg-[#00183E] hover:bg-[#00183E]/90"
+                >
+                  Salvar Alterações
                 </Button>
               </div>
             </DialogContent>
@@ -360,7 +493,6 @@ export function ListasDeContatosContent() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Contatos</TableHead>
-                  <TableHead>Origem</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Atualizada</TableHead>
                   <TableHead>Ações</TableHead>
@@ -381,25 +513,24 @@ export function ListasDeContatosContent() {
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">
-                          {formatNumber(list.contactCount)}
+                          {formatNumber(list.contacts.length)}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{getSourceBadge(list.source)}</TableCell>
                     <TableCell>
                       <Badge
                         className={
-                          list.status === "active"
+                          list.isActive
                             ? "bg-green-100 text-green-800"
                             : "bg-gray-100 text-gray-800"
                         }
                       >
-                        {list.status === "active" ? "Ativa" : "Inativa"}
+                        {list.isActive ? "Ativa" : "Inativa"}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-gray-500">
-                        {formatDate(list.updatedAt)}
+                        {formatDate(list.updatedAt ?? "")}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -407,7 +538,12 @@ export function ListasDeContatosContent() {
                         <Button variant="ghost" size="sm" title="Baixar lista">
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" title="Editar lista">
+                        <Button
+                          onClick={() => handleOpenEditModal(list.id)}
+                          variant="ghost"
+                          size="sm"
+                          title="Editar lista"
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <DropdownMenu>
@@ -428,7 +564,7 @@ export function ListasDeContatosContent() {
                             <DropdownMenuItem
                               onClick={() => toggleListStatus(list.id)}
                             >
-                              {list.status === "active" ? (
+                              {list.isActive ? (
                                 <>
                                   <Users className="mr-2 h-4 w-4" />
                                   Desativar lista
@@ -458,6 +594,34 @@ export function ListasDeContatosContent() {
           )}
         </CardContent>
       </Card>
+      <Dialog
+        open={isConfirmDeleteDialogOpen}
+        onOpenChange={setIsConfirmDeleteDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Você tem certeza que deseja remover este contato da lista?</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsConfirmDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmDeleteContact}>
+              Excluir Contato
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Toaster />
     </div>
   );
 }
