@@ -1,5 +1,12 @@
-
 import type { Contact } from "./contact-interface";
+
+export interface Campaign {
+  id?: string;
+  body: string;
+  title?: string | null;
+  imageUrl?: string | null;
+  footer?: string | null;
+}
 interface ContactListOnContact {
   contactId: string;
   contactListId: string;
@@ -16,6 +23,7 @@ export interface ContactList {
   updatedAt?: string | null;
   contactCount?: number;
   contacts: ContactListOnContact[];
+  campaign?: Campaign | null;
 }
 
 export interface CreateContactList {
@@ -24,4 +32,11 @@ export interface CreateContactList {
   companyId: string;
   isActive: boolean;
   contactIds?: string[];
+  campaign?: Campaign | null;
 }
+
+export type UpdateContactList = Partial<
+  Omit<CreateContactList, "companyId">
+> & {
+  id: string;
+};

@@ -30,15 +30,15 @@ import {
   Search,
   Plus,
   Users,
-  Download,
   Edit,
   Trash2,
   MoreHorizontal,
-  Upload,
   FileText,
   UserPlus,
   Calendar,
   Loader2,
+  Play,
+  List,
 } from "lucide-react";
 import { useContactLists } from "@/hooks/useContactsList";
 import type {
@@ -48,6 +48,7 @@ import type {
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { toast, Toaster } from "sonner";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 type ContactListWithDefaults = ContactList & {
   contactCount: number;
@@ -60,6 +61,7 @@ const formatDate = (dateString: string) =>
 
 export function ListasDeContatosContent() {
   const { user } = useAuth();
+  const { connections } = useWhatsAppConnections();
   const {
     contactLists,
     isLoadingContactLists,
@@ -85,6 +87,24 @@ export function ListasDeContatosContent() {
     description: "",
     companyId: user?.companyId || "",
     isActive: true,
+  });
+
+  interface CampaignTemplate {
+    body: string;
+    title?: string | null;
+    imageUrl?: string | null;
+    footer?: string | null;
+  }
+
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [currentListIdForTemplate, setCurrentListIdForTemplate] = useState<
+    string | null
+  >(null);
+  const [templateData, setTemplateData] = useState<CampaignTemplate>({
+    title: "",
+    body: "",
+    imageUrl: "",
+    footer: "",
   });
 
   const {
@@ -201,13 +221,116 @@ export function ListasDeContatosContent() {
   };
 
   const handleOpenEditModal = (listId: string) => {
-    setListIdToEdit(listId); // 6. Gatilho: Apenas define o ID que queremos buscar
+    setListIdToEdit(listId);
   };
 
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setListIdToEdit(null);
     setEditingList(null);
+  };
+
+  const handleOpenTemplateModal = (listId: string) => {
+    const list = contactLists.find((l) => l.id === listId);
+    if (list) {
+      setCurrentListIdForTemplate(listId);
+      setTemplateData({
+        title: list.campaign?.title ?? "",
+        body: list.campaign?.body ?? "",
+        imageUrl: list.campaign?.imageUrl ?? "",
+        footer: list.campaign?.footer ?? "",
+      });
+      setIsTemplateModalOpen(true);
+    }
+  };
+
+  const handleCloseTemplateModal = () => {
+    setIsTemplateModalOpen(false);
+    setCurrentListIdForTemplate(null);
+    setTemplateData({ title: "", body: "", imageUrl: "", footer: "" });
+  };
+
+  const handleSaveTemplate = () => {
+    if (!currentListIdForTemplate) return;
+    if (!templateData.body.trim()) {
+      toast.error("O corpo da mensagem é obrigatório.");
+      return;
+    }
+    updateContactList(
+      {
+        id: currentListIdForTemplate,
+        campaign: templateData,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Template salvo com sucesso!");
+          handleCloseTemplateModal();
+        },
+        onError: (error) => {
+          console.error("Erro ao salvar template:", error);
+          toast.error("Não foi possível salvar o template.");
+        },
+      },
+    );
+  };
+
+  const startTriggerMessage = async (id: string) => {
+    const webhookUrl =
+      "https://n8n.milliontech.com.br/webhook-test/b5cd7452-b20b-4266-baa6-e79ccdfa7825";
+
+    const listToTrigger = contactLists.find((list) => list.id === id);
+
+    if (!listToTrigger) {
+      toast.error("Erro: Lista de contatos não encontrada.");
+      return;
+    }
+
+    if (!listToTrigger.contacts || listToTrigger.contacts.length === 0) {
+      toast.error("Esta lista está vazia. Não há contatos para disparar.");
+      return;
+    }
+
+    if (!listToTrigger.campaign || !listToTrigger.campaign.body) {
+      toast.error("Esta lista não possui um template de campanha configurado.");
+      return;
+    }
+
+    const contactsToSend = listToTrigger.contacts.map(
+      (relation) => relation.contact,
+    );
+
+    toast.info(
+      `Iniciando disparo para ${listToTrigger.contacts.length} contato(s) da lista "${listToTrigger.name}"...`,
+    );
+
+    try {
+      const connectionsName = connections.find(
+        (connection) => connection.id === user?.connectionId,
+      );
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          listId: listToTrigger.id,
+          listName: listToTrigger.name,
+          contacts: contactsToSend,
+          template: listToTrigger.campaign,
+          companyId: user?.companyId || "",
+          connectionName: connectionsName?.name || "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      toast.success("Disparo iniciado com sucesso! Workflow do n8n ativado.");
+    } catch (error) {
+      console.error("Falha ao ativar o webhook do n8n:", error);
+      toast.error("Não foi possível acionar o disparo. Tente novamente.");
+    }
   };
 
   if (isLoadingContactLists) {
@@ -219,9 +342,6 @@ export function ListasDeContatosContent() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Listas de Contatos
-          </h1>
           <p className="text-gray-600">
             Gerencie suas listas de contatos para campanhas
           </p>
@@ -300,10 +420,8 @@ export function ListasDeContatosContent() {
                 </div>
               )}
 
-              {/* Mostra o formulário APENAS quando os detalhes estiverem prontos */}
               {editingList && !isLoadingDetails && (
                 <div className="space-y-4 py-4">
-                  {/* ... (seus Inputs para nome, descrição, etc.) ... */}
                   <div className="space-y-2">
                     <Label htmlFor="edit-name">Nome da Lista</Label>
                     <Input
@@ -392,6 +510,85 @@ export function ListasDeContatosContent() {
                   className="bg-[#00183E] hover:bg-[#00183E]/90"
                 >
                   Salvar Alterações
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Dialog
+            open={isTemplateModalOpen}
+            onOpenChange={handleCloseTemplateModal}
+          >
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Template da Campanha</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="template-title">Título</Label>
+                  <Input
+                    id="template-title"
+                    placeholder="Ex: Oferta Especial!"
+                    value={templateData.title || ""}
+                    onChange={(e) =>
+                      setTemplateData({
+                        ...templateData,
+                        title: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-body">Corpo da Mensagem</Label>
+                  <Textarea
+                    id="template-body"
+                    placeholder="Olá {contactName}, temos uma novidade para você..."
+                    value={templateData.body}
+                    onChange={(e) =>
+                      setTemplateData({ ...templateData, body: e.target.value })
+                    }
+                    rows={5}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-imageUrl">
+                    URL da Imagem (Opcional)
+                  </Label>
+                  <Input
+                    id="template-imageUrl"
+                    placeholder="https://exemplo.com/imagem.png"
+                    value={templateData.imageUrl || ""}
+                    onChange={(e) =>
+                      setTemplateData({
+                        ...templateData,
+                        imageUrl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="template-footer">Rodapé (Opcional)</Label>
+                  <Input
+                    id="template-footer"
+                    placeholder="Ex: Fale conosco!"
+                    value={templateData.footer || ""}
+                    onChange={(e) =>
+                      setTemplateData({
+                        ...templateData,
+                        footer: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={handleCloseTemplateModal}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSaveTemplate}
+                  className="bg-[#00183E] hover:bg-[#00183E]/90"
+                >
+                  Salvar Template
                 </Button>
               </div>
             </DialogContent>
@@ -535,8 +732,13 @@ export function ListasDeContatosContent() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" title="Baixar lista">
-                          <Download className="h-4 w-4" />
+                        <Button
+                          onClick={() => startTriggerMessage(list.id)}
+                          variant="ghost"
+                          size="sm"
+                          title="Disparar"
+                        >
+                          <Play className="h-4 w-4" />
                         </Button>
                         <Button
                           onClick={() => handleOpenEditModal(list.id)}
@@ -553,14 +755,13 @@ export function ListasDeContatosContent() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Importar contatos
+                            <DropdownMenuItem
+                              onClick={() => handleOpenTemplateModal(list.id)}
+                            >
+                              <List className="mr-2 h-4 w-4" />
+                              Templates
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              Adicionar contato
-                            </DropdownMenuItem>
+
                             <DropdownMenuItem
                               onClick={() => toggleListStatus(list.id)}
                             >
