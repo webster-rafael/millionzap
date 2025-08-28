@@ -245,6 +245,7 @@ export function ConfiguracoesContent() {
                   <Input
                     type="number"
                     placeholder="Ex: 24"
+                    className="w-24"
                     value={options.followupHours}
                     onChange={(e) =>
                       setOptions({
