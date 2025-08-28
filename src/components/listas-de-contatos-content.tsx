@@ -107,6 +107,9 @@ export function ListasDeContatosContent() {
     footer: "",
   });
 
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
   const {
     data: detailedContactList,
     isLoading: isLoadingDetails,
@@ -250,16 +253,32 @@ export function ListasDeContatosContent() {
     setTemplateData({ title: "", body: "", imageUrl: "", footer: "" });
   };
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
     if (!currentListIdForTemplate) return;
     if (!templateData.body.trim()) {
       toast.error("O corpo da mensagem é obrigatório.");
       return;
     }
+
+    const finalTemplateData = { ...templateData };
+
+    if (selectedImageFile) {
+      const newImageUrl = await handleImageUpload();
+
+      if (!newImageUrl) {
+        toast.error(
+          "O template não foi salvo porque o upload da imagem falhou.",
+        );
+        return;
+      }
+
+      finalTemplateData.imageUrl = newImageUrl;
+    }
+
     updateContactList(
       {
         id: currentListIdForTemplate,
-        campaign: templateData,
+        campaign: finalTemplateData,
       },
       {
         onSuccess: () => {
@@ -274,9 +293,49 @@ export function ListasDeContatosContent() {
     );
   };
 
+  const handleImageUpload = async (): Promise<string | null> => {
+    if (!selectedImageFile) {
+      toast.error("Por favor, selecione uma imagem primeiro.");
+      return null;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", selectedImageFile);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/templates-images/upload`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        },
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Falha no upload da imagem.");
+      }
+
+      toast.success("Imagem enviada com sucesso!");
+      return result.url;
+    } catch (error) {
+      let errorMessage = "Não foi possível enviar a imagem.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      console.error("Erro no upload:", error);
+      toast.error(errorMessage);
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const startTriggerMessage = async (id: string) => {
-    const webhookUrl =
-      "https://n8n.milliontech.com.br/webhook-test/b5cd7452-b20b-4266-baa6-e79ccdfa7825";
+    const webhookUrl = import.meta.env.VITE_TRIGGER_MESSAGE_WEBHOOK;
 
     const listToTrigger = contactLists.find((list) => list.id === id);
 
@@ -549,21 +608,26 @@ export function ListasDeContatosContent() {
                     rows={5}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="template-imageUrl">
-                    URL da Imagem (Opcional)
-                  </Label>
-                  <Input
-                    id="template-imageUrl"
-                    placeholder="https://exemplo.com/imagem.png"
-                    value={templateData.imageUrl || ""}
-                    onChange={(e) =>
-                      setTemplateData({
-                        ...templateData,
-                        imageUrl: e.target.value,
-                      })
-                    }
-                  />
+                <div className="space-y-2 rounded-md border p-4">
+                  <Label htmlFor="image-upload">Enviar Imagem</Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setSelectedImageFile(e.target.files[0]);
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                  {selectedImageFile && !isUploading && (
+                    <p className="text-muted-foreground mt-2 text-xs">
+                      Arquivo selecionado: {selectedImageFile.name}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="template-footer">Rodapé (Opcional)</Label>
