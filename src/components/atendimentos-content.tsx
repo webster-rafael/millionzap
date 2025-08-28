@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
@@ -50,10 +50,12 @@ import { AudioPlayer } from "@/components/audioPlayer";
 import { PhotoViewer } from "@/components/imageViewer";
 import { FileViewer } from "@/components/fileViewer";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+import { useTags } from "@/hooks/useTags";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { tags } = useTags();
   const { conversationId: selectedConversationId } = useParams<{
     conversationId: string;
   }>();
@@ -115,6 +117,7 @@ export function AtendimentosContent() {
         type: "audio",
         audioBase64: base64Data,
         instance: instanceName,
+        companyId: user?.companyId || "",
       };
 
       sendMessageMutation.send(payload);
@@ -128,6 +131,7 @@ export function AtendimentosContent() {
         type: "text",
         messageBody: messageInput.trim(),
         instance: instanceName,
+        companyId: user?.companyId || "",
       };
 
       sendMessageMutation.send(payload);
@@ -523,8 +527,8 @@ export function AtendimentosContent() {
                       <p className="mb-2 truncate text-sm text-gray-600">
                         {lastMessage?.content || "Nenhuma mensagem"}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
+                      <div className="flex w-full items-center justify-between">
+                        <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center space-x-2">
                           {isLoadingQueues ? (
                             <Loader className="animation-spin h-3 w-3" />
                           ) : (
@@ -558,12 +562,27 @@ export function AtendimentosContent() {
                               </Badge>
                             )}
                           {activeSubTab === "aguardando" && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-yellow-100 text-xs text-yellow-800"
-                            >
-                              AGUARDANDO
-                            </Badge>
+                            <>
+                              <Badge
+                                variant="secondary"
+                                className="bg-yellow-100 text-xs text-yellow-800"
+                              >
+                                AGUARDANDO
+                              </Badge>
+                              <Badge
+                                className="text-xs text-zinc-100"
+                                variant="outline"
+                                style={{
+                                  backgroundColor: tags.find(
+                                    (cx) => cx.id === conversation.tagId,
+                                  )?.color,
+                                }}
+                              >
+                                {tags
+                                  .find((cx) => cx.id === conversation.tagId)
+                                  ?.title?.toUpperCase() || "SEM TAG"}
+                              </Badge>
+                            </>
                           )}
                         </div>
                         {/* {conversation.unreadCount > 0 && (
@@ -628,7 +647,7 @@ export function AtendimentosContent() {
                     </div>
                     <motion.div
                       drag="x"
-                      dragConstraints={{ left: -150, right: 0 }}
+                      dragConstraints={{ left: 0, right: 0 }}
                       dragElastic={0.2}
                       onDragEnd={(_, info) => {
                         if (info.offset.x < -75) {
@@ -677,6 +696,7 @@ export function AtendimentosContent() {
 
                     <motion.div
                       drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
                       onDragEnd={(_, info) => {
                         const dragThreshold = 100;
                         if (info.offset.x > dragThreshold) {

@@ -13,6 +13,7 @@ export type SendMessagePayload = {
   messageBody?: string;
   audioBase64?: string;
   instance: string;
+  companyId: string;
 };
 
 const sendMessageApi = async (data: SendMessagePayload) => {
@@ -25,8 +26,8 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": "sk_live_aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890aBcDeF",
       },
+      credentials: "include",
       body: JSON.stringify({
         fileName,
         data: data.audioBase64,
@@ -44,6 +45,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       audioUrl,
       conversationId: data.conversationId,
       timestamp: data.timestamp,
+      companyId: data.companyId,
     };
   } else {
     body = {
@@ -53,6 +55,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       conversationId: data.conversationId,
       timestamp: data.timestamp,
       instance: instanceName,
+      companyId: data.companyId,
     };
   }
 
