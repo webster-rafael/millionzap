@@ -369,7 +369,13 @@ export function AtendimentosContent() {
                   }
                 </Badge>
               </TabsTrigger>
-              <TabsTrigger value="resolvidas" className="text-xs">
+              <TabsTrigger
+                onClick={() => {
+                  setActiveSubTab("");
+                }}
+                value="resolvidas"
+                className="text-xs"
+              >
                 RESOLVIDAS
                 <Badge
                   variant="secondary"
