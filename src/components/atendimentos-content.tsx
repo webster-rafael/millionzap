@@ -268,6 +268,51 @@ export function AtendimentosContent() {
     }
   };
 
+  const handleResolveConversation = async (conversation: Conversation) => {
+    updateConversation({
+      id: conversation.id,
+      status: "RESOLVED",
+    });
+
+    const webhookUrl = import.meta.env.VITE_SEND_FOLLOWUP_MESSAGE_WEBHOOK;
+
+    if (!user?.companyId) {
+      toast.error("ID da empresa não encontrado para acionar o webhook.");
+      console.error("User object or companyId is missing for webhook call.");
+      return;
+    }
+
+    try {
+      const connectionsName = connections.find(
+        (connection) => connection.id === user?.connectionId,
+      );
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          conversationId: conversation.id,
+          companyId: user.companyId,
+          instanceName: connectionsName?.name || "",
+          phone: conversation.contact?.phone || "",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Webhook retornou status: ${response.status}`);
+      }
+
+      console.log(
+        "Webhook de followup acionado com sucesso para a conversa:",
+        conversation.id,
+      );
+    } catch (error) {
+      console.error("Falha ao acionar o webhook:", error);
+      toast.error("Ocorreu um erro ao enviar dados para o webhook.");
+    }
+  };
+
   if (isErrorQueues) {
     toast.error("Erro ao buscar filas.");
   }
@@ -640,10 +685,7 @@ export function AtendimentosContent() {
                             status: "WAITING",
                           });
                         } else if (info.offset.x < -dragThreshold) {
-                          updateConversation({
-                            id: conversation.id,
-                            status: "RESOLVED",
-                          });
+                          handleResolveConversation(conversation);
                         }
                       }}
                       className="relative z-10 w-full"

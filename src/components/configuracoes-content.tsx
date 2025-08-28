@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Settings, Edit, Trash2, HelpCircle } from "lucide-react";
+import { useConfigurations } from "@/hooks/useConfiguration";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Company {
   id: string;
@@ -48,6 +50,7 @@ interface Plan {
   kanban: string;
   openAi: string;
   integrations: string;
+  followupHours: number;
 }
 
 interface HelpItem {
@@ -58,8 +61,10 @@ interface HelpItem {
 }
 
 export function ConfiguracoesContent() {
+  const { user } = useAuth();
+  const { configurations, update, create } = useConfigurations();
   const [activeTab, setActiveTab] = useState("opcoes");
-
+  const currentConfig = configurations[0];
   const [options, setOptions] = useState({
     autoAccept: "Desabilitadas",
     acceptCampaigns: "Não Aceitar",
@@ -69,6 +74,7 @@ export function ConfiguracoesContent() {
     groupMessages: "Ativado",
     tokenSending: "Desabilitado",
     asaasToken: "",
+    followupHours: currentConfig?.followupTimeInHours || 24,
   });
 
   // Estados para Empresas
@@ -102,8 +108,18 @@ export function ConfiguracoesContent() {
       kanban: "Sim",
       openAi: "Sim",
       integrations: "Sim",
+      followupHours: currentConfig?.followupTimeInHours || 24,
     },
   ]);
+
+  useEffect(() => {
+    if (currentConfig) {
+      setOptions((prev) => ({
+        ...prev,
+        followupHours: currentConfig.followupTimeInHours ?? 24,
+      }));
+    }
+  }, [currentConfig]);
 
   // Estados para Ajuda
   const [helpItems, setHelpItems] = useState<HelpItem[]>([]);
@@ -121,6 +137,7 @@ export function ConfiguracoesContent() {
     kanban: "Habilitadas",
     openAi: "Habilitadas",
     integrations: "Habilitadas",
+    followupHours: options.followupHours,
   });
 
   const [helpForm, setHelpForm] = useState({
@@ -149,6 +166,7 @@ export function ConfiguracoesContent() {
       kanban: planForm.kanban,
       openAi: planForm.openAi,
       integrations: planForm.integrations,
+      followupHours: planForm.followupHours,
     };
 
     setPlans([...plans, newPlan]);
@@ -165,6 +183,7 @@ export function ConfiguracoesContent() {
       kanban: "Habilitadas",
       openAi: "Habilitadas",
       integrations: "Habilitadas",
+      followupHours: planForm.followupHours,
     });
     toast.success("Plano criado com sucesso!");
   };
@@ -219,6 +238,37 @@ export function ConfiguracoesContent() {
           <TabsContent value="opcoes" className="space-y-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
               <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Horas para Follow-up
+                  </Label>
+                  <Input
+                    type="number"
+                    placeholder="Ex: 24"
+                    value={options.followupHours}
+                    onChange={(e) =>
+                      setOptions({
+                        ...options,
+                        followupHours: Number(e.target.value),
+                      })
+                    }
+                    onBlur={() => {
+                      if (currentConfig) {
+                        // se já existe, atualiza
+                        update({
+                          id: currentConfig.id,
+                          followupTimeInHours: Number(options.followupHours),
+                        });
+                      } else {
+                        create({
+                          followupTimeInHours: options.followupHours,
+                          companyId: user?.companyId || "",
+                        });
+                      }
+                    }}
+                  />
+                </div>
+
                 <div>
                   <Label className="text-sm font-medium">
                     Aceitação Automática
