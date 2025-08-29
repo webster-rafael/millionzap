@@ -49,6 +49,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { toast, Toaster } from "sonner";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+import { WhatsAppPreview } from "@/components/whatsappPreview";
 
 type ContactListWithDefaults = ContactList & {
   contactCount: number;
@@ -109,6 +110,7 @@ export function ListasDeContatosContent() {
 
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   const {
     data: detailedContactList,
@@ -292,6 +294,18 @@ export function ListasDeContatosContent() {
       },
     );
   };
+
+  useEffect(() => {
+    if (!selectedImageFile) {
+      setPreviewImageUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedImageFile);
+    setPreviewImageUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [selectedImageFile]);
 
   const handleImageUpload = async (): Promise<string | null> => {
     if (!selectedImageFile) {
@@ -577,74 +591,95 @@ export function ListasDeContatosContent() {
             open={isTemplateModalOpen}
             onOpenChange={handleCloseTemplateModal}
           >
-            <DialogContent className="sm:max-w-[500px]">
+            {/* Aumente a largura máxima do modal */}
+            <DialogContent className="sm:max-w-[900px]">
               <DialogHeader>
                 <DialogTitle>Template da Campanha</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="template-title">Título</Label>
-                  <Input
-                    id="template-title"
-                    placeholder="Ex: Oferta Especial!"
-                    value={templateData.title || ""}
-                    onChange={(e) =>
-                      setTemplateData({
-                        ...templateData,
-                        title: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="template-body">Corpo da Mensagem</Label>
-                  <Textarea
-                    id="template-body"
-                    placeholder="Olá {contactName}, temos uma novidade para você..."
-                    value={templateData.body}
-                    onChange={(e) =>
-                      setTemplateData({ ...templateData, body: e.target.value })
-                    }
-                    rows={5}
-                  />
-                </div>
-                <div className="space-y-2 rounded-md border p-4">
-                  <Label htmlFor="image-upload">Enviar Imagem</Label>
-                  <div className="flex items-center gap-3">
+
+              {/* Crie um grid com duas colunas */}
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                {/* Coluna 1: Formulário */}
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="template-title">Título</Label>
                     <Input
-                      id="image-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setSelectedImageFile(e.target.files[0]);
-                        }
-                      }}
-                      className="flex-1"
+                      id="template-title"
+                      placeholder="Ex: Oferta Especial!"
+                      value={templateData.title || ""}
+                      onChange={(e) =>
+                        setTemplateData({
+                          ...templateData,
+                          title: e.target.value,
+                        })
+                      }
                     />
                   </div>
-                  {selectedImageFile && !isUploading && (
-                    <p className="text-muted-foreground mt-2 text-xs">
-                      Arquivo selecionado: {selectedImageFile.name}
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="template-body">Corpo da Mensagem</Label>
+                    <Textarea
+                      id="template-body"
+                      placeholder="Olá {contactName}, temos uma novidade para você..."
+                      value={templateData.body}
+                      onChange={(e) =>
+                        setTemplateData({
+                          ...templateData,
+                          body: e.target.value,
+                        })
+                      }
+                      rows={5}
+                    />
+                  </div>
+                  <div className="space-y-2 rounded-md border p-4">
+                    <Label htmlFor="image-upload">Enviar Imagem</Label>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedImageFile(e.target.files[0]);
+                          } else {
+                            setSelectedImageFile(null);
+                          }
+                        }}
+                        className="flex-1"
+                      />
+                    </div>
+                    {selectedImageFile && !isUploading && (
+                      <p className="text-muted-foreground mt-2 text-xs">
+                        Arquivo selecionado: {selectedImageFile.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="template-footer">Rodapé (Opcional)</Label>
+                    <Input
+                      id="template-footer"
+                      placeholder="Ex: Fale conosco!"
+                      value={templateData.footer || ""}
+                      onChange={(e) =>
+                        setTemplateData({
+                          ...templateData,
+                          footer: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="template-footer">Rodapé (Opcional)</Label>
-                  <Input
-                    id="template-footer"
-                    placeholder="Ex: Fale conosco!"
-                    value={templateData.footer || ""}
-                    onChange={(e) =>
-                      setTemplateData({
-                        ...templateData,
-                        footer: e.target.value,
-                      })
-                    }
+
+                <div className="flex items-center justify-center rounded-lg bg-gray-100 p-4">
+                  <WhatsAppPreview
+                    title={templateData.title}
+                    body={templateData.body}
+                    footer={templateData.footer}
+                    imageUrl={previewImageUrl}
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3">
+
+              <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={handleCloseTemplateModal}>
                   Cancelar
                 </Button>
@@ -652,6 +687,9 @@ export function ListasDeContatosContent() {
                   onClick={handleSaveTemplate}
                   className="bg-[#00183E] hover:bg-[#00183E]/90"
                 >
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
                   Salvar Template
                 </Button>
               </div>
