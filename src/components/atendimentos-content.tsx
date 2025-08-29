@@ -575,19 +575,21 @@ export function AtendimentosContent() {
                               >
                                 AGUARDANDO
                               </Badge>
-                              <Badge
-                                className="text-xs text-zinc-100"
-                                variant="outline"
-                                style={{
-                                  backgroundColor: tags.find(
-                                    (cx) => cx.id === conversation.tagId,
-                                  )?.color,
-                                }}
-                              >
-                                {tags
-                                  .find((cx) => cx.id === conversation.tagId)
-                                  ?.title?.toUpperCase() || "SEM TAG"}
-                              </Badge>
+                              {conversation.tagId && (
+                                <Badge
+                                  className="text-xs text-zinc-100"
+                                  variant="outline"
+                                  style={{
+                                    backgroundColor: tags.find(
+                                      (cx) => cx.id === conversation.tagId,
+                                    )?.color,
+                                  }}
+                                >
+                                  {tags
+                                    .find((cx) => cx.id === conversation.tagId)
+                                    ?.title?.toUpperCase()}
+                                </Badge>
+                              )}
                             </>
                           )}
                         </div>

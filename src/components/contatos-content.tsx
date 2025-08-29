@@ -90,8 +90,8 @@ export function ContatosContent() {
       name: "",
       phone: "",
       email: "",
-      companyId: user?.id ? user.id : "",
-      userId: user?.id ? user.id : "",
+      companyId: user?.companyId || "",
+      userId: user?.id || "",
     },
   });
 
@@ -126,18 +126,26 @@ export function ContatosContent() {
 
   const handleUpdateContact = () => {
     if (!editingContact) return;
+
+    const updatePayload = {
+      id: editingContact.id,
+      name: editingContact.name,
+      phone: editingContact.phone,
+      email: editingContact.email,
+    };
+
     try {
-      update(
-        { ...editingContact },
-        {
-          onSuccess: () => {
-            setEditingContact(null);
-            toast.success("Contato editado com sucesso!");
-          },
+      update(updatePayload, {
+        onSuccess: () => {
+          setEditingContact(null);
+          toast.success("Contato editado com sucesso!");
         },
-      );
+        onError: () => {
+          toast.error("Não foi possível editar o contato.");
+        },
+      });
     } catch {
-      toast.error("Não foi possível editar o contato.");
+      toast.error("Ocorreu um erro inesperado ao tentar editar.");
     }
   };
 
