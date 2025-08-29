@@ -245,6 +245,9 @@ export function ListasDeContatosContent() {
         imageUrl: list.campaign?.imageUrl ?? "",
         footer: list.campaign?.footer ?? "",
       });
+
+      setPreviewImageUrl(list.campaign?.imageUrl ?? null);
+
       setIsTemplateModalOpen(true);
     }
   };
@@ -253,6 +256,7 @@ export function ListasDeContatosContent() {
     setIsTemplateModalOpen(false);
     setCurrentListIdForTemplate(null);
     setTemplateData({ title: "", body: "", imageUrl: "", footer: "" });
+    setPreviewImageUrl(null);
   };
 
   const handleSaveTemplate = async () => {
@@ -297,7 +301,6 @@ export function ListasDeContatosContent() {
 
   useEffect(() => {
     if (!selectedImageFile) {
-      setPreviewImageUrl(null);
       return;
     }
 
@@ -597,9 +600,7 @@ export function ListasDeContatosContent() {
                 <DialogTitle>Template da Campanha</DialogTitle>
               </DialogHeader>
 
-              {/* Crie um grid com duas colunas */}
               <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                {/* Coluna 1: Formulário */}
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="template-title">Título</Label>
@@ -698,7 +699,6 @@ export function ListasDeContatosContent() {
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
