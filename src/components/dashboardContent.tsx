@@ -115,13 +115,17 @@ export function DashboardContent() {
 
     const totalLeads = contacts.filter((contact) =>
       contact.tags?.includes("LEADS"),
+    );
+
+    const convertedCustomers = totalLeads.filter(
+      (lead) => lead.isCostumer === true,
     ).length;
 
-    const customers = contacts.filter(
-      (contact) => contact.isCostumer === true,
-    ).length;
-
-    return { newContactsToday, totalLeads, customers };
+    return {
+      newContactsToday,
+      totalLeads: totalLeads.length,
+      customers: convertedCustomers,
+    };
   }, [contacts]);
 
   const totalLeadsToday = leadsChartData.reduce(
@@ -330,38 +334,39 @@ export function DashboardContent() {
             <CardTitle>Taxa de Conversão</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Leads → Clientes</span>
-                <span className="text-2xl font-bold">
-                  {contactMetrics.totalLeads > 0
-                    ? (
-                        (contactMetrics.customers / contactMetrics.totalLeads) *
-                        100
-                      ).toFixed(1)
-                    : 0}
-                  %
-                </span>
-              </div>
-              <div className="h-4 w-full rounded-full bg-gray-200">
-                <div
-                  className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-                  style={{
-                    width: `${
-                      contactMetrics.totalLeads > 0
-                        ? (contactMetrics.customers /
-                            contactMetrics.totalLeads) *
-                          100
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-              <p className="text-xs text-gray-500">
-                {contactMetrics.customers} de {contactMetrics.totalLeads} leads
-                convertidos
-              </p>
-            </div>
+            {(() => {
+              const rawRate =
+                contactMetrics.totalLeads > 0
+                  ? (contactMetrics.customers / contactMetrics.totalLeads) * 100
+                  : 0;
+
+              const cappedRate = Math.min(rawRate, 100);
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">
+                      Leads → Clientes
+                    </span>
+                    <span className="text-2xl font-bold">
+                      {cappedRate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-4 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div
+                      className="h-4 rounded-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                      style={{
+                        width: `${cappedRate}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {contactMetrics.customers} de {contactMetrics.totalLeads}{" "}
+                    leads convertidos
+                  </p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
