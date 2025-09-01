@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast, Toaster } from "sonner";
 import { Eye, EyeClosed } from "lucide-react";
-
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { loginSchema } from "@/validations/loginSchema";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 
 export function EntrarContent() {
   const [showPassword, setShowPassword] = useState(false);
+  const queryClient = useQueryClient();
   const { loginUser, isLoggingIn } = useAuth();
   const navigate = useNavigate();
 
@@ -34,9 +35,10 @@ export function EntrarContent() {
 
   async function handleLogin(values: z.infer<typeof loginSchema>) {
     loginUser(values, {
-      onSuccess: () => {
-        toast.success("Login realizado com sucesso!");
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({ queryKey: ["auth-user"] });
         navigate("/");
+        toast.success("Login realizado com sucesso!");
       },
       onError: (error) => {
         toast.error(error.message || "E-mail ou senha inválidos.");

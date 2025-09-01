@@ -62,8 +62,8 @@ export const useAuth = () => {
 
   const { mutate: loginUser, isPending: isLoggingIn } = useMutation({
     mutationFn: login,
-    onSuccess: (userData) => {
-      queryClient.setQueryData(authQueryKey, userData);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: authQueryKey });
       queryClient.invalidateQueries({ queryKey: ["companies"] });
     },
   });
