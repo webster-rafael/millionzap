@@ -52,8 +52,11 @@ export function KanbanBoard() {
       setColumns([]);
       return;
     }
+
+    const sortedTags = [...tags].sort((a, b) => a.order - b.order);
+
     setColumns(
-      tags.map((tag) => ({
+      sortedTags.map((tag) => ({
         id: tag.id,
         title: tag.title,
         color: tag.color,

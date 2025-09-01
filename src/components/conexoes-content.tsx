@@ -16,13 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Search,
-  Plus,
-  Smartphone,
-  XCircle,
-  Loader2,
-} from "lucide-react";
+import { Search, Plus, Smartphone, XCircle, Loader2 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import { useQueues } from "@/hooks/useQueues";

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Search,
   Plus,
@@ -6,9 +6,9 @@ import {
   Trash2,
   MessageCircle,
   Phone,
-  Download,
   Loader2,
   List,
+  Upload,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ import { useConversations } from "@/hooks/useConversation";
 import { FaWhatsapp } from "react-icons/fa";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import { useContactLists } from "@/hooks/useContactsList";
+import * as XLSX from "xlsx";
+import { type CreateContact } from "@/interfaces/contact-interface";
 
 // interface CustomField {
 //   name: string;
@@ -84,6 +86,8 @@ export function ContatosContent() {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setStartingConversationContactId] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
@@ -106,7 +110,11 @@ export function ContatosContent() {
   });
 
   const handleAddContact = (data: ContactFormData) => {
-    create(data, {
+    const contactDataWithTag = {
+      ...data,
+      tags: user?.name ? [user.name] : [],
+    };
+    create(contactDataWithTag, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
         form.reset();
@@ -132,6 +140,7 @@ export function ContatosContent() {
       name: editingContact.name,
       phone: editingContact.phone,
       email: editingContact.email,
+      tags: user?.name ? [user.name] : [],
     };
 
     try {
@@ -260,6 +269,109 @@ export function ContatosContent() {
     }
   };
 
+  const handleFileImport = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    toast.info("Iniciando a importação de contatos...");
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const contactsToCreate = json
+          .map((row) => {
+            const nameKeywords = ["nome", "name", "NAME"];
+            const phoneKeywords = [
+              "telefone",
+              "phone",
+              "PHONE",
+              "celular",
+              "CELULAR",
+              "whatsapp",
+              "WHATSAPP",
+              "tel",
+              "TEL",
+            ];
+            const nameKey = Object.keys(row).find((k) =>
+              nameKeywords.includes(k.toLowerCase()),
+            );
+            const phoneKey = Object.keys(row).find((k) =>
+              phoneKeywords.includes(k.toLowerCase()),
+            );
+
+            if (!nameKey || !phoneKey) return null;
+
+            const name = String(row[nameKey]).trim();
+            const phone = String(row[phoneKey]).trim().replace(/\D/g, "");
+
+            if (!name || !phone) return null;
+
+            return {
+              name,
+              phone,
+              companyId: user?.companyId || "",
+              userId: user?.id,
+              tags: user?.name ? [user.name] : [],
+            };
+          })
+          .filter(Boolean) as CreateContact[];
+
+        if (contactsToCreate.length === 0) {
+          toast.error(
+            "Nenhum contato válido encontrado na planilha. Verifique se as colunas 'Nome' e 'Telefone' existem.",
+          );
+          return;
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const contact of contactsToCreate) {
+          try {
+            await new Promise<void>((resolve, reject) => {
+              create(contact, {
+                onSuccess: () => {
+                  successCount++;
+                  resolve();
+                },
+                onError: () => {
+                  errorCount++;
+                  reject();
+                },
+              });
+            });
+          } catch {
+            // O erro já é tratado no onError, aqui apenas continuamos o loop
+          }
+        }
+
+        toast.success(`${successCount} contatos importados com sucesso!`);
+        if (errorCount > 0) {
+          toast.error(`${errorCount} contatos falharam ao importar.`);
+        }
+      } catch (error) {
+        toast.error("Ocorreu um erro ao processar o arquivo.");
+        console.error("Erro na importação:", error);
+      } finally {
+        setIsImporting(false);
+        if (event.target) {
+          event.target.value = "";
+        }
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   if (isLoadingContacts) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -313,10 +425,26 @@ export function ContatosContent() {
             <List className="mr-2 h-4 w-4" />
             Criar Lista
           </Button>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+          >
+            {isImporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Upload className="mr-2 h-4 w-4" />
+            )}
+            {isImporting ? "Importando..." : "Importar"}
           </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileImport}
+            accept=".xlsx, .xls, .csv"
+            className="hidden"
+          />
+
           {selectedContacts.length > 0 && (
             <Button variant="destructive" onClick={deleteSelectedContacts}>
               <Trash2 className="mr-2 h-4 w-4" />
@@ -394,7 +522,6 @@ export function ContatosContent() {
                       </FormItem>
                     )}
                   />
-                  {/* Outros campos como 'source' e 'customFields' podem ser adicionados aqui como FormField */}
 
                   <div className="flex justify-end space-x-2 border-t pt-4">
                     <Button
