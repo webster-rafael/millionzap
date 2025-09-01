@@ -118,6 +118,7 @@ export function AtendimentosContent() {
         audioBase64: base64Data,
         instance: instanceName,
         companyId: user?.companyId || "",
+        userId: user.id,
       };
 
       sendMessageMutation.send(payload);
@@ -132,6 +133,7 @@ export function AtendimentosContent() {
         messageBody: messageInput.trim(),
         instance: instanceName,
         companyId: user?.companyId || "",
+        userId: user.id,
       };
 
       sendMessageMutation.send(payload);
