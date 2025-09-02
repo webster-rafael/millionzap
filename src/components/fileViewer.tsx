@@ -19,18 +19,18 @@ export function FileViewer({ src, name, isAgent }: FileViewerProps) {
   return (
     <>
       <div
-        className={`relative flex w-56 items-center gap-2 rounded-md p-3 ${bgColor}`}
+        className={`relative flex w-full items-center gap-2 rounded-md p-3 ${bgColor}`}
       >
-        <FileText className={controlColor} size={32} />
-        <div className="flex flex-1 flex-col">
-          <span className="truncate text-sm">{name}</span>
+        <FileText className={`${controlColor} h-10 w-10`} />
+        <div className="mr-8 flex flex-1 flex-col">
+          <span className="w-46 truncate text-sm">{name}</span>
           <div className="mt-1 flex gap-1">
             {isPDF && (
               <Button
                 onClick={() => setIsOpen(true)}
                 size="sm"
                 variant="ghost"
-                className={`${controlColor} absolute right-0 top-0`}
+                className={`${controlColor} absolute top-0 right-0`}
               >
                 <Maximize2 size={16} className="mr-1" />
               </Button>

@@ -18,6 +18,8 @@ import {
   Loader,
   Trash,
   ArrowLeft,
+  Image,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -533,7 +535,26 @@ export function AtendimentosContent() {
                         </div>
                       </div>
                       <p className="mb-2 truncate text-sm text-gray-600">
-                        {lastMessage?.content || "Nenhuma mensagem"}
+                        {lastMessage?.messageType === "text" ? (
+                          <>{lastMessage?.content || "Nenhuma mensagem"}</>
+                        ) : lastMessage?.messageType === "audio" ? (
+                          <div className="flex items-center gap-1">
+                            <p>Mensagem de voz</p>
+                            <Mic className="size-5" />
+                          </div>
+                        ) : lastMessage?.messageType === "image" ? (
+                          <div className="flex items-center gap-1">
+                            <p>Imagem</p>
+                            <Image className="size-5" />
+                          </div>
+                        ) : lastMessage?.messageType === "document" ? (
+                          <div className="flex items-center gap-1">
+                            <p>Documento</p>
+                            <FileText className="size-5" />
+                          </div>
+                        ) : (
+                          <>{lastMessage?.content}</>
+                        )}
                       </p>
                       <div className="flex w-full items-center justify-between">
                         <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center space-x-2">
@@ -848,12 +869,15 @@ export function AtendimentosContent() {
                                 </span>
                               </div>
                             ) : message?.messageType === "document" ? (
-                              <div className="flex">
+                              <div className="flex w-80 flex-col gap-2 p-2 pb-4">
                                 <FileViewer
                                   src={message?.mediaUrl || ""}
                                   isAgent={isAgent}
                                   name={message?.content || ""}
                                 />
+                                <span className="text-sm text-gray-500">
+                                  {message?.mediaCaption || ""}
+                                </span>
                               </div>
                             ) : (
                               <p className="mr-10 w-full p-0.5 text-sm">

@@ -99,16 +99,17 @@ export function ContatosContent() {
     },
   });
 
-  const filteredContacts = contacts.filter((contact) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      contact.name.toLowerCase().includes(searchLower) ||
-      contact.phone.includes(searchTerm) ||
-      contact.email?.toLowerCase().includes(searchLower) ||
-      contact.tags?.some((tag) => tag.toLowerCase().includes(searchLower) || [])
-    );
-  });
-
+  const filteredContacts =
+    searchTerm.trim() === ""
+      ? contacts
+      : contacts.filter((contact) => {
+          const searchLower = searchTerm.toLowerCase();
+          return (
+            contact.name.toLowerCase().includes(searchLower) ||
+            contact.phone.includes(searchTerm) ||
+            (contact.email && contact.email.toLowerCase().includes(searchLower))
+          );
+        });
   const handleAddContact = (data: ContactFormData) => {
     const contactDataWithTag = {
       ...data,
