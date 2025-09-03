@@ -64,6 +64,8 @@ import { useTags } from "@/hooks/useTags";
 import { useContacts } from "@/hooks/useContacts";
 import { Switch } from "@/components/ui/switch";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotes } from "@/hooks/useNotes";
+import type { Note } from "@/interfaces/note-interface";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -83,7 +85,7 @@ export function AtendimentosContent() {
     isErrorConversations,
     update: updateConversation,
   } = useConversations();
-  const { updateContact, isUpdating: isUpdatingContact } = useContacts();
+  const { updateContact } = useContacts();
   const { connections } = useWhatsAppConnections();
   const { queues, isLoadingQueues, isErrorQueues } = useQueues();
   const sendMessageMutation = useSendMessage();
@@ -96,8 +98,11 @@ export function AtendimentosContent() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const [contactNotes, setContactNotes] = useState("");
-  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [newNoteContent, setNewNoteContent] = useState("");
+  const [editingNote, setEditingNote] = useState<{
+    id: string;
+    content: string;
+  } | null>(null);
 
   const handleSendMessage = async (audioBlob?: Blob) => {
     if (!selectedConversation || sendMessageMutation.isSending) return;
@@ -165,13 +170,16 @@ export function AtendimentosContent() {
   const selectedConversation =
     conversations.find((c) => c.id === selectedConversationId) || null;
 
-  useEffect(() => {
-    if (selectedConversation) {
-      const currentNote = selectedConversation.contact?.notes || "";
-      setContactNotes(currentNote);
-      setIsEditingNote(!currentNote);
-    }
-  }, [selectedConversation]);
+  const contactId = selectedConversation?.contact?.id;
+  const {
+    notes,
+    isLoadingNotes,
+    createNote,
+    isCreating,
+    updateNote,
+    isUpdating,
+    removeNote,
+  } = useNotes(contactId || "");
 
   const visibleConversations = useMemo(() => {
     let filtered = conversations;
@@ -355,25 +363,39 @@ export function AtendimentosContent() {
     toast.success("Tag atualizada com sucesso!");
   };
 
-  const handleSaveNote = async () => {
-    if (!selectedConversation?.contact?.id) return;
-
-    try {
-      updateContact({
-        id: selectedConversation.contact.id,
-        notes: contactNotes,
-      });
-      toast.success("Nota salva com sucesso!");
-      setIsEditingNote(false);
-    } catch (error) {
-      console.error("Erro ao salvar nota:", error);
-      toast.error("Não foi possível salvar a nota.");
-    }
+  const handleAddNewNote = () => {
+    if (!newNoteContent.trim() || !contactId) return;
+    createNote(
+      { content: newNoteContent.trim(), contactId, userId: user?.id || "" },
+      {
+        onSuccess: () => {
+          setNewNoteContent("");
+          toast.success("Nota adicionada com sucesso!");
+        },
+        onError: () => toast.error("Falha ao adicionar nota."),
+      },
+    );
   };
 
-  const handleCancelEdit = () => {
-    setContactNotes(selectedConversation?.contact?.notes || "");
-    setIsEditingNote(false);
+  const handleUpdateNote = () => {
+    if (!editingNote || !editingNote.content.trim()) return;
+    updateNote(
+      { id: editingNote.id, content: editingNote.content.trim() },
+      {
+        onSuccess: () => {
+          setEditingNote(null);
+          toast.success("Nota atualizada com sucesso!");
+        },
+        onError: () => toast.error("Falha ao atualizar nota."),
+      },
+    );
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    removeNote(noteId, {
+      onSuccess: () => toast.success("Nota removida com sucesso!"),
+      onError: () => toast.error("Falha ao remover nota."),
+    });
   };
 
   const handleIsCustomerToggle = (isCustomer: boolean) => {
@@ -946,76 +968,124 @@ export function AtendimentosContent() {
                             </div>
                           </div>
 
-                          <div className="grid w-full gap-2">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="notes" className="font-semibold">
-                                Notas
-                              </Label>
-                              {!isEditingNote && contactNotes && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setIsEditingNote(true)}
-                                  title="Editar Nota"
-                                >
-                                  <Pencil className="mr-1 h-4 w-4" />
-                                  Editar
-                                </Button>
-                              )}
-                            </div>
+                          <div className="grid w-full gap-3">
+                            <Label htmlFor="notes" className="font-semibold">
+                              Notas
+                            </Label>
 
-                            {isEditingNote ? (
-                              <>
-                                <Textarea
-                                  id="notes"
-                                  placeholder="Adicione ou edite a nota sobre este contato..."
-                                  value={contactNotes}
-                                  onChange={(e) =>
-                                    setContactNotes(e.target.value)
-                                  }
-                                  className="min-h-[80px]"
-                                  autoFocus
-                                />
-                                <div className="mt-1 flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={handleSaveNote}
-                                    className="flex-1"
-                                    disabled={isUpdatingContact}
-                                  >
-                                    {isUpdatingContact
-                                      ? "Salvando..."
-                                      : "Salvar Nota"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={handleCancelEdit}
-                                  >
-                                    Cancelar
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="bg-muted/20 flex min-h-[80px] w-full items-center justify-center truncate rounded-md border p-3 text-sm">
-                                {contactNotes ? (
-                                  <p className="w-full truncate whitespace-pre-wrap">
-                                    {contactNotes}
-                                  </p>
-                                ) : (
-                                  <div className="text-muted-foreground text-center">
-                                    <p>Nenhuma nota adicionada.</p>
-                                    <Button
-                                      variant="link"
-                                      className="h-auto p-0"
-                                      onClick={() => setIsEditingNote(true)}
-                                    >
-                                      Adicionar nota
-                                    </Button>
-                                  </div>
-                                )}
+                            {/* ESTADO DE CARREGAMENTO */}
+                            {isLoadingNotes && (
+                              <div className="space-y-2">
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
                               </div>
                             )}
+
+                            {!isLoadingNotes && notes.length > 0 && (
+                              <ScrollArea className="h-40">
+                                <div className="space-y-2 pr-4">
+                                  {notes.map((note: Note) => (
+                                    <div key={note.id}>
+                                      {editingNote?.id === note.id ? (
+                                        <div className="space-y-2">
+                                          <Textarea
+                                            value={editingNote.content}
+                                            onChange={(e) =>
+                                              setEditingNote({
+                                                ...editingNote,
+                                                content: e.target.value,
+                                                id: note.id,
+                                              })
+                                            }
+                                            className="min-h-[60px]"
+                                            autoFocus
+                                          />
+                                          <div className="flex justify-end gap-2">
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() =>
+                                                setEditingNote(null)
+                                              }
+                                            >
+                                              Cancelar
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              onClick={handleUpdateNote}
+                                              disabled={isUpdating}
+                                            >
+                                              {isUpdating
+                                                ? "Salvando..."
+                                                : "Salvar"}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="group flex items-start justify-between rounded-md border bg-zinc-50 p-3">
+                                          <p className="w-full pr-2 text-sm whitespace-pre-wrap">
+                                            {note.content}
+                                          </p>
+                                          <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6"
+                                              onClick={() =>
+                                                setEditingNote({
+                                                  id: note.id,
+                                                  content: note.content,
+                                                })
+                                              }
+                                            >
+                                              <Pencil className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-6 w-6 text-red-500 hover:text-red-600"
+                                              onClick={() =>
+                                                handleDeleteNote(note.id)
+                                              }
+                                            >
+                                              <Trash className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            )}
+
+                            {!isLoadingNotes && notes.length === 0 && (
+                              <div className="text-muted-foreground flex h-20 items-center justify-center rounded-md border border-dashed text-sm">
+                                Nenhuma nota adicionada.
+                              </div>
+                            )}
+
+                            <div className="mt-2 space-y-2">
+                              <Textarea
+                                id="new-note"
+                                placeholder="Adicionar uma nova nota..."
+                                value={newNoteContent}
+                                onChange={(e) =>
+                                  setNewNoteContent(e.target.value)
+                                }
+                                className="min-h-[60px]"
+                              />
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={handleAddNewNote}
+                                disabled={!newNoteContent.trim() || isCreating}
+                              >
+                                {isCreating
+                                  ? "Adicionando..."
+                                  : "Adicionar Nota"}
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="grid w-full items-center gap-1.5">

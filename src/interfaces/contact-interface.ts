@@ -1,10 +1,12 @@
+import type { Note } from "@/interfaces/note-interface";
+
 export interface Contact {
   id: string;
   name: string;
   phone: string;
   email?: string | null;
   image?: string | null;
-  notes?: string | null;
+  notes?: Note[];
   whatsappId?: string | null;
   companyId: string;
   isCustomer?: boolean | null;
@@ -19,7 +21,7 @@ export interface CreateContact {
   phone: string;
   email?: string | null;
   image?: string | null;
-  notes?: string | null;
+  notes?: Note[];
   isCustomer?: boolean | null;
   whatsappId?: string | null;
   tags?: string[];
