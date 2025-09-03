@@ -1043,7 +1043,7 @@ export function AtendimentosContent() {
                                               })}
                                             </p>
                                           </div>
-                                          <p className="w-full pr-2 text-sm whitespace-pre-wrap text-zinc-700">
+                                          <p className="w-full pr-2 text-xs whitespace-pre-wrap text-zinc-700">
                                             {note.content}
                                           </p>
                                           <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
