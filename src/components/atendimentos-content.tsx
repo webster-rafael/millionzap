@@ -66,9 +66,11 @@ import { Switch } from "@/components/ui/switch";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNotes } from "@/hooks/useNotes";
 import type { Note } from "@/interfaces/note-interface";
+import { useUsers } from "@/hooks/useUsers";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
+  const { users } = useUsers();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { tags } = useTags();
@@ -973,7 +975,6 @@ export function AtendimentosContent() {
                               Notas
                             </Label>
 
-                            {/* ESTADO DE CARREGAMENTO */}
                             {isLoadingNotes && (
                               <div className="space-y-2">
                                 <Skeleton className="h-10 w-full" />
@@ -1022,8 +1023,27 @@ export function AtendimentosContent() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="group flex items-start justify-between rounded-md border bg-zinc-50 p-3">
-                                          <p className="w-full pr-2 text-sm whitespace-pre-wrap">
+                                        <div className="group relative flex items-start justify-between rounded-md border bg-zinc-50 p-3">
+                                          <div className="flex flex-col">
+                                            <p className="text-muted-foreground absolute right-1 bottom-3 text-[0.60rem]">
+                                              {
+                                                users?.find(
+                                                  (userName) =>
+                                                    userName.id === note.userId,
+                                                )?.name
+                                              }
+                                            </p>
+                                            <p className="text-muted-foreground absolute right-1 bottom-1 text-[0.55rem]">
+                                              {new Date(
+                                                note.createdAt,
+                                              ).toLocaleDateString("pt-BR", {
+                                                year: "numeric",
+                                                month: "2-digit",
+                                                day: "2-digit",
+                                              })}
+                                            </p>
+                                          </div>
+                                          <p className="w-full pr-2 text-sm whitespace-pre-wrap text-zinc-700">
                                             {note.content}
                                           </p>
                                           <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
