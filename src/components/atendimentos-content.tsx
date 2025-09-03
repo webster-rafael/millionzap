@@ -1024,7 +1024,7 @@ export function AtendimentosContent() {
                                         </div>
                                       ) : (
                                         <div className="group relative flex items-start justify-between rounded-md border bg-zinc-50 p-3">
-                                          <div className="flex flex-col">
+                                          <div className="flex flex-col group-hover:opacity-0">
                                             <p className="text-muted-foreground absolute right-1 bottom-3 text-[0.60rem]">
                                               {
                                                 users?.find(
