@@ -68,11 +68,11 @@ export function ContatosContent() {
     contacts,
     isLoadingContacts,
     isErrorContacts,
-    create,
+    createContact: create,
     isCreating,
-    update,
+    updateContact: update,
     isUpdating,
-    remove,
+    removeContact: remove,
   } = useContacts();
   const { connections } = useWhatsAppConnections();
   const { contactLists, updateContactList } = useContactLists();

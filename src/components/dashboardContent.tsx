@@ -118,7 +118,7 @@ export function DashboardContent() {
     );
 
     const convertedCustomers = totalLeads.filter(
-      (lead) => lead.isCostumer === true,
+      (lead) => lead.isCustomer === true,
     ).length;
 
     return {
