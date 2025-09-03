@@ -12,7 +12,7 @@ const fetchContacts = (): Promise<Contact[]> => api.get(resourceUrl);
 const createContact = (data: CreateContact): Promise<Contact> =>
   api.post(resourceUrl, data);
 
-const updateContact = (data: ContactUpdatePayload): Promise<Contact> => {
+const updateContact = async (data: ContactUpdatePayload): Promise<Contact> => {
   const { id, ...payload } = data;
   return api.put(`${resourceUrl}/${id}`, payload);
 };
@@ -65,10 +65,10 @@ export const useContacts = () => {
     contacts,
     isLoadingContacts,
     isErrorContacts,
-    create,
+    createContact: create,
     isCreating,
-    update,
+    updateContact: update,
     isUpdating,
-    remove,
+    removeContact: remove,
   };
 };

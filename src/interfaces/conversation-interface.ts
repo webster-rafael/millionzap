@@ -22,6 +22,9 @@ interface ContactInfo {
   name: string;
   phone: string;
   email?: string;
+  image?: string | null;
+  notes?: string | null;
+  isCustomer?: boolean | null;
 }
 
 interface UserInfo {

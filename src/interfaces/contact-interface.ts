@@ -3,9 +3,11 @@ export interface Contact {
   name: string;
   phone: string;
   email?: string | null;
+  image?: string | null;
+  notes?: string | null;
   whatsappId?: string | null;
   companyId: string;
-  isCostumer?: boolean | null;
+  isCustomer?: boolean | null;
   userId?: string | null;
   tags?: string[];
   createdAt: Date;
@@ -16,8 +18,10 @@ export interface CreateContact {
   name: string;
   phone: string;
   email?: string | null;
+  image?: string | null;
+  notes?: string | null;
+  isCustomer?: boolean | null;
   whatsappId?: string | null;
-  isCostumer?: boolean | null;
   tags?: string[];
   companyId: string;
   userId?: string | null;

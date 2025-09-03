@@ -20,11 +20,19 @@ import {
   ArrowLeft,
   Image,
   FileText,
+  Pencil,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -53,9 +61,13 @@ import { PhotoViewer } from "@/components/imageViewer";
 import { FileViewer } from "@/components/fileViewer";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 import { useTags } from "@/hooks/useTags";
+import { useContacts } from "@/hooks/useContacts";
+import { Switch } from "@/components/ui/switch";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { tags } = useTags();
   const { conversationId: selectedConversationId } = useParams<{
@@ -71,6 +83,7 @@ export function AtendimentosContent() {
     isErrorConversations,
     update: updateConversation,
   } = useConversations();
+  const { updateContact, isUpdating: isUpdatingContact } = useContacts();
   const { connections } = useWhatsAppConnections();
   const { queues, isLoadingQueues, isErrorQueues } = useQueues();
   const sendMessageMutation = useSendMessage();
@@ -83,6 +96,8 @@ export function AtendimentosContent() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [contactNotes, setContactNotes] = useState("");
+  const [isEditingNote, setIsEditingNote] = useState(false);
 
   const handleSendMessage = async (audioBlob?: Blob) => {
     if (!selectedConversation || sendMessageMutation.isSending) return;
@@ -149,6 +164,14 @@ export function AtendimentosContent() {
 
   const selectedConversation =
     conversations.find((c) => c.id === selectedConversationId) || null;
+
+  useEffect(() => {
+    if (selectedConversation) {
+      const currentNote = selectedConversation.contact?.notes || "";
+      setContactNotes(currentNote);
+      setIsEditingNote(!currentNote);
+    }
+  }, [selectedConversation]);
 
   const visibleConversations = useMemo(() => {
     let filtered = conversations;
@@ -319,6 +342,87 @@ export function AtendimentosContent() {
       console.error("Falha ao acionar o webhook:", error);
       toast.error("Ocorreu um erro ao enviar dados para o webhook.");
     }
+  };
+
+  const handleTagChange = (tagId: string) => {
+    if (!selectedConversation) return;
+    const newTagId = tagId === "no-tag" ? null : tagId;
+
+    updateConversation({
+      id: selectedConversation.id,
+      tagId: newTagId,
+    });
+    toast.success("Tag atualizada com sucesso!");
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedConversation?.contact?.id) return;
+
+    try {
+      updateContact({
+        id: selectedConversation.contact.id,
+        notes: contactNotes,
+      });
+      toast.success("Nota salva com sucesso!");
+      setIsEditingNote(false);
+    } catch (error) {
+      console.error("Erro ao salvar nota:", error);
+      toast.error("Não foi possível salvar a nota.");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setContactNotes(selectedConversation?.contact?.notes || "");
+    setIsEditingNote(false);
+  };
+
+  const handleIsCustomerToggle = (isCustomer: boolean) => {
+    if (!selectedConversation?.contact?.id) {
+      toast.error("Contato não selecionado para atualizar o status.");
+      return;
+    }
+
+    const contactId = selectedConversation.contact.id;
+    const queryKey = ["conversations"];
+    queryClient.cancelQueries({ queryKey });
+
+    const previousConversations =
+      queryClient.getQueryData<Conversation[]>(queryKey);
+
+    queryClient.setQueryData<Conversation[]>(queryKey, (oldData) => {
+      if (!oldData) return [];
+      return oldData.map((convo) => {
+        if (convo.contact?.id === contactId) {
+          return {
+            ...convo,
+            contact: { ...convo.contact, isCustomer: isCustomer },
+          };
+        }
+        return convo;
+      });
+    });
+
+    updateContact(
+      {
+        id: contactId,
+        isCustomer,
+      },
+      {
+        onSuccess: () => {
+          toast.success(
+            `Contato marcado como ${isCustomer ? "cliente" : "não cliente"}.`,
+          );
+        },
+        onError: (err) => {
+          queryClient.setQueryData(queryKey, previousConversations);
+          toast.error("Falha ao atualizar. A alteração foi desfeita.");
+          console.error("Erro na atualização otimista:", err);
+        },
+        onSettled: () => {
+          queryClient.invalidateQueries({ queryKey });
+        },
+      },
+    );
   };
 
   if (isErrorQueues) {
@@ -802,9 +906,159 @@ export function AtendimentosContent() {
                   >
                     <MessageSquareShare className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <User className="h-4 w-4" />
-                  </Button>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" title="Ver perfil">
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="mt-1 mr-4 w-80">
+                      <div className="grid w-full gap-4">
+                        <div className="w-full space-y-2">
+                          <h4 className="leading-none font-medium">
+                            Perfil do Contato
+                          </h4>
+                          <p className="text-muted-foreground text-sm">
+                            Informações e ações rápidas.
+                          </p>
+                        </div>
+                        <div className="grid w-full gap-4">
+                          <div className="flex w-full items-center gap-4 rounded-md border p-2">
+                            <Avatar>
+                              <AvatarImage src={"/placeholder.svg"} />
+                              <AvatarFallback className="bg-primary-million text-white">
+                                {selectedConversation.contact?.name.charAt(0) ||
+                                  "C"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="truncate text-sm font-semibold">
+                                {selectedConversation.contact?.name}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {selectedConversation.contact?.phone}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {selectedConversation.contact?.email ||
+                                  "Nenhum e-mail"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="grid w-full gap-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="notes" className="font-semibold">
+                                Notas
+                              </Label>
+                              {!isEditingNote && contactNotes && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setIsEditingNote(true)}
+                                  title="Editar Nota"
+                                >
+                                  <Pencil className="mr-1 h-4 w-4" />
+                                  Editar
+                                </Button>
+                              )}
+                            </div>
+
+                            {isEditingNote ? (
+                              <>
+                                <Textarea
+                                  id="notes"
+                                  placeholder="Adicione ou edite a nota sobre este contato..."
+                                  value={contactNotes}
+                                  onChange={(e) =>
+                                    setContactNotes(e.target.value)
+                                  }
+                                  className="min-h-[80px]"
+                                  autoFocus
+                                />
+                                <div className="mt-1 flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={handleSaveNote}
+                                    className="flex-1"
+                                    disabled={isUpdatingContact}
+                                  >
+                                    {isUpdatingContact
+                                      ? "Salvando..."
+                                      : "Salvar Nota"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleCancelEdit}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="bg-muted/20 flex min-h-[80px] w-full items-center justify-center truncate rounded-md border p-3 text-sm">
+                                {contactNotes ? (
+                                  <p className="w-full truncate whitespace-pre-wrap">
+                                    {contactNotes}
+                                  </p>
+                                ) : (
+                                  <div className="text-muted-foreground text-center">
+                                    <p>Nenhuma nota adicionada.</p>
+                                    <Button
+                                      variant="link"
+                                      className="h-auto p-0"
+                                      onClick={() => setIsEditingNote(true)}
+                                    >
+                                      Adicionar nota
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid w-full items-center gap-1.5">
+                            <Label>Tag</Label>
+                            <Select
+                              onValueChange={handleTagChange}
+                              value={selectedConversation?.tagId || "no-tag"}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma tag" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="no-tag">
+                                  Nenhuma tag
+                                </SelectItem>
+                                {tags?.map((tag) => (
+                                  <SelectItem key={tag.id} value={tag.id}>
+                                    {tag.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex items-center justify-between rounded-md border p-3">
+                            <div className="space-y-0.5">
+                              <Label className="font-semibold">Cliente</Label>
+                              <p className="text-muted-foreground text-xs">
+                                Marque se este contato já é um cliente.
+                              </p>
+                            </div>
+                            <Switch
+                              checked={
+                                selectedConversation.contact?.isCustomer ||
+                                false
+                              }
+                              onCheckedChange={handleIsCustomerToggle}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
                   <Button
                     className="hover:bg-red-500 hover:text-white"
                     variant="outline"
