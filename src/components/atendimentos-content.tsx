@@ -67,6 +67,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNotes } from "@/hooks/useNotes";
 import type { Note } from "@/interfaces/note-interface";
 import { useUsers } from "@/hooks/useUsers";
+import { FaFacebook, FaInstagram } from "react-icons/fa";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -449,6 +450,10 @@ export function AtendimentosContent() {
     );
   };
 
+  const handleClickSocials = () => {
+    toast.error("Essa funcionalidade está em desenvolvimento.");
+  };
+
   if (isErrorQueues) {
     toast.error("Erro ao buscar filas.");
   }
@@ -523,8 +528,8 @@ export function AtendimentosContent() {
           </Tabs>
         </div>
 
-        {user?.role === "ADMIN" && (
-          <div className="border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
+          {user?.role === "ADMIN" && (
             <Select
               value={selectedQueueFilter}
               onValueChange={setSelectedQueueFilter}
@@ -542,8 +547,12 @@ export function AtendimentosContent() {
                 ))}
               </SelectContent>
             </Select>
+          )}
+          <div className="flex gap-2">
+            <FaFacebook onClick={handleClickSocials} className="h-6 w-6 text-blue-700 hover:scale-125" />
+            <FaInstagram onClick={handleClickSocials} className="h-6 w-6 text-pink-600 hover:scale-125" />
           </div>
-        )}
+        </div>
 
         {/* Sub-tabs */}
         {activeTab === "abertas" && (
