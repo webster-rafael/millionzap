@@ -11,7 +11,6 @@ import { CadastrarContent } from "@/components/cadastrar-content";
 import { EntrarContent } from "@/components/entrar-content";
 import { DashboardContent } from "@/components/dashboardContent";
 
-// Suas Páginas
 import AgendamentosPage from "@/pages/agendamentos/page";
 import AjudaPage from "@/pages/ajuda/page";
 import ApiPage from "@/pages/api/page";
@@ -38,6 +37,7 @@ import UsuariosPage from "@/pages/usuarios/page";
 import { ProtectedRoute } from "@/components/protectRoutes";
 import { AtendimentosContent } from "@/components/atendimentos-content";
 import { Header } from "@/components/header";
+import { useEffect } from "react";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +105,36 @@ function AppRoutes() {
 }
 
 function App() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const statusChangeCallback = (response: any) => {
+    console.log("✅ Resposta da verificação de status:", response);
+
+    if (response.status === "connected") {
+      const accessToken = response.authResponse.accessToken;
+      console.log("🔑 Usuário conectado! Token:", accessToken);
+    } else {
+      console.log("👤 Usuário não conectado ou não autorizou o app.");
+    }
+  };
+
+  useEffect(() => {
+    const initializeAndCheckStatus = () => {
+      if (!window.FB) return;
+      window.FB.init({
+        appId: import.meta.env.VITE_FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: "v19.0",
+      });
+      window.FB.getLoginStatus(statusChangeCallback);
+    };
+
+    if (window.FB) {
+      initializeAndCheckStatus();
+    } else {
+      window.fbAsyncInit = initializeAndCheckStatus;
+    }
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <Router>

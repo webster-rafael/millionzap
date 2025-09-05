@@ -67,7 +67,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNotes } from "@/hooks/useNotes";
 import type { Note } from "@/interfaces/note-interface";
 import { useUsers } from "@/hooks/useUsers";
-import { FaFacebook, FaInstagram } from "react-icons/fa";
+import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -549,8 +549,18 @@ export function AtendimentosContent() {
             </Select>
           )}
           <div className="flex gap-2">
-            <FaFacebook onClick={handleClickSocials} className="h-6 w-6 text-blue-700 hover:scale-125" />
-            <FaInstagram onClick={handleClickSocials} className="h-6 w-6 text-pink-600 hover:scale-125" />
+            <FaWhatsapp
+              onClick={handleClickSocials}
+              className="h-6 w-6 text-green-600 hover:scale-125"
+            />
+            <FaFacebook
+              onClick={handleClickSocials}
+              className="h-6 w-6 text-blue-700 hover:scale-125"
+            />
+            <FaInstagram
+              onClick={handleClickSocials}
+              className="h-6 w-6 text-pink-600 hover:scale-125"
+            />
           </div>
         </div>
 
