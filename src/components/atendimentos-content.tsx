@@ -106,6 +106,8 @@ export function AtendimentosContent() {
     id: string;
     content: string;
   } | null>(null);
+  const [isFacebookModalOpen, setIsFacebookModalOpen] = useState(false);
+  const [facebookLoginStatus, setFacebookLoginStatus] = useState("unknown");
 
   const handleSendMessage = async (audioBlob?: Blob) => {
     if (!selectedConversation || sendMessageMutation.isSending) return;
@@ -450,8 +452,46 @@ export function AtendimentosContent() {
     );
   };
 
-  const handleClickSocials = () => {
-    toast.error("Essa funcionalidade está em desenvolvimento.");
+  const handleFacebookIconClick = () => {
+    if (!window.FB) {
+      toast.error("O SDK do Facebook ainda não foi carregado.");
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    window.FB.getLoginStatus(function (response: any) {
+      setFacebookLoginStatus(response.status);
+
+      if (response.status === "connected") {
+        toast.info("Você já está conectado com o Facebook!");
+      } else {
+        setIsFacebookModalOpen(true);
+      }
+    });
+  };
+
+  const handleFacebookLogin = () => {
+    if (!window.FB) return;
+
+    window.FB.login(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      function (response: any) {
+        if (response.authResponse) {
+          console.log(
+            "Login bem-sucedido! Token:",
+            response.authResponse.accessToken,
+            facebookLoginStatus,
+          );
+          toast.success("Login com Facebook realizado com sucesso!");
+          setFacebookLoginStatus("connected");
+          setIsFacebookModalOpen(false);
+        } else {
+          console.log("Login cancelado ou falhou.");
+          toast.error("O login com o Facebook foi cancelado ou falhou.");
+        }
+      },
+      { scope: "public_profile,email" },
+    );
   };
 
   if (isErrorQueues) {
@@ -550,19 +590,56 @@ export function AtendimentosContent() {
           )}
           <div className="flex gap-2">
             <FaWhatsapp
-              onClick={handleClickSocials}
+              onClick={() => {
+                toast.error("Essa funcionalidade está em desenvolvimento.");
+              }}
               className="h-6 w-6 text-green-600 hover:scale-125"
             />
             <FaFacebook
-              onClick={handleClickSocials}
+              onClick={handleFacebookIconClick}
               className="h-6 w-6 text-blue-700 hover:scale-125"
             />
             <FaInstagram
-              onClick={handleClickSocials}
+              onClick={handleFacebookIconClick}
               className="h-6 w-6 text-pink-600 hover:scale-125"
             />
           </div>
         </div>
+
+        {isFacebookModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+            onClick={() => setIsFacebookModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm rounded-lg bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <FaFacebook className="mx-auto mb-4 h-12 w-12 text-blue-700" />
+                <h3 className="mb-2 text-lg font-semibold text-gray-900">
+                  Conectar com Facebook
+                </h3>
+                <p className="mb-6 text-sm text-gray-500">
+                  Para continuar, faça login na sua conta do Facebook.
+                </p>
+                <Button
+                  onClick={handleFacebookLogin}
+                  className="flex w-full items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#166fe5]"
+                >
+                  <FaFacebook className="h-5 w-5" />
+                  <span>Entrar com Facebook</span>
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
         {/* Sub-tabs */}
         {activeTab === "abertas" && (
