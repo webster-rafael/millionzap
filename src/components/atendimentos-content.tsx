@@ -210,7 +210,7 @@ export function AtendimentosContent() {
         if (conversation.status === "SERVING") {
           return conversation.userId === user.id;
         }
-        return userQueueIds.has(conversation.queueId || "");
+        return !conversation.queueId || userQueueIds.has(conversation.queueId);
       });
     }
 
@@ -588,22 +588,24 @@ export function AtendimentosContent() {
               </SelectContent>
             </Select>
           )}
-          <div className="flex gap-2">
-            <FaWhatsapp
-              onClick={() => {
-                toast.error("Essa funcionalidade está em desenvolvimento.");
-              }}
-              className="h-6 w-6 text-green-600 hover:scale-125"
-            />
-            <FaFacebook
-              onClick={handleFacebookIconClick}
-              className="h-6 w-6 text-blue-700 hover:scale-125"
-            />
-            <FaInstagram
-              onClick={handleFacebookIconClick}
-              className="h-6 w-6 text-pink-600 hover:scale-125"
-            />
-          </div>
+          {user?.companyName === "Milliontech" && (
+            <div className="flex gap-2">
+              <FaWhatsapp
+                onClick={() => {
+                  toast.error("Essa funcionalidade está em desenvolvimento.");
+                }}
+                className="h-6 w-6 text-green-600 hover:scale-125"
+              />
+              <FaFacebook
+                onClick={handleFacebookIconClick}
+                className="h-6 w-6 text-blue-700 hover:scale-125"
+              />
+              <FaInstagram
+                onClick={handleFacebookIconClick}
+                className="h-6 w-6 text-pink-600 hover:scale-125"
+              />
+            </div>
+          )}
         </div>
 
         {isFacebookModalOpen && (
