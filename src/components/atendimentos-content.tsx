@@ -68,6 +68,8 @@ import { useNotes } from "@/hooks/useNotes";
 import type { Note } from "@/interfaces/note-interface";
 import { useUsers } from "@/hooks/useUsers";
 import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { useConversationsInstagram } from "@/hooks/useConversationIg";
+import type { ConversationInstagram } from "@/interfaces/conversationInstagram-interface";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -81,6 +83,7 @@ export function AtendimentosContent() {
   const [messageInput, setMessageInput] = useState("");
   const [activeTab, setActiveTab] = useState("abertas");
   const [activeSubTab, setActiveSubTab] = useState("atendendo");
+  const [activeSource, setActiveSource] = useState("whatsapp");
   const {
     conversations,
     remove,
@@ -88,6 +91,11 @@ export function AtendimentosContent() {
     isErrorConversations,
     update: updateConversation,
   } = useConversations();
+  const {
+    conversationsInstagram,
+    isLoadingConversationsInstagram,
+    isErrorConversationsInstagram,
+  } = useConversationsInstagram();
   const { updateContact } = useContacts();
   const { connections } = useWhatsAppConnections();
   const { queues, isLoadingQueues, isErrorQueues } = useQueues();
@@ -108,6 +116,13 @@ export function AtendimentosContent() {
   } | null>(null);
   const [isFacebookModalOpen, setIsFacebookModalOpen] = useState(false);
   const [facebookLoginStatus, setFacebookLoginStatus] = useState("unknown");
+
+  const currentConversations: Conversation[] = useMemo(() => {
+    if (activeSource === "instagram") {
+      return (conversationsInstagram as unknown as Conversation[]) ?? [];
+    }
+    return conversations ?? [];
+  }, [activeSource, conversations, conversationsInstagram]);
 
   const handleSendMessage = async (audioBlob?: Blob) => {
     if (!selectedConversation || sendMessageMutation.isSending) return;
@@ -175,7 +190,26 @@ export function AtendimentosContent() {
   const selectedConversation =
     conversations.find((c) => c.id === selectedConversationId) || null;
 
-  const contactId = selectedConversation?.contact?.id;
+  const activeConversation = useMemo(() => {
+    if (!selectedConversationId) return null;
+
+    const allConversations =
+      activeSource === "instagram" ? conversationsInstagram : conversations;
+
+    return (
+      allConversations.find((c) => c.id === selectedConversationId) || null
+    );
+  }, [
+    selectedConversationId,
+    activeSource,
+    conversations,
+    conversationsInstagram,
+  ]);
+
+  const contactId =
+    activeSource === "whatsapp"
+      ? (activeConversation as Conversation)?.contact?.id
+      : null;
   const {
     notes,
     isLoadingNotes,
@@ -187,7 +221,9 @@ export function AtendimentosContent() {
   } = useNotes(contactId || "");
 
   const visibleConversations = useMemo(() => {
-    let filtered = conversations;
+    let filtered = currentConversations;
+
+    if (!filtered) return [];
 
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
@@ -215,9 +251,12 @@ export function AtendimentosContent() {
     }
 
     return filtered;
-  }, [conversations, user, searchTerm, selectedQueueFilter]);
+  }, [user, searchTerm, selectedQueueFilter, currentConversations]);
 
   const filteredConversations = useMemo(() => {
+    if (activeSource === "instagram") {
+      return visibleConversations;
+    }
     if (activeTab === "busca" && searchTerm) {
       return visibleConversations;
     }
@@ -236,11 +275,11 @@ export function AtendimentosContent() {
       }
       return false;
     });
-  }, [visibleConversations, activeTab, activeSubTab, searchTerm]);
+  }, [visibleConversations, activeTab, activeSubTab, searchTerm, activeSource]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [selectedConversation?.messages]);
+  }, [activeConversation?.messages]);
 
   const handleTransferConfirm = () => {
     if (!selectedConversationId || !selectedQueueId) {
@@ -453,10 +492,12 @@ export function AtendimentosContent() {
   };
 
   const handleFacebookIconClick = () => {
+    setActiveSource("instagram");
     if (!window.FB) {
       toast.error("O SDK do Facebook ainda não foi carregado.");
       return;
     }
+    // listConversationsIGWebhook();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.FB.getLoginStatus(function (response: any) {
@@ -494,9 +535,41 @@ export function AtendimentosContent() {
     );
   };
 
+  // const listConversationsIGWebhook = async () => {
+  //   try {
+  //     const response = await fetch(
+  //       import.meta.env.VITE_LIST_CONVERSATION_IG_WEBHOOK,
+  //       {
+  //         method: "GET",
+  //       },
+  //     );
+
+  //     if (!response.ok) {
+  //       throw new Error(`Erro: ${response.status}`);
+  //     }
+
+  //     const data = await response.json();
+  //     return data;
+  //   } catch (error) {
+  //     toast.error("Erro ao listar conversas do Instagram.");
+  //     console.error("Erro ao listar conversas IG webhook:", error);
+  //     return null;
+  //   }
+  // };
+
   if (isErrorQueues) {
     toast.error("Erro ao buscar filas.");
   }
+
+  const isLoading =
+    activeSource === "whatsapp"
+      ? isLoadingConversations
+      : isLoadingConversationsInstagram;
+
+  const isError =
+    activeSource === "whatsapp"
+      ? isErrorConversations
+      : isErrorConversationsInstagram;
 
   return (
     <div className="flex h-full w-full pt-20 lg:pt-0">
@@ -593,6 +666,7 @@ export function AtendimentosContent() {
               <FaWhatsapp
                 onClick={() => {
                   toast.error("Essa funcionalidade está em desenvolvimento.");
+                  setActiveSource("whatsapp");
                 }}
                 className="h-6 w-6 text-green-600 hover:scale-125"
               />
@@ -690,7 +764,7 @@ export function AtendimentosContent() {
         {/* Conversations */}
         <ScrollArea className="flex w-full overflow-y-auto lg:flex-1">
           <div className="flex w-full flex-col gap-3 p-3 lg:mx-auto lg:w-96">
-            {isLoadingConversations && (
+            {isLoading && (
               <>
                 <Skeleton className="h-32 bg-zinc-200" />
                 <Skeleton className="h-32 bg-zinc-200" />
@@ -699,7 +773,7 @@ export function AtendimentosContent() {
                 <Skeleton className="h-32 bg-zinc-200" />
               </>
             )}
-            {isErrorConversations && (
+            {isError && (
               <div className="flex flex-col items-center justify-center">
                 <MessageSquareX />
                 <h1>Não foi possível encontrar conversas</h1>
@@ -859,6 +933,69 @@ export function AtendimentosContent() {
                 </CardContent>
               );
 
+              if (activeSource === "instagram") {
+                const conversationInfo =
+                  conversation as unknown as ConversationInstagram;
+
+                return (
+                  <div key={conversation.id} className="relative">
+                    <motion.div
+                      className="relative z-10 w-full"
+                      onClick={() => handleConversationSelect(conversation)}
+                    >
+                      <Card
+                        className={`relative h-32 cursor-pointer border-l-4 border-pink-400 bg-pink-50 transition-all hover:shadow-md ${
+                          selectedConversationId === conversation.id
+                            ? "ring-2 ring-pink-300"
+                            : ""
+                        }`}
+                      >
+                        <CardContent className="flex h-full w-full items-start space-x-3 p-3">
+                          <Avatar className="h-12 w-12 border">
+                            <AvatarImage src={conversationInfo?.image} />
+                            <AvatarFallback className="bg-gradient-to-br from-pink-500 to-orange-400 text-white">
+                              {conversationInfo?.name?.charAt(0) || "IG"}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1 overflow-hidden">
+                            <div className="mb-1 flex items-center justify-between">
+                              <h3 className="truncate font-medium text-gray-900">
+                                {conversationInfo?.name ||
+                                  "Usuário do Instagram"}
+                              </h3>
+                              <span className="text-xs text-gray-500">
+                                {(() => {
+                                  const rawTimestamp = lastMessage?.timestamp;
+                                  if (!rawTimestamp) return "";
+
+                                  const date = new Date(Number(rawTimestamp));
+
+                                  if (isNaN(date.getTime())) return "";
+                                  return isToday(date)
+                                    ? format(date, "HH:mm", { locale: ptBR })
+                                    : format(date, "dd/MM/yyyy HH:mm", {
+                                        locale: ptBR,
+                                      });
+                                })()}
+                              </span>
+                            </div>
+
+                            <p className="truncate text-sm font-semibold text-pink-700">
+                              @{conversationInfo?.username || "instagram"}
+                            </p>
+
+                            <p className="mt-1 mb-2 truncate text-sm text-gray-600">
+                              {lastMessage?.content || "Nenhuma mensagem"}
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </div>
+                );
+              }
+
               if (activeTab === "resolvidas") {
                 return (
                   <div
@@ -933,6 +1070,47 @@ export function AtendimentosContent() {
                         }`}
                       >
                         {cardInnerContent}
+                      </Card>
+                    </motion.div>
+                  </div>
+                );
+              } else if (activeSource === "instagram") {
+                return (
+                  <div className="relative">
+                    <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
+                      <Play className="h-6 w-6 text-white" />
+                    </div>
+                    <motion.div
+                      drag="x"
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.2}
+                      onDragEnd={(_, info) => {
+                        if (info.offset.x < -75) {
+                          if (!user) {
+                            console.error(
+                              "Usuário não logado, não é possível aceitar a conversa.",
+                            );
+                            return;
+                          }
+
+                          updateConversation({
+                            id: conversation.id,
+                            status: "SERVING",
+                            userId: user.id,
+                          });
+                        }
+                      }}
+                      className="relative z-10 w-full"
+                      onClick={() => handleConversationSelect(conversation)}
+                    >
+                      <Card
+                        className={`h-32 cursor-pointer border-l-4 bg-purple-50 transition-all hover:shadow-md ${
+                          selectedConversationId === conversation.id
+                            ? "ring-1 ring-[#1d5cd362]"
+                            : ""
+                        }`}
+                      >
+                        {"teste"}
                       </Card>
                     </motion.div>
                   </div>
