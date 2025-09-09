@@ -11,7 +11,7 @@ export const useHandleInstagramCode = () => {
     (async () => {
       try {
         const response = await fetch(
-          "https://back-n8n.omnizap.com.br/webhook-test/4c1139cd-e2e5-4e22-87d5-86f2ca3e6706",
+          import.meta.env.VITE_RECEIVED_CODE_FOR_TOKEN,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
