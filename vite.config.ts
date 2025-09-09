@@ -2,14 +2,13 @@ import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import mkcert from "vite-plugin-mkcert";
 
 // https://vite.dev/config/
 export default defineConfig({
   server: {
-    https: {},
+    allowedHosts: ["5edeb962fc87.ngrok-free.app"],
   },
-  plugins: [react(), tailwindcss(), mkcert()],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

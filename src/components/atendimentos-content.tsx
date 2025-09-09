@@ -71,8 +71,10 @@ import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { useConversationsInstagram } from "@/hooks/useConversationIg";
 import type { ConversationInstagram } from "@/interfaces/conversationInstagram-interface";
 import { InstagramChatArea } from "@/components/instagramChatArea";
+import { useHandleInstagramCode } from "@/components/handoleInstagramCode";
 
 export function AtendimentosContent() {
+  useHandleInstagramCode();
   const { user } = useAuth();
   const { users } = useUsers();
   const queryClient = useQueryClient();
@@ -536,6 +538,11 @@ export function AtendimentosContent() {
     );
   };
 
+  const handleLoginInstagram = () => {
+    window.location.href =
+      "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3630138387292779&redirect_uri=https://5edeb962fc87.ngrok-free.app/atendimentos&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights";
+  };
+
   // const listConversationsIGWebhook = async () => {
   //   try {
   //     const response = await fetch(
@@ -676,7 +683,7 @@ export function AtendimentosContent() {
                 className="h-6 w-6 text-blue-700 hover:scale-125"
               />
               <FaInstagram
-                onClick={handleFacebookIconClick}
+                onClick={handleLoginInstagram}
                 className="h-6 w-6 text-pink-600 hover:scale-125"
               />
             </div>
