@@ -540,7 +540,7 @@ export function AtendimentosContent() {
 
   const handleLoginInstagram = () => {
     window.location.href =
-      "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3630138387292779&redirect_uri=https://5edeb962fc87.ngrok-free.app/atendimentos&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights";
+      "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3630138387292779&redirect_uri=https://milliontec.com.br/atendimentos&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights";
   };
 
   // const listConversationsIGWebhook = async () => {
