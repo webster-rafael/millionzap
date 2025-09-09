@@ -70,6 +70,7 @@ import { useUsers } from "@/hooks/useUsers";
 import { FaFacebook, FaInstagram, FaWhatsapp } from "react-icons/fa";
 import { useConversationsInstagram } from "@/hooks/useConversationIg";
 import type { ConversationInstagram } from "@/interfaces/conversationInstagram-interface";
+import { InstagramChatArea } from "@/components/instagramChatArea";
 
 export function AtendimentosContent() {
   const { user } = useAuth();
@@ -1074,47 +1075,6 @@ export function AtendimentosContent() {
                     </motion.div>
                   </div>
                 );
-              } else if (activeSource === "instagram") {
-                return (
-                  <div className="relative">
-                    <div className="absolute top-0 right-0 flex h-full items-center justify-center rounded-r-lg bg-green-300 px-6">
-                      <Play className="h-6 w-6 text-white" />
-                    </div>
-                    <motion.div
-                      drag="x"
-                      dragConstraints={{ left: 0, right: 0 }}
-                      dragElastic={0.2}
-                      onDragEnd={(_, info) => {
-                        if (info.offset.x < -75) {
-                          if (!user) {
-                            console.error(
-                              "Usuário não logado, não é possível aceitar a conversa.",
-                            );
-                            return;
-                          }
-
-                          updateConversation({
-                            id: conversation.id,
-                            status: "SERVING",
-                            userId: user.id,
-                          });
-                        }
-                      }}
-                      className="relative z-10 w-full"
-                      onClick={() => handleConversationSelect(conversation)}
-                    >
-                      <Card
-                        className={`h-32 cursor-pointer border-l-4 bg-purple-50 transition-all hover:shadow-md ${
-                          selectedConversationId === conversation.id
-                            ? "ring-1 ring-[#1d5cd362]"
-                            : ""
-                        }`}
-                      >
-                        {"teste"}
-                      </Card>
-                    </motion.div>
-                  </div>
-                );
               } else {
                 return (
                   <div
@@ -1166,7 +1126,11 @@ export function AtendimentosContent() {
           selectedConversationId ? "flex w-full" : "hidden"
         } flex-1 flex-col overflow-y-hidden bg-gray-50 lg:flex`}
       >
-        {selectedConversation ? (
+        {activeSource === "instagram" && activeConversation ? (
+          <InstagramChatArea
+            conversation={activeConversation as ConversationInstagram}
+          />
+        ) : activeSource === "whatsapp" && selectedConversation ? (
           <>
             <div className="overflow-y-hidden border-b border-gray-200 bg-white p-4">
               <div className="flex items-center justify-between">

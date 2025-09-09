@@ -1,21 +1,96 @@
-// src/components/instagramChatArea.tsx
-
 import { format, isSameDay, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowLeft, MessageSquareShare, Trash, User } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquareShare,
+  Mic,
+  Paperclip,
+  Send,
+  Trash,
+  User,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { ConversationInstagram } from "@/interfaces/conversationInstagram-interface";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
+import { useEffect, useState } from "react";
+import { Input } from "./ui/input";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface InstagramChatAreaProps {
   conversation: ConversationInstagram;
-  // Adicione outras props necessárias no futuro, como funções para deletar, etc.
 }
 
 export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [messages, setMessages] = useState(conversation.messages || []);
+  const [messageInput, setMessageInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    setMessages(conversation.messages || []);
+  }, [conversation.messages]);
+
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || isSending) return;
+
+    const webhookUrl = import.meta.env.VITE_SEND_INSTAGRAM_MESSAGE;
+
+    if (!webhookUrl) {
+      toast.error(
+        "A URL do webhook para envio de mensagens não está configurada.",
+      );
+      return;
+    }
+
+    const tempId = Date.now().toString();
+    const newMessage = {
+      id: tempId,
+      content: messageInput.trim(),
+      timestamp: Date.now(),
+      direction: "OUTBOUND",
+      messageType: "text",
+      createdAt: new Date(),
+    };
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+    setMessageInput("");
+    setIsSending(true);
+
+    const payload = {
+      recipient: { id: conversation.id },
+      message: { text: newMessage.content },
+      conversationId: conversation.id,
+      companyId: user?.companyId || "",
+      userId: user?.id,
+      timestamp: newMessage.timestamp,
+    };
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+      // Se sucesso, a UI já está atualizada.
+    } catch (error) {
+      console.error("Falha ao enviar mensagem para o webhook:", error);
+      toast.error("Falha ao enviar. A mensagem foi removida.");
+      // 3. Em caso de erro, remova a mensagem temporária da UI
+      setMessages((prevMessages) =>
+        prevMessages.filter((msg) => msg.id !== tempId),
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <>
@@ -47,7 +122,6 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {/* Botões de ação podem ser adicionados aqui no futuro */}
             <Button title="Transferir" variant="outline" size="sm" disabled>
               <MessageSquareShare className="h-4 w-4" />
             </Button>
@@ -68,7 +142,7 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
 
       <ScrollArea className="flex-1 overflow-y-auto p-4">
         <div className="space-y-4">
-          {[...(conversation.messages || [])]
+          {[...messages]
             .sort((a, b) => Number(a.timestamp) - Number(b.timestamp))
             .map((message, index, arr) => {
               const date = new Date(Number(message.timestamp));
@@ -96,7 +170,7 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
                     <div
                       className={`relative max-w-xs rounded-lg px-4 py-2 lg:max-w-md ${
                         isAgent
-                          ? "bg-primary-million text-white"
+                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
                           : "border border-gray-200 bg-white text-gray-900"
                       }`}
                     >
@@ -104,7 +178,7 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
                       <div className="absolute right-2 bottom-2 mt-1 flex h-2 w-10 items-center justify-end space-x-1">
                         <span
                           className={`text-xs ${
-                            isAgent ? "text-blue-200" : "text-gray-500"
+                            isAgent ? "text-purple-200" : "text-gray-500"
                           }`}
                         >
                           {format(date, "HH:mm", { locale: ptBR })}
@@ -117,6 +191,40 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
             })}
         </div>
       </ScrollArea>
+
+      <div className="border-t border-gray-200 bg-white p-4">
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" className="size-12" disabled>
+            <Paperclip className="size-4" />
+          </Button>
+          <div className="relative flex-1">
+            <Input
+              placeholder="Digite uma mensagem..."
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              className="h-12 focus-visible:border-pink-300 focus-visible:ring-0"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              disabled={isSending}
+            />
+            <Button
+              onClick={handleSendMessage}
+              size="sm"
+              className="absolute top-1/2 right-2 -translate-y-1/2 transform bg-pink-500 text-white hover:bg-pink-600"
+              disabled={isSending}
+            >
+              <Send className="size-4" />
+            </Button>
+          </div>
+          <Button variant="outline" className="size-12" disabled>
+            <Mic className="size-4" />
+          </Button>
+        </div>
+      </div>
     </>
   );
 }
