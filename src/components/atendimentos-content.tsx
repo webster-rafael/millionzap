@@ -72,6 +72,7 @@ import { useConversationsInstagram } from "@/hooks/useConversationIg";
 import type { ConversationInstagram } from "@/interfaces/conversationInstagram-interface";
 import { InstagramChatArea } from "@/components/instagramChatArea";
 import { useHandleInstagramCode } from "@/components/handoleInstagramCode";
+import TextareaAutosize from "react-textarea-autosize";
 
 export function AtendimentosContent() {
   useHandleInstagramCode();
@@ -1495,26 +1496,28 @@ export function AtendimentosContent() {
 
             <div className="border-t border-gray-200 bg-white p-4">
               <div className="flex items-center space-x-2">
+                {" "}
                 <Button variant="outline" className="size-12">
                   <Paperclip className="size-4" />
                 </Button>
                 <div className="relative flex-1">
-                  <Input
+                  <TextareaAutosize
                     placeholder="Digite uma mensagem..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    className="h-12 focus-visible:border-blue-200 focus-visible:ring-0"
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") {
+                      if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
+                    maxRows={6}
+                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border px-3 py-3 text-sm focus-visible:ring-1 focus-visible:ring-blue-300 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                   />
                   <Button
                     onClick={() => handleSendMessage()}
                     size="sm"
-                    className="bg-secondary-million hover:bg-secondary-million/90 absolute top-1/2 right-2 -translate-y-1/2 transform"
+                    className="bg-secondary-million hover:bg-secondary-million/90 absolute right-2 bottom-2"
                   >
                     <Send className="size-4" />
                   </Button>
