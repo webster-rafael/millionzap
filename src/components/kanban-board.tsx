@@ -24,6 +24,7 @@ import { format, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 interface Column {
   id: string;
   title: string;
@@ -226,6 +227,7 @@ export function KanbanBoard() {
                                     {...provided.draggableProps}
                                     {...provided.dragHandleProps}
                                   >
+                                    <Link to={`/atendimentos/${conversation.id}`}>
                                     <Card
                                       className={`cursor-grab gap-3 p-4 transition-shadow hover:shadow-md active:cursor-grabbing ${
                                         snapshot.isDragging
@@ -350,6 +352,7 @@ export function KanbanBoard() {
                                   )} */}
                                       {/* </CardContent> */}
                                     </Card>
+                                    </Link>
                                   </div>
                                 )}
                               </Draggable>
