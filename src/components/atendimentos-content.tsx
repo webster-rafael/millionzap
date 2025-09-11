@@ -813,7 +813,7 @@ export function AtendimentosContent() {
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-center justify-between">
                         <h3 className="truncate font-medium text-gray-900">
-                          {conversation.contact?.phone}
+                          {conversation.contact?.name}
                         </h3>
                         <div className="flex items-center space-x-1">
                           <span className="text-xs text-gray-500">
