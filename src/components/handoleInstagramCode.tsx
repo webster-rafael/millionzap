@@ -1,7 +1,9 @@
+import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
 export const useHandleInstagramCode = () => {
+  const { user } = useAuth();
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
@@ -15,7 +17,7 @@ export const useHandleInstagramCode = () => {
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
+            body: JSON.stringify({ code, userId: user?.id }),
           },
         );
 
@@ -30,10 +32,10 @@ export const useHandleInstagramCode = () => {
         console.error("Falha na requisição:", err);
         toast.error("Erro ao ativar webhook do n8n");
       } finally {
-        // limpa a URL para não disparar novamente
         const cleanUrl = window.location.href.split("?")[0];
         window.history.replaceState({}, document.title, cleanUrl);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 };
