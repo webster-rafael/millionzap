@@ -76,10 +76,7 @@ function AppRoutes() {
         <Route path="/chat-interno" element={<ChatInternoPage />} />
         <Route path="/ajuda" element={<AjudaPage />} />
         <Route path="/campanhas" element={<CampanhasPage />} />
-        <Route
-          path="/campanhas/listas-de-contatos"
-          element={<ListasDeContatosPage />}
-        />
+        <Route path="/campanhas/disparos" element={<ListasDeContatosPage />} />
         <Route
           path="/campanhas/configuracoes"
           element={<ConfiguracoesCampanhasPage />}

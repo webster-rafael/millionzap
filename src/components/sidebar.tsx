@@ -25,6 +25,7 @@ import {
   DollarSign,
   Cog,
   Info,
+  MessageSquareText,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,9 +60,9 @@ export function Sidebar() {
       subItems: [
         { name: "Listagem", href: "/campanhas", icon: List },
         {
-          name: "Contatos",
-          href: "/campanhas/listas-de-contatos",
-          icon: Users,
+          name: "Disparos",
+          href: "/campanhas/disparos",
+          icon: MessageSquareText,
         },
         {
           name: "Configurações",
