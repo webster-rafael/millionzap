@@ -546,7 +546,7 @@ export function ContatosContent() {
                       <h3 className="font-open text-lg font-semibold text-red-700 uppercase">
                         Importante:
                       </h3>
-                      <TriangleAlert className="text-red-700"/>
+                      <TriangleAlert className="text-red-700" />
                     </div>
                     <p className="font-inter text-xs text-zinc-700">
                       Verifique se o número do destinatário é válido no WhatsApp
