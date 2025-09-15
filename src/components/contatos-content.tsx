@@ -9,6 +9,7 @@ import {
   Loader2,
   List,
   Upload,
+  TriangleAlert,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -110,18 +111,30 @@ export function ContatosContent() {
             (contact.email && contact.email.toLowerCase().includes(searchLower))
           );
         });
+
+  const formatPhoneNumber = (phone: string): string => {
+    const digitsOnly = phone.replace(/\D/g, "");
+    if (!digitsOnly || digitsOnly.startsWith("55")) {
+      return digitsOnly;
+    }
+
+    return `55${digitsOnly}`;
+  };
   const handleAddContact = (data: ContactFormData) => {
+    const formattedPhone = formatPhoneNumber(data.phone);
+
     const contactDataWithTag = {
       ...data,
+      phone: formattedPhone,
       tags: user?.name ? [user.name] : [],
     };
+
     create(contactDataWithTag, {
       onSuccess: () => {
         setIsAddDialogOpen(false);
         form.reset();
         toast.success("Contato criado com sucesso!");
       },
-
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       onError: (error: any) => {
         if (error?.code === "P2002") {
@@ -136,10 +149,12 @@ export function ContatosContent() {
   const handleUpdateContact = () => {
     if (!editingContact) return;
 
+    const formattedPhone = formatPhoneNumber(editingContact.phone);
+
     const updatePayload = {
       id: editingContact.id,
       name: editingContact.name,
-      phone: editingContact.phone,
+      phone: formattedPhone,
       email: editingContact.email,
       tags: user?.name ? [user.name] : [],
     };
@@ -291,9 +306,11 @@ export function ContatosContent() {
 
         const contactsToCreate = json
           .map((row) => {
-            const nameKeywords = ["nome", "name", "NAME"];
+            const nameKeywords = ["nome", "name", "NAME", "NOME", "Nome"];
             const phoneKeywords = [
               "telefone",
+              "Telefone",
+              "TELEFONE",
               "phone",
               "PHONE",
               "celular",
@@ -313,7 +330,7 @@ export function ContatosContent() {
             if (!nameKey || !phoneKey) return null;
 
             const name = String(row[nameKey]).trim();
-            const phone = String(row[phoneKey]).trim().replace(/\D/g, "");
+            const phone = formatPhoneNumber(String(row[phoneKey]));
 
             if (!name || !phone) return null;
 
@@ -523,6 +540,20 @@ export function ContatosContent() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-open text-lg font-semibold text-red-700 uppercase">
+                        Importante:
+                      </h3>
+                      <TriangleAlert className="text-red-700"/>
+                    </div>
+                    <p className="font-inter text-xs text-zinc-700">
+                      Verifique se o número do destinatário é válido no WhatsApp
+                      com o 9º dígito. Caso não seja, reenviar sem o “9” inicial
+                      para garantir a entrega.
+                    </p>
+                  </div>
 
                   <div className="flex justify-end space-x-2 border-t pt-4">
                     <Button

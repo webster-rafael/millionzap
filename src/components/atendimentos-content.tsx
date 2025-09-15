@@ -120,6 +120,8 @@ export function AtendimentosContent() {
   } | null>(null);
   const [isFacebookModalOpen, setIsFacebookModalOpen] = useState(false);
   const [facebookLoginStatus, setFacebookLoginStatus] = useState("unknown");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSendingDocument, setIsSendingDocument] = useState(false);
 
   const currentConversations: Conversation[] = useMemo(() => {
     if (activeSource === "instagram") {
@@ -184,6 +186,82 @@ export function AtendimentosContent() {
 
       sendMessageMutation.send(payload);
       setMessageInput("");
+    }
+  };
+
+  const handleSendDocument = async (file: File) => {
+    if (!selectedConversation || !user) {
+      toast.error("Por favor, selecione uma conversa para enviar o documento.");
+      return;
+    }
+
+    const webhookUrl = import.meta.env.VITE_SEND_DOCUMENT_WEBHOOK;
+    if (!webhookUrl) {
+      console.error(
+        "Variável de ambiente VITE_SEND_DOCUMENT_WEBHOOK não está definida.",
+      );
+      toast.error("Erro de configuração interna. Contate o suporte.");
+      return;
+    }
+
+    const userConnection = connections.find((c) => c.id === user.connectionId);
+    if (!userConnection) {
+      toast.error("A conexão associada ao seu usuário não foi encontrada.");
+      return;
+    }
+
+    setIsSendingDocument(true);
+    const toastId = toast.loading("Enviando documento...");
+
+    const formData = new FormData();
+    formData.append("userId", user.id);
+    formData.append("companyId", user.companyId || "");
+    formData.append("conexao", userConnection.name);
+    formData.append("conversationId", selectedConversation.id);
+    formData.append(
+      "recipientNumber",
+      selectedConversation.contact?.phone || "",
+    );
+    formData.append("document", file, file.name);
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Erro desconhecido no servidor." }));
+        throw new Error(
+          errorData.message || `Falha no envio: Status ${response.status}`,
+        );
+      }
+
+      toast.success("Documento enviado com sucesso!", { id: toastId });
+    } catch (error) {
+      console.error("Erro ao enviar documento via webhook:", error);
+      toast.error(
+        `Erro: ${error instanceof Error ? error.message : "Não foi possível enviar o documento."}`,
+        { id: toastId },
+      );
+    } finally {
+      setIsSendingDocument(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 16 * 1024 * 1024) {
+        toast.error("O arquivo não pode exceder 16MB.");
+        return;
+      }
+      handleSendDocument(file);
     }
   };
 
@@ -544,27 +622,35 @@ export function AtendimentosContent() {
       "https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3630138387292779&redirect_uri=https://milliontec.com.br/atendimentos&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights";
   };
 
-  // const listConversationsIGWebhook = async () => {
-  //   try {
-  //     const response = await fetch(
-  //       import.meta.env.VITE_LIST_CONVERSATION_IG_WEBHOOK,
-  //       {
-  //         method: "GET",
-  //       },
-  //     );
+  const listConversationsIGWebhook = async () => {
+    try {
+      const response = await fetch(
+        import.meta.env.VITE_LIST_CONVERSATION_IG_WEBHOOK,
+        {
+          method: "post",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            tokenIg: user?.tokenIg || "",
+            instagramId: user?.instagramId || "",
+            userId: user?.id,
+          }),
+        },
+      );
 
-  //     if (!response.ok) {
-  //       throw new Error(`Erro: ${response.status}`);
-  //     }
+      if (!response.ok) {
+        throw new Error(`Erro: ${response.status}`);
+      }
 
-  //     const data = await response.json();
-  //     return data;
-  //   } catch (error) {
-  //     toast.error("Erro ao listar conversas do Instagram.");
-  //     console.error("Erro ao listar conversas IG webhook:", error);
-  //     return null;
-  //   }
-  // };
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      toast.error("Erro ao listar conversas do Instagram.");
+      console.error("Erro ao listar conversas IG webhook:", error);
+      return null;
+    }
+  };
 
   if (isErrorQueues) {
     toast.error("Erro ao buscar filas.");
@@ -684,7 +770,11 @@ export function AtendimentosContent() {
                 className="h-6 w-6 text-blue-700 hover:scale-125"
               />
               <FaInstagram
-                onClick={handleLoginInstagram}
+                onClick={
+                  user?.instagramAuthenticated
+                    ? handleLoginInstagram
+                    : listConversationsIGWebhook
+                }
                 className="h-6 w-6 text-pink-600 hover:scale-125"
               />
             </div>
@@ -1497,8 +1587,27 @@ export function AtendimentosContent() {
             <div className="border-t border-gray-200 bg-white p-4">
               <div className="flex items-center space-x-2">
                 {" "}
-                <Button variant="outline" className="size-12">
-                  <Paperclip className="size-4" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelected}
+                  style={{ display: "none" }}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={
+                    !selectedConversation || isSendingDocument || isRecording
+                  }
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  {isSendingDocument ? (
+                    <Loader className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-5 w-5" />
+                  )}
                 </Button>
                 <div className="relative flex-1">
                   <TextareaAutosize

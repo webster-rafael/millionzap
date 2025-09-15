@@ -67,6 +67,8 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
       companyId: user?.companyId || "",
       userId: user?.id,
       timestamp: newMessage.timestamp,
+      tokenIg: user?.tokenIg || "",
+      instagramId: user?.instagramId || "",
     };
 
     try {
@@ -79,11 +81,9 @@ export function InstagramChatArea({ conversation }: InstagramChatAreaProps) {
       if (!response.ok) {
         throw new Error(`Erro na requisição: ${response.statusText}`);
       }
-      // Se sucesso, a UI já está atualizada.
     } catch (error) {
       console.error("Falha ao enviar mensagem para o webhook:", error);
       toast.error("Falha ao enviar. A mensagem foi removida.");
-      // 3. Em caso de erro, remova a mensagem temporária da UI
       setMessages((prevMessages) =>
         prevMessages.filter((msg) => msg.id !== tempId),
       );

@@ -11,6 +11,9 @@ export interface User {
   updatedAt: Date;
   queues?: UserQueue[];
   connectionId?: string | null;
+  tokenIg?: string | null;
+  instagramId?: string | null;
+  instagramAuthenticated?: boolean | null;
 }
 
 interface UserQueue {

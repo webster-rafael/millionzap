@@ -1,7 +1,5 @@
 import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-// A interface do usuário deve ser completa
 interface User {
   id: string;
   name: string;
@@ -10,6 +8,9 @@ interface User {
   companyId: string;
   companyName: string;
   connectionId?: string | null;
+  tokenIg?: string | null;
+  instagramId?: string | null;
+  instagramAuthenticated?: boolean | null;
   queues: {
     queue: {
       id: string;
