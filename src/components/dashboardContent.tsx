@@ -35,7 +35,7 @@ export function DashboardContent() {
 
   // Filtra conversas baseado no role do usuário
   const filteredConversations = useMemo(() => {
-    if (user?.role === "ADMIN") {
+    if (user?.role === "ADMIN" || user?.role === "OWNER") {
       return conversations;
     }
     const userQueueIds = user?.queues.map((q) => q.queue.id) || [];
@@ -139,8 +139,13 @@ export function DashboardContent() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-xs text-gray-600 lg:text-base">
-            Olá {user?.role === "USER" ? user?.name : "ADMIN"}, Bem vindo à{" "}
-            {user?.companyName}
+            Olá{" "}
+            {user?.role === "USER"
+              ? user?.name
+              : user?.role === "ADMIN" || user?.role === "OWNER"
+                ? "ADMIN"
+                : "OWNER"}
+            , Bem vindo à {user?.companyName}
           </p>
         </div>
         <div className="flex items-center space-x-4">

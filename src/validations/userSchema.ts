@@ -1,5 +1,5 @@
 import { z } from "zod";
-const UserRole = z.enum(["ADMIN", "USER"]);
+const UserRole = z.enum(["ADMIN", "USER", "OWNER"]);
 
 export const userSchema = z.object({
   name: z.string().min(1, "O nome é obrigatório."),

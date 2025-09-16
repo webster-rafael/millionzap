@@ -183,10 +183,12 @@ export function UsuariosContent() {
     const variants = {
       ADMIN: "bg-red-100 text-red-800 border-red-200",
       USER: "bg-green-100 text-green-800 border-green-200",
+      OWNER: "bg-yellow-100 text-yellow-800 border-yellow-200",
     };
     const labels = {
       ADMIN: "Administrador",
       USER: "Usuário",
+      OWNER: "Proprietário"
     };
     return (
       <Badge

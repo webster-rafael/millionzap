@@ -127,7 +127,7 @@ export function Header() {
               </Link>
             ))}
 
-            {user?.role === "ADMIN" && (
+            {user?.role === "ADMIN" || user?.role === "OWNER" && (
               <>
                 {adminItems.map((item) => (
                   <Link

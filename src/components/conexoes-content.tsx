@@ -171,6 +171,7 @@ export function ConexoesContent() {
           instanceName: connection.name,
           userId: connection.id,
           connectionId: connection.id,
+          companyId: connection?.companyId || "",
         }),
       });
 

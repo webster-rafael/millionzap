@@ -120,79 +120,80 @@ export function Sidebar() {
           ))}
         </div>
 
-        {user?.role === "ADMIN" && (
-          <div className="mt-6">
-            <div className="mb-2 px-3">
-              <button
-                onClick={() => setIsAdminOpen(user?.role !== "ADMIN")}
-                className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-              >
-                <Settings className="mr-3 h-4 w-4" />
-                <span className="flex-1 text-left">Administração</span>
-                {isAdminOpen ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+        {user?.role === "ADMIN" ||
+          (user?.role === "OWNER" && (
+            <div className="mt-6">
+              <div className="mb-2 px-3">
+                <button
+                  onClick={() => setIsAdminOpen(user?.role !== "ADMIN" && user?.role !== "OWNER")}
+                  className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                >
+                  <Settings className="mr-3 h-4 w-4" />
+                  <span className="flex-1 text-left">Administração</span>
+                  {isAdminOpen ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
 
-            <div className="space-y-1 px-3">
-              {adminItems.map((item) => (
-                <div key={item.name}>
-                  {item.isCollapsible ? (
-                    <>
+              <div className="space-y-1 px-3">
+                {adminItems.map((item) => (
+                  <div key={item.name}>
+                    {item.isCollapsible ? (
+                      <>
+                        <button
+                          onClick={item.onToggle}
+                          className="flex w-full items-center rounded-md px-6 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                        >
+                          <item.icon className="mr-3 h-4 w-4" />
+                          <span className="flex-1 text-left">{item.name}</span>
+                          {item.isOpen ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </button>
+                        {item.isOpen && item.subItems && (
+                          <div className="mt-1 space-y-1">
+                            {item.subItems.map((subItem) => (
+                              <button
+                                key={subItem.name}
+                                onClick={() => navigate(subItem.href)}
+                                className={cn(
+                                  "flex items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
+                                  pathname === subItem.href
+                                    ? "bg-primary w-full text-white"
+                                    : "text-gray-600 hover:bg-gray-100",
+                                )}
+                              >
+                                <subItem.icon className="mr-3 h-3 w-3" />
+                                {subItem.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
                       <button
-                        onClick={item.onToggle}
-                        className="flex w-full items-center rounded-md px-6 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                        onClick={() => navigate(item.href || "")}
+                        className={cn(
+                          "flex items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
+                          pathname === item.href
+                            ? "bg-primary w-full text-white"
+                            : "text-gray-700 hover:bg-gray-100",
+                        )}
                       >
                         <item.icon className="mr-3 h-4 w-4" />
-                        <span className="flex-1 text-left">{item.name}</span>
-                        {item.isOpen ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
+                        {item.name}
                       </button>
-                      {item.isOpen && item.subItems && (
-                        <div className="mt-1 space-y-1">
-                          {item.subItems.map((subItem) => (
-                            <button
-                              key={subItem.name}
-                              onClick={() => navigate(subItem.href)}
-                              className={cn(
-                                "flex items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
-                                pathname === subItem.href
-                                  ? "bg-primary w-full text-white"
-                                  : "text-gray-600 hover:bg-gray-100",
-                              )}
-                            >
-                              <subItem.icon className="mr-3 h-3 w-3" />
-                              {subItem.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => navigate(item.href || "")}
-                      className={cn(
-                        "flex items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
-                        pathname === item.href
-                          ? "bg-primary w-full text-white"
-                          : "text-gray-700 hover:bg-gray-100",
-                      )}
-                    >
-                      <item.icon className="mr-3 h-4 w-4" />
-                      {item.name}
-                    </button>
-                  )}
-                </div>
-              ))}
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          ))}
       </nav>
 
       <div className="border-t border-gray-200 p-4">
