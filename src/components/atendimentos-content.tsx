@@ -322,15 +322,22 @@ export function AtendimentosContent() {
       );
     }
 
-    if (user?.role === "USER") {
-      const userQueueIds = new Set(user.queues.map((q) => q.queue.id));
-      filtered = filtered.filter((conversation) => {
-        if (conversation.status === "SERVING") {
-          return conversation.userId === user.id;
-        }
-        return !conversation.queueId || userQueueIds.has(conversation.queueId);
-      });
+    
+if (user?.role === "USER") {
+  const userQueueIds = new Set(user.queues.map((q) => q.queue.id));
+  
+  filtered = filtered.filter((conversation) => {
+    if (conversation.status === "SERVING") {
+      return conversation.userId === user.id;
     }
+
+    if (userQueueIds.size === 0) {
+      return !conversation.queueId;
+    }
+
+    return conversation.queueId && userQueueIds.has(conversation.queueId);
+  });
+}
 
     return filtered;
   }, [user, searchTerm, selectedQueueFilter, currentConversations]);
