@@ -120,12 +120,15 @@ export function Sidebar() {
           ))}
         </div>
 
-        {user?.role === "ADMIN" ||
-          (user?.role === "OWNER" && (
+        {(user?.role === "ADMIN" || user?.role === "OWNER") && (
             <div className="mt-6">
               <div className="mb-2 px-3">
                 <button
-                  onClick={() => setIsAdminOpen(user?.role !== "ADMIN" && user?.role !== "OWNER")}
+                  onClick={() =>
+                    setIsAdminOpen(
+                      user?.role !== "ADMIN" && user?.role !== "OWNER",
+                    )
+                  }
                   className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
                 >
                   <Settings className="mr-3 h-4 w-4" />
@@ -193,7 +196,7 @@ export function Sidebar() {
                 ))}
               </div>
             </div>
-          ))}
+          )}
       </nav>
 
       <div className="border-t border-gray-200 p-4">
