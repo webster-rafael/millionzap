@@ -188,7 +188,7 @@ export function UsuariosContent() {
     const labels = {
       ADMIN: "Administrador",
       USER: "Usuário",
-      OWNER: "Proprietário"
+      OWNER: "Proprietário",
     };
     return (
       <Badge
@@ -451,7 +451,9 @@ export function UsuariosContent() {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-2 gap-4">
+                <div
+                  className={` ${editingUser?.role === "OWNER" ? "hidden" : "grid"} grid-cols-2 gap-4`}
+                >
                   <FormField
                     control={form.control}
                     name="role"
