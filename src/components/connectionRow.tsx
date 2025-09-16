@@ -70,11 +70,17 @@ export const ConnectionRow = ({
 
   useEffect(() => {
     if (connectionStatus === "open" && connection.status !== "OPEN") {
-      updateConnection({ ...connection, status: "OPEN" });
+      updateConnection({
+        id: connection.id,
+        payload: { status: "OPEN" },
+      });
       toast.success(`Conexão ${connection.name} atualizada para Conectado!`);
       showQrCode(false);
     } else if (connectionStatus === "close" && connection.status !== "CLOSED") {
-      updateConnection({ ...connection, status: "CLOSED" });
+      updateConnection({
+        id: connection.id,
+        payload: { status: "CLOSED" },
+      });
       toast.error(`Conexão ${connection.name} desconectada.`);
     }
   }, [connectionStatus, connection, updateConnection, showQrCode]);

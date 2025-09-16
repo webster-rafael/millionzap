@@ -134,7 +134,10 @@ export function ConexoesContent() {
 
     if (editingConexao) {
       updateConnection(
-        { ...editingConexao, ...data },
+        {
+          id: editingConexao.id,
+          payload: data,
+        },
         { onSuccess: mutationCallback },
       );
     } else {

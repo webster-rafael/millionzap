@@ -14,11 +14,13 @@ const fetchConnections = (): Promise<WhatsAppConnection[]> =>
 const createConnection = (
   newConnection: CreateWhatsAppConnection,
 ): Promise<WhatsAppConnection> => api.post(resourceUrl, newConnection);
-
-const updateConnection = (
-  connection: WhatsAppConnection,
-): Promise<WhatsAppConnection> => {
-  const { id, ...payload } = connection;
+const updateConnection = ({
+  id,
+  payload,
+}: {
+  id: string;
+  payload: Partial<Omit<WhatsAppConnection, "id">>;
+}): Promise<WhatsAppConnection> => {
   return api.put(`${resourceUrl}/${id}`, payload);
 };
 
@@ -51,13 +53,13 @@ export const useWhatsAppConnections = () => {
     });
 
   const { mutate: updateConnectionMutation, isPending: isUpdating } =
-    useMutation({
-      mutationFn: updateConnection,
-      onSuccess,
-      onError: (error) => {
-        console.error("Erro ao atualizar conexão:", error);
-      },
-    });
+  useMutation({
+    mutationFn: updateConnection,
+    onSuccess,
+    onError: (error) => {
+      console.error("Erro ao atualizar conexão:", error);
+    },
+  });
 
   const { mutate: deleteConnectionMutation } = useMutation({
     mutationFn: deleteConnection,
