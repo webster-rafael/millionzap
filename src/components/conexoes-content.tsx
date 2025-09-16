@@ -141,7 +141,6 @@ export function ConexoesContent() {
       const payload = {
         ...data,
         session: "",
-        qrCode: "",
         status: "CLOSED",
       };
       createConnection(payload, { onSuccess: mutationCallback });
