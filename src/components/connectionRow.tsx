@@ -198,19 +198,19 @@ export const ConnectionRow = ({
         <DialogContent className="bg-white sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-lg font-medium text-gray-900">
-              {connection.name}
+              {connection?.instanceName || connection?.name}
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4">
             <p className="mb-2 text-sm text-gray-500">ID da Instância</p>
             <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-100 p-3">
               <span className="font-mono text-sm break-all text-gray-800">
-                {connection.id}
+                {connection.instanceId || "Não encontrado"}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => handleCopyId(connection.id)}
+                onClick={() => handleCopyId(connection.instanceId || "")}
                 className="hover:bg-gray-200"
               >
                 <Copy className="h-5 w-5 text-gray-600" />
