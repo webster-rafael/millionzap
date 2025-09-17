@@ -8,7 +8,7 @@ export type ConnectionStatus = {
 const resourceUrl = "/qrcode-status";
 const queryKey = ["connectionStatus"];
 
-const fetchConnectionStatus = async (
+export const fetchConnectionStatus = async (
   instanceName: string,
 ): Promise<ConnectionStatus> => {
   const response = await api.get(`${resourceUrl}?instanceName=${instanceName}`);

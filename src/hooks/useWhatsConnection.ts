@@ -53,13 +53,13 @@ export const useWhatsAppConnections = () => {
     });
 
   const { mutate: updateConnectionMutation, isPending: isUpdating } =
-  useMutation({
-    mutationFn: updateConnection,
-    onSuccess,
-    onError: (error) => {
-      console.error("Erro ao atualizar conexão:", error);
-    },
-  });
+    useMutation({
+      mutationFn: updateConnection,
+      onSuccess,
+      onError: (error) => {
+        console.error("Erro ao atualizar conexão:", error);
+      },
+    });
 
   const { mutate: deleteConnectionMutation } = useMutation({
     mutationFn: deleteConnection,

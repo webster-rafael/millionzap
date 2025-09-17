@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
 
 export function Sidebar() {
   const { user } = useAuth();
@@ -36,6 +37,20 @@ export function Sidebar() {
   const navigate = useNavigate();
   const [isAdminOpen, setIsAdminOpen] = useState(true);
   const [isCampanhasOpen, setIsCampanhasOpen] = useState(false);
+  const [connectionStatus, setCurrentConnectionStatus] = useState("");
+
+  const { connections } = useWhatsAppConnections();
+
+  const userConnection = connections.find(
+    (conn) => conn.companyId === user?.companyId,
+  );
+
+  console.log("userConnection:", userConnection);
+
+  useEffect(() => {
+    setCurrentConnectionStatus(userConnection?.status || "CLOSED");
+    console.log(connectionStatus);
+  }, [userConnection?.status, connectionStatus]);
 
   const mainItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -121,28 +136,35 @@ export function Sidebar() {
         </div>
 
         {(user?.role === "ADMIN" || user?.role === "OWNER") && (
-            <div className="mt-6">
-              <div className="mb-2 px-3">
-                <button
-                  onClick={() =>
-                    setIsAdminOpen(
-                      user?.role !== "ADMIN" && user?.role !== "OWNER",
-                    )
-                  }
-                  className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                >
-                  <Settings className="mr-3 h-4 w-4" />
-                  <span className="flex-1 text-left">Administração</span>
-                  {isAdminOpen ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+          <div className="mt-6">
+            <div className="mb-2 px-3">
+              <button
+                onClick={() =>
+                  setIsAdminOpen(
+                    user?.role !== "ADMIN" && user?.role !== "OWNER",
+                  )
+                }
+                className="flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                <Settings className="mr-3 h-4 w-4" />
+                <span className="flex-1 text-left">Administração</span>
+                {isAdminOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </button>
+            </div>
 
-              <div className="space-y-1 px-3">
-                {adminItems.map((item) => (
+            <div className="space-y-1 px-3">
+              {adminItems.map((item) => {
+                const isConnectionButton = item.name === "Conexões";
+                const isClosed =
+                  isConnectionButton && connectionStatus === "CLOSED";
+                const isPending =
+                  isConnectionButton && connectionStatus === "PENDING";
+
+                return (
                   <div key={item.name}>
                     {item.isCollapsible ? (
                       <>
@@ -165,7 +187,7 @@ export function Sidebar() {
                                 key={subItem.name}
                                 onClick={() => navigate(subItem.href)}
                                 className={cn(
-                                  "flex items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
+                                  "flex w-full items-center rounded-md px-9 py-2 text-sm font-medium transition-colors",
                                   pathname === subItem.href
                                     ? "bg-primary w-full text-white"
                                     : "text-gray-600 hover:bg-gray-100",
@@ -182,10 +204,14 @@ export function Sidebar() {
                       <button
                         onClick={() => navigate(item.href || "")}
                         className={cn(
-                          "flex items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
-                          pathname === item.href
-                            ? "bg-primary w-full text-white"
-                            : "text-gray-700 hover:bg-gray-100",
+                          "flex w-full items-center rounded-md px-6 py-2 text-sm font-medium transition-colors",
+                          isClosed
+                            ? "animate-pulse bg-red-400 text-white hover:bg-red-600"
+                            : isPending
+                              ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                              : pathname === item.href
+                                ? "bg-primary text-white"
+                                : "text-gray-700 hover:bg-gray-100",
                         )}
                       >
                         <item.icon className="mr-3 h-4 w-4" />
@@ -193,14 +219,15 @@ export function Sidebar() {
                       </button>
                     )}
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-gray-200 p-4">
-        <p className="text-center text-xs text-gray-500">Versão: 2.0</p>
+        <p className="text-center text-xs text-gray-500">Versão: 2.1.1</p>
       </div>
     </div>
   );

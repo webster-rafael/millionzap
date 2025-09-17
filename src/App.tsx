@@ -38,10 +38,12 @@ import { ProtectedRoute } from "@/components/protectRoutes";
 import { AtendimentosContent } from "@/components/atendimentos-content";
 import { Header } from "@/components/header";
 import { useEffect } from "react";
+import { useConnectionMonitor } from "@/hooks/useConnectionMonitor";
 
 const queryClient = new QueryClient();
 
 function MainLayout({ children }: { children: React.ReactNode }) {
+  useConnectionMonitor();
   const location = useLocation();
   const hideSidebar =
     location.pathname === "/cadastrar" || location.pathname === "/entrar";
