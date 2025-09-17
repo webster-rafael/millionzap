@@ -322,22 +322,21 @@ export function AtendimentosContent() {
       );
     }
 
-    
-if (user?.role === "USER") {
-  const userQueueIds = new Set(user.queues.map((q) => q.queue.id));
-  
-  filtered = filtered.filter((conversation) => {
-    if (conversation.status === "SERVING") {
-      return conversation.userId === user.id;
-    }
+    if (user?.role === "USER") {
+      const userQueueIds = new Set(user.queues.map((q) => q.queue.id));
 
-    if (userQueueIds.size === 0) {
-      return !conversation.queueId;
-    }
+      filtered = filtered.filter((conversation) => {
+        if (conversation.status === "SERVING") {
+          return conversation.userId === user.id;
+        }
 
-    return conversation.queueId && userQueueIds.has(conversation.queueId);
-  });
-}
+        if (userQueueIds.size === 0) {
+          return !conversation.queueId;
+        }
+
+        return conversation.queueId && userQueueIds.has(conversation.queueId);
+      });
+    }
 
     return filtered;
   }, [user, searchTerm, selectedQueueFilter, currentConversations]);
@@ -744,7 +743,7 @@ if (user?.role === "USER") {
         </div>
 
         <div className="flex items-center justify-between gap-2 border-b border-gray-200 p-4">
-          {user?.role === "ADMIN" || user?.role === "OWNER" && (
+          {user?.role !== "USER" && (
             <Select
               value={selectedQueueFilter}
               onValueChange={setSelectedQueueFilter}
