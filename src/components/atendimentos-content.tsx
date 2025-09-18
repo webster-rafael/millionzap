@@ -134,7 +134,7 @@ export function AtendimentosContent() {
   const audioHistoryRef = useRef<number[]>([]);
   const MAX_WAVE_SAMPLES = 60;
   const lastSampleTimeRef = useRef(0);
-  
+
   useEffect(() => {
     let animationFrameId: number;
 
@@ -144,7 +144,11 @@ export function AtendimentosContent() {
       const SAMPLE_INTERVAL_MS = 75;
 
       const now = Date.now();
-      if (isRecording && analyser && now - lastSampleTimeRef.current > SAMPLE_INTERVAL_MS) {
+      if (
+        isRecording &&
+        analyser &&
+        now - lastSampleTimeRef.current > SAMPLE_INTERVAL_MS
+      ) {
         lastSampleTimeRef.current = now;
 
         const bufferLength = analyser.frequencyBinCount;
@@ -168,23 +172,27 @@ export function AtendimentosContent() {
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          const barWidth = canvas.width / MAX_WAVE_SAMPLES;
+          const barWidth = 2;
+          const gap = 2;
           let x = canvas.width;
 
           for (let i = audioHistoryRef.current.length - 1; i >= 0; i--) {
             const value = audioHistoryRef.current[i];
-            const amplifiedHeight = (value / 255) * canvas.height * 1.9
-            const barHeight = Math.min(canvas.height, Math.max(2, amplifiedHeight));
+            const amplifiedHeight = (value / 255) * canvas.height * 1.9;
+            const barHeight = Math.min(
+              canvas.height,
+              Math.max(2, amplifiedHeight),
+            );
 
             ctx.fillStyle = "#636363";
             ctx.fillRect(
-              x - barWidth,
+              x - (barWidth + gap),
               (canvas.height - barHeight) / 2,
-              barWidth * 0.8,
+              barWidth,
               barHeight,
             );
 
-            x -= barWidth;
+            x -= barWidth + gap;
             if (x < 0) break;
           }
         }
@@ -209,7 +217,7 @@ export function AtendimentosContent() {
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-}, [isRecording]);
+  }, [isRecording]);
 
   const currentConversations: Conversation[] = useMemo(() => {
     if (activeSource === "instagram") {
