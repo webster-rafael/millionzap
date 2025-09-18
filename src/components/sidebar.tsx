@@ -45,11 +45,8 @@ export function Sidebar() {
     (conn) => conn.companyId === user?.companyId,
   );
 
-  console.log("userConnection:", userConnection);
-
   useEffect(() => {
     setCurrentConnectionStatus(userConnection?.status || "CLOSED");
-    console.log(connectionStatus);
   }, [userConnection?.status, connectionStatus]);
 
   const mainItems = [

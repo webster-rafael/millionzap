@@ -27,6 +27,7 @@ const sendMessageApi = async (data: SendMessagePayload) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-api-key": import.meta.env.VITE_API_KEY,
       },
       credentials: "include",
       body: JSON.stringify({
