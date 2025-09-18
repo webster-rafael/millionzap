@@ -73,6 +73,11 @@ import type { ConversationInstagram } from "@/interfaces/conversationInstagram-i
 import { InstagramChatArea } from "@/components/instagramChatArea";
 import { useHandleInstagramCode } from "@/components/handoleInstagramCode";
 import TextareaAutosize from "react-textarea-autosize";
+import { RecordingTimer } from "@/components/RecordingTimer";
+
+interface DynamicAudioWaveformProps {
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+}
 
 export function AtendimentosContent() {
   useHandleInstagramCode();
@@ -113,6 +118,9 @@ export function AtendimentosContent() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [newNoteContent, setNewNoteContent] = useState("");
   const [editingNote, setEditingNote] = useState<{
     id: string;
@@ -122,6 +130,86 @@ export function AtendimentosContent() {
   const [facebookLoginStatus, setFacebookLoginStatus] = useState("unknown");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSendingDocument, setIsSendingDocument] = useState(false);
+
+  const audioHistoryRef = useRef<number[]>([]);
+  const MAX_WAVE_SAMPLES = 60;
+  const lastSampleTimeRef = useRef(0);
+  
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const drawWaves = () => {
+      const canvas = canvasRef.current;
+      const analyser = analyserRef.current;
+      const SAMPLE_INTERVAL_MS = 75;
+
+      const now = Date.now();
+      if (isRecording && analyser && now - lastSampleTimeRef.current > SAMPLE_INTERVAL_MS) {
+        lastSampleTimeRef.current = now;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          sum += dataArray[i];
+        }
+        const average = sum / bufferLength;
+
+        audioHistoryRef.current.push(average);
+        if (audioHistoryRef.current.length > MAX_WAVE_SAMPLES) {
+          audioHistoryRef.current.shift();
+        }
+      }
+
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          const barWidth = canvas.width / MAX_WAVE_SAMPLES;
+          let x = canvas.width;
+
+          for (let i = audioHistoryRef.current.length - 1; i >= 0; i--) {
+            const value = audioHistoryRef.current[i];
+            const amplifiedHeight = (value / 255) * canvas.height * 1.9
+            const barHeight = Math.min(canvas.height, Math.max(2, amplifiedHeight));
+
+            ctx.fillStyle = "#636363";
+            ctx.fillRect(
+              x - barWidth,
+              (canvas.height - barHeight) / 2,
+              barWidth * 0.8,
+              barHeight,
+            );
+
+            x -= barWidth;
+            if (x < 0) break;
+          }
+        }
+      }
+
+      if (isRecording) {
+        animationFrameId = requestAnimationFrame(drawWaves);
+      }
+    };
+
+    if (isRecording) {
+      animationFrameId = requestAnimationFrame(drawWaves);
+    } else {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      audioHistoryRef.current = [];
+    }
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+}, [isRecording]);
 
   const currentConversations: Conversation[] = useMemo(() => {
     if (activeSource === "instagram") {
@@ -405,15 +493,23 @@ export function AtendimentosContent() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const audioContext = new ((window as any).AudioContext ||
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (window as any).webkitAudioContext)();
+      const analyser = audioContext.createAnalyser(); // ✅ A CORREÇÃO PRINCIPAL
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+
+      analyserRef.current = analyser;
+      audioContextRef.current = audioContext;
 
       audioChunksRef.current = [];
-
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
-
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/ogg",
@@ -422,20 +518,26 @@ export function AtendimentosContent() {
       };
 
       mediaRecorder.start();
-      mediaRecorderRef.current = mediaRecorder;
-      setIsRecording(true);
+      setIsRecording(true); // Ativa o useEffect e o componente Timer
     } catch (error) {
       console.error("Erro ao iniciar gravação:", error);
+      toast.error("Não foi possível acessar o microfone.");
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream
-        .getTracks()
-        .forEach((track) => track.stop());
-      setIsRecording(false);
+  const stopRecording = (send: boolean) => {
+    setIsRecording(false); // Desativa o useEffect e o componente Timer
+
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === "recording") {
+      const stream = recorder.stream;
+      if (!send) recorder.onstop = null;
+      recorder.stop();
+      stream.getTracks().forEach((track) => track.stop());
+    }
+
+    if (audioContextRef.current?.state !== "closed") {
+      audioContextRef.current?.close();
     }
   };
 
@@ -657,6 +759,17 @@ export function AtendimentosContent() {
       return null;
     }
   };
+
+  function DynamicAudioWaveform({ canvasRef }: DynamicAudioWaveformProps) {
+    return (
+      <canvas
+        ref={canvasRef}
+        width="192"
+        height="32"
+        className="h-full w-full"
+      />
+    );
+  }
 
   if (isErrorQueues) {
     toast.error("Erro ao buscar filas.");
@@ -943,12 +1056,12 @@ export function AtendimentosContent() {
                           )}
                         </div>
                       </div>
-                      <p className="mb-2 truncate text-sm text-gray-600">
+                      <div className="mb-2 truncate text-sm text-gray-600">
                         {lastMessage?.messageType === "text" ? (
                           <>{lastMessage?.content || "Nenhuma mensagem"}</>
                         ) : lastMessage?.messageType === "audio" ? (
                           <div className="flex items-center gap-1">
-                            <p>Mensagem de voz</p>
+                            <span>Mensagem de voz</span>
                             <Mic className="size-5" />
                           </div>
                         ) : lastMessage?.messageType === "image" ? (
@@ -964,7 +1077,7 @@ export function AtendimentosContent() {
                         ) : (
                           <>{lastMessage?.content}</>
                         )}
-                      </p>
+                      </div>
                       <div className="flex w-full items-center justify-between">
                         <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center space-x-2">
                           {isLoadingQueues ? (
@@ -1090,9 +1203,9 @@ export function AtendimentosContent() {
                               </span>
                             </div>
 
-                            <p className="truncate text-sm font-semibold text-pink-700">
+                            <span className="truncate text-sm font-semibold text-pink-700">
                               @{conversationInfo?.username || "instagram"}
-                            </p>
+                            </span>
 
                             <p className="mt-1 mb-2 truncate text-sm text-gray-600">
                               {lastMessage?.content || "Nenhuma mensagem"}
@@ -1595,60 +1708,98 @@ export function AtendimentosContent() {
             </ScrollArea>
 
             <div className="border-t border-gray-200 bg-white p-4">
-              <div className="flex items-center space-x-2">
-                {" "}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelected}
-                  style={{ display: "none" }}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={
-                    !selectedConversation || isSendingDocument || isRecording
-                  }
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  {isSendingDocument ? (
-                    <Loader className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-5 w-5" />
-                  )}
-                </Button>
-                <div className="relative flex-1">
-                  <TextareaAutosize
-                    placeholder="Digite uma mensagem..."
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    maxRows={6}
-                    className="border-input bg-background ring-offset-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border px-3 py-3 text-sm focus-visible:ring-1 focus-visible:ring-blue-300 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                  />
+              {isRecording ? (
+                // ---- INTERFACE DE GRAVAÇÃO (JÁ ESTAVA CORRETA) ----
+                <div className="flex h-[54px] items-center space-x-3">
                   <Button
-                    onClick={() => handleSendMessage()}
-                    size="sm"
-                    className="bg-secondary-million hover:bg-secondary-million/90 absolute right-2 bottom-2"
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:bg-red-100"
+                    onClick={() => stopRecording(false)}
                   >
-                    <Send className="size-4" />
+                    <Trash className="h-5 w-5" />
+                  </Button>
+                  <div className="flex h-full flex-1 items-center justify-between rounded-full bg-gray-100 px-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
+
+                      {/* 👇 SUBSTITUA O SPAN ANTIGO POR ISTO 👇 */}
+                      <RecordingTimer isRecording={isRecording} />
+                    </div>
+                    {isRecording && (
+                      <div className="flex h-full items-center">
+                        <DynamicAudioWaveform canvasRef={canvasRef} />
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="icon"
+                    className="bg-primary-million hover:bg-primary-million/90 h-12 w-12 flex-shrink-0 rounded-full"
+                    onClick={() => stopRecording(true)}
+                  >
+                    <Send className="h-5 w-5 text-white" />
                   </Button>
                 </div>
-                <Button
-                  variant={isRecording ? "destructive" : "outline"}
-                  className="size-12"
-                  onClick={isRecording ? stopRecording : startRecording}
-                >
-                  <Mic className="size-4" />
-                </Button>
-              </div>
+              ) : (
+                // ---- INTERFACE DE TEXTO (VERSÃO CORRIGIDA E LIMPA) ----
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelected}
+                    style={{ display: "none" }}
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!selectedConversation || isSendingDocument}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    {isSendingDocument ? (
+                      <Loader className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-5 w-5" />
+                    )}
+                  </Button>
+                  <div className="relative flex-1">
+                    <TextareaAutosize
+                      placeholder="Digite uma mensagem..."
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (messageInput.trim() !== "") {
+                            handleSendMessage();
+                          }
+                        }
+                      }}
+                      maxRows={6}
+                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border py-3 pr-12 pl-4 text-sm focus-visible:ring-1 focus-visible:ring-blue-300 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* LÓGICA CORRETA PARA ALTERNAR ENTRE MIC E SEND */}
+                  {messageInput.trim() === "" ? (
+                    <Button
+                      variant="outline"
+                      className="size-12"
+                      onClick={startRecording}
+                    >
+                      <Mic className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => handleSendMessage()}
+                      className="bg-primary-million hover:bg-primary-million/90 size-12"
+                    >
+                      <Send className="size-5" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         ) : (
