@@ -172,7 +172,7 @@ export function AtendimentosContent() {
         if (ctx) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-          const barWidth = 2;
+          const barWidth = 1;
           const gap = 2;
           let x = canvas.width;
 
@@ -506,7 +506,7 @@ export function AtendimentosContent() {
       const audioContext = new ((window as any).AudioContext ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser(); // ✅ A CORREÇÃO PRINCIPAL
+      const analyser = audioContext.createAnalyser()
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       analyser.fftSize = 256;
@@ -526,7 +526,7 @@ export function AtendimentosContent() {
       };
 
       mediaRecorder.start();
-      setIsRecording(true); // Ativa o useEffect e o componente Timer
+      setIsRecording(true);
     } catch (error) {
       console.error("Erro ao iniciar gravação:", error);
       toast.error("Não foi possível acessar o microfone.");
@@ -534,20 +534,26 @@ export function AtendimentosContent() {
   };
 
   const stopRecording = (send: boolean) => {
-    setIsRecording(false); // Desativa o useEffect e o componente Timer
+  setIsRecording(false);
 
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state === "recording") {
-      const stream = recorder.stream;
-      if (!send) recorder.onstop = null;
-      recorder.stop();
-      stream.getTracks().forEach((track) => track.stop());
-    }
+  const recorder = mediaRecorderRef.current;
+  if (recorder && recorder.state === "recording") {
+    if (!send) recorder.onstop = null;
 
-    if (audioContextRef.current?.state !== "closed") {
-      audioContextRef.current?.close();
+    recorder.stop();
+
+    if (recorder.stream) {
+      recorder.stream.getTracks().forEach((track) => track.stop());
     }
-  };
+  }
+  if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+    audioContextRef.current.close();
+    audioContextRef.current = null;
+  }
+
+  analyserRef.current = null;
+  mediaRecorderRef.current = null;
+};
 
   const handleResolveConversation = async (conversation: Conversation) => {
     updateConversation({
