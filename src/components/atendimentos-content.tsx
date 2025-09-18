@@ -895,7 +895,11 @@ export function AtendimentosContent() {
                   <div className="flex items-start space-x-3">
                     <div className="relative">
                       <Avatar className="h-12 w-12">
-                        <AvatarImage src={"/placeholder.svg"} />
+                        <AvatarImage
+                          src={
+                            conversation.contact?.image || "/placeholder.svg"
+                          }
+                        />
                         <AvatarFallback className="bg-primary-million text-white">
                           {conversation.contact?.name.charAt(0) || "C"}
                         </AvatarFallback>
