@@ -176,7 +176,7 @@ export function TarefasContent() {
     }
   };
 
-  const addTask = async () => {
+  const addTask = () => {
     if (!newTask.title.trim()) return;
 
     const payload: CreateToDo = {
@@ -192,7 +192,7 @@ export function TarefasContent() {
       dueDate: newTask.dueDate || null,
     };
 
-    await create(payload);
+    create(payload);
     setIsAddingTask(false);
     setNewTask({
       title: "",
@@ -224,18 +224,18 @@ export function TarefasContent() {
       completed: editingTask.completed,
     };
 
-    await update({ id: editingTask.id, ...payload });
+    update({ id: editingTask.id, ...payload });
     setEditingTask(null);
   };
 
-  const toggleTaskComplete = async (id: string) => {
+  const toggleTaskComplete = (id: string) => {
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
-    await update({ id, completed: !task.completed });
+    update({ id, completed: !task.completed });
   };
 
   const deleteTask = async (id: string) => {
-    await remove(id);
+    remove(id);
   };
 
   const isOverdue = (dueDate: string) => {

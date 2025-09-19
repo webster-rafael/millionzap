@@ -20,7 +20,6 @@ const updateToDo = (data: ToDoUpdatePayload): Promise<ToDo> => {
 const deleteToDo = (id: string): Promise<void> =>
   api.delete(`${resourceUrl}/${id}`);
 
-// Hook
 export const useToDos = () => {
   const queryClient = useQueryClient();
 
