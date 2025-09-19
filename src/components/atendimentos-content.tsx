@@ -73,7 +73,7 @@ import type { ConversationInstagram } from "@/interfaces/conversationInstagram-i
 import { InstagramChatArea } from "@/components/instagramChatArea";
 import { useHandleInstagramCode } from "@/components/handoleInstagramCode";
 import TextareaAutosize from "react-textarea-autosize";
-import { RecordingTimer } from "@/components/RecordingTimer";
+import { RecordingTimer } from "@/components/recordingTimer";
 
 interface DynamicAudioWaveformProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;

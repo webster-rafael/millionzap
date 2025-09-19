@@ -1,4 +1,5 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -9,6 +10,8 @@ import {
   Trash2,
   AlertCircle,
   Star,
+  Inbox,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +36,18 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
+import { useUsers } from "@/hooks/useUsers";
+import { useToDos } from "@/hooks/useToDo";
+import type { CreateToDo, UpdateToDo } from "@/interfaces/todo-interface";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface Task {
   id: string;
@@ -45,99 +60,29 @@ interface Task {
     name: string;
     avatar?: string;
   };
-  dueDate?: string;
+  dueDate?: string | null;
   createdAt: string;
   updatedAt: string;
   tags: string[];
   favorite: boolean;
+  createdBy?: { name: string; avatar?: string };
+  responsible?: { name: string; avatar?: string };
+  createdById?: string;
+  responsibleId?: string;
 }
 
-const initialTasks: Task[] = [
-  {
-    id: "1",
-    title: "Responder emails de clientes",
-    description:
-      "Verificar e responder todos os emails pendentes da caixa de entrada",
-    completed: false,
-    priority: "high",
-    category: "atendimento",
-    assignee: { name: "Admin", avatar: "/placeholder.svg?height=32&width=32" },
-    dueDate: "2025-01-08",
-    createdAt: "2025-01-07T08:10:27",
-    updatedAt: "2025-01-07T08:10:27",
-    tags: ["Email", "Cliente"],
-    favorite: true,
-  },
-  {
-    id: "2",
-    title: "Atualizar relatório mensal",
-    description: "Compilar dados de vendas e atendimento do mês anterior",
-    completed: false,
-    priority: "medium",
-    category: "trabalho",
-    assignee: {
-      name: "Webster",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    dueDate: "2025-01-10",
-    createdAt: "2025-01-06T14:30:00",
-    updatedAt: "2025-01-07T09:15:00",
-    tags: ["Relatório", "Vendas"],
-    favorite: false,
-  },
-  {
-    id: "3",
-    title: "Configurar novo webhook",
-    description: "Implementar webhook para integração com sistema externo",
-    completed: true,
-    priority: "urgent",
-    category: "suporte",
-    assignee: {
-      name: "Webster Dev",
-      avatar: "/placeholder.svg?height=32&width=32",
-    },
-    dueDate: "2025-01-07",
-    createdAt: "2025-01-05T10:00:00",
-    updatedAt: "2025-01-07T16:45:00",
-    tags: ["Webhook", "Integração"],
-    favorite: false,
-  },
-  {
-    id: "4",
-    title: "Ligar para cliente VIP",
-    description: "Follow-up da proposta comercial enviada na semana passada",
-    completed: false,
-    priority: "high",
-    category: "vendas",
-    assignee: { name: "Admin", avatar: "/placeholder.svg?height=32&width=32" },
-    dueDate: "2025-01-08",
-    createdAt: "2025-01-06T11:20:00",
-    updatedAt: "2025-01-06T11:20:00",
-    tags: ["Cliente VIP", "Follow-up"],
-    favorite: true,
-  },
-  {
-    id: "5",
-    title: "Organizar mesa de trabalho",
-    description: "Limpar e organizar o ambiente de trabalho",
-    completed: false,
-    priority: "low",
-    category: "pessoal",
-    dueDate: "2025-01-09",
-    createdAt: "2025-01-07T07:00:00",
-    updatedAt: "2025-01-07T07:00:00",
-    tags: ["Organização"],
-    favorite: false,
-  },
-];
-
 export function TarefasContent() {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const { user } = useAuth();
+  const { users } = useUsers();
+  const { todos, create, update, remove, isLoading } = useToDos();
+
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<string>("todas");
   const [selectedCategory, setSelectedCategory] = useState<string>("todas");
+  const [viewingTask, setViewingTask] = useState<Task | null>(null);
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -147,6 +92,33 @@ export function TarefasContent() {
     dueDate: "",
     tags: [] as string[],
   });
+
+  useEffect(() => {
+    if (todos) {
+      setTasks(
+        todos.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          completed: t.completed,
+          priority: t.priority.toLowerCase(),
+          category: (t.category || "trabalho").toLowerCase(),
+          assignee: t.responsible
+            ? { name: t.responsible.name, avatar: t.responsible.avatar }
+            : undefined,
+          dueDate: t.dueDate,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          tags: t.tags || [],
+          favorite: t.favorite || false,
+          createdById: t.createdById,
+          responsibleId: t.responsibleId,
+          createdBy: t.createdBy ? { name: t.createdBy.name } : undefined,
+          responsible: t.responsible ? { name: t.responsible.name } : undefined,
+        })),
+      );
+    }
+  }, [todos]);
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
@@ -204,25 +176,24 @@ export function TarefasContent() {
     }
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTask.title.trim()) return;
 
-    const task: Task = {
-      id: Date.now().toString(),
+    const payload: CreateToDo = {
       title: newTask.title,
       description: newTask.description,
-      completed: false,
-      priority: newTask.priority,
-      category: newTask.category,
-      assignee: newTask.assignee ? { name: newTask.assignee } : undefined,
-      dueDate: newTask.dueDate,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      tags: newTask.tags,
-      favorite: false,
+      priority: newTask.priority.toUpperCase() as
+        | "LOW"
+        | "MEDIUM"
+        | "HIGH"
+        | "URGENT",
+      responsibleId:
+        users.find((u) => u.name === newTask.assignee)?.id || user?.id || null,
+      dueDate: newTask.dueDate || null,
     };
 
-    setTasks([task, ...tasks]);
+    await create(payload);
+    setIsAddingTask(false);
     setNewTask({
       title: "",
       description: "",
@@ -232,52 +203,39 @@ export function TarefasContent() {
       dueDate: "",
       tags: [],
     });
-    setIsAddingTask(false);
   };
 
-  const updateTask = () => {
+  const updateTask = async () => {
     if (!editingTask) return;
 
-    const updatedTasks = tasks.map((task) =>
-      task.id === editingTask.id
-        ? { ...editingTask, updatedAt: new Date().toISOString() }
-        : task,
-    );
+    const payload: UpdateToDo = {
+      title: editingTask.title,
+      description: editingTask.description,
+      priority: editingTask.priority.toUpperCase() as
+        | "LOW"
+        | "MEDIUM"
+        | "HIGH"
+        | "URGENT",
+      responsibleId:
+        users.find((u) => u.name === editingTask.assignee?.name)?.id ||
+        user?.id ||
+        null,
+      dueDate: editingTask.dueDate || null,
+      completed: editingTask.completed,
+    };
 
-    setTasks(updatedTasks);
+    await update({ id: editingTask.id, ...payload });
     setEditingTask(null);
   };
 
-  const toggleTaskComplete = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              completed: !task.completed,
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      ),
-    );
+  const toggleTaskComplete = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    await update({ id, completed: !task.completed });
   };
 
-  const toggleTaskFavorite = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              favorite: !task.favorite,
-              updatedAt: new Date().toISOString(),
-            }
-          : task,
-      ),
-    );
-  };
-
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const deleteTask = async (id: string) => {
+    await remove(id);
   };
 
   const isOverdue = (dueDate: string) => {
@@ -291,11 +249,23 @@ export function TarefasContent() {
     const overdue = tasks.filter(
       (t) => t.dueDate && isOverdue(t.dueDate) && !t.completed,
     ).length;
-
     return { total, completed, pending, overdue };
   };
 
   const stats = getTaskStats();
+
+  const isCreator = (task: Task) => task.createdById === user?.id;
+  const isResponsible = (task: Task) => task.responsibleId === user?.id;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-gray-600">
+        <Loader2 className="h-10 w-10 animate-spin text-[#00183E]" />
+        <p className="mt-3 text-lg font-medium">Carregando tarefas...</p>
+        <p className="text-sm text-gray-400">Aguarde um instante</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -388,15 +358,35 @@ export function TarefasContent() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="assignee">Responsável</Label>
-                  <Input
-                    id="assignee"
+                  <Select
                     value={newTask.assignee}
-                    onChange={(e) =>
-                      setNewTask({ ...newTask, assignee: e.target.value })
+                    onValueChange={(value) =>
+                      setNewTask({ ...newTask, assignee: value })
                     }
-                    placeholder="Nome do responsável"
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((u) => u.companyId === user?.companyId)
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.name}>
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={"/placeholder.svg"} />
+                                <AvatarFallback className="bg-[#00183E] text-xs text-white">
+                                  {u.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{u.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div>
                   <Label htmlFor="dueDate">Data de Vencimento</Label>
                   <Input
@@ -409,6 +399,7 @@ export function TarefasContent() {
                   />
                 </div>
               </div>
+
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   variant="outline"
@@ -427,7 +418,6 @@ export function TarefasContent() {
           </DialogContent>
         </Dialog>
       </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
@@ -475,7 +465,6 @@ export function TarefasContent() {
           </CardContent>
         </Card>
       </div>
-
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
@@ -517,163 +506,158 @@ export function TarefasContent() {
           </div>
         </CardContent>
       </Card>
-
       {/* Tasks List */}
-      <div className="space-y-3">
-        {filteredTasks.map((task) => (
-          <Card
-            key={task.id}
-            className={`transition-all hover:shadow-md ${
-              task.completed ? "opacity-75" : ""
-            } ${
-              task.dueDate && isOverdue(task.dueDate) && !task.completed
-                ? "border-l-4 border-l-red-500"
-                : ""
-            }`}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start space-x-4">
-                <Checkbox
-                  checked={task.completed}
-                  onCheckedChange={() => toggleTaskComplete(task.id)}
-                  className="mt-1"
-                />
+      <Card>
+        <Table className="flex w-full flex-col">
+          <TableHeader className="flex w-full">
+            <TableRow className="mx-auto grid w-full grid-cols-8 px-4">
+              <TableHead className="text-center">Concluído</TableHead>
+              <TableHead className="col-span-2 text-center">Tarefa</TableHead>
+              <TableHead className="text-center">Prioridade</TableHead>
+              <TableHead className="text-center">Categoria</TableHead>
+              <TableHead className="text-center">Vencimento</TableHead>
+              <TableHead className="text-center">Responsável</TableHead>
 
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex items-start justify-between">
-                    <div className="flex items-center space-x-2">
-                      <h3
-                        className={`font-medium ${
-                          task.completed
-                            ? "text-gray-500 line-through"
-                            : "text-gray-900"
-                        }`}
-                      >
-                        {task.title}
-                      </h3>
-                      {task.favorite && (
-                        <Star className="h-4 w-4 fill-current text-yellow-500" />
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleTaskFavorite(task.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Star
-                          className={`h-4 w-4 ${
-                            task.favorite
-                              ? "fill-current text-yellow-500"
-                              : "text-gray-400"
-                          }`}
-                        />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingTask(task)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteTask(task.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {task.description && (
-                    <p
-                      className={`mb-3 text-sm ${
-                        task.completed ? "text-gray-400" : "text-gray-600"
-                      }`}
-                    >
-                      {task.description}
-                    </p>
+              <TableHead className="text-center">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="space-y-4 p-3">
+            {filteredTasks.length > 0 ? (
+              filteredTasks.map((task) => (
+                <TableRow
+                  key={task.id}
+                  onClick={() => setViewingTask(task)}
+                  className="relative grid h-20 w-full cursor-pointer grid-cols-8 rounded-lg border bg-zinc-100 transition-colors hover:bg-gray-50 data-[completed=true]:bg-zinc-100 data-[completed=true]:text-gray-500 data-[completed=true]:opacity-70"
+                  data-completed={task.completed}
+                >
+                  {task.completed && (
+                    <div className="absolute top-1/2 right-[120px] left-[40px] h-[0.1px] -translate-y-1/2 bg-gray-400" />
                   )}
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        className={`text-xs ${getPriorityColor(task.priority)}`}
-                      >
-                        {task.priority.toUpperCase()}
-                      </Badge>
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${getCategoryColor(task.category)}`}
-                      >
-                        {task.category.charAt(0).toUpperCase() +
-                          task.category.slice(1)}
-                      </Badge>
-                      {task.tags.map((tag, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center space-x-3 text-xs text-gray-500">
-                      {task.dueDate && (
-                        <div
-                          className={`flex items-center space-x-1 ${
-                            isOverdue(task.dueDate) && !task.completed
-                              ? "text-red-600"
-                              : ""
-                          }`}
-                        >
-                          <Calendar className="h-3 w-3" />
-                          <span>
-                            {new Date(task.dueDate).toLocaleDateString("pt-BR")}
-                          </span>
-                        </div>
-                      )}
-                      {task.assignee && (
-                        <div className="flex items-center space-x-1">
-                          <Avatar className="h-5 w-5">
-                            <AvatarImage
-                              src={task.assignee.avatar || "/placeholder.svg"}
-                            />
-                            <AvatarFallback className="bg-[#00183E] text-xs text-white">
-                              {task.assignee.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{task.assignee.name}</span>
-                        </div>
+                  <TableCell
+                    className="flex items-center justify-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      className="size-5 border border-zinc-300 bg-white"
+                      checked={task.completed}
+                      onCheckedChange={() => toggleTaskComplete(task.id)}
+                      disabled={!isCreator(task) && !isResponsible(task)}
+                    />
+                  </TableCell>
+                  <TableCell className="col-span-2 flex items-center justify-center font-medium">
+                    <div className="flex flex-col">
+                      <span className="w-28 truncate text-gray-900">
+                        {task.title}
+                      </span>
+                      {task.description && (
+                        <p className="w-28 truncate text-xs text-zinc-500">
+                          {task.description}
+                        </p>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell className="flex items-center justify-center text-center">
+                    <Badge
+                      className={`text-xs ${getPriorityColor(task.priority)}`}
+                    >
+                      {task.priority.toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="flex items-center justify-center text-center">
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs ${getCategoryColor(task.category)}`}
+                    >
+                      {task.category.charAt(0).toUpperCase() +
+                        task.category.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="flex items-center justify-center text-center">
+                    {task.dueDate ? (
+                      <div
+                        className={`flex items-center justify-center space-x-2 text-sm ${
+                          isOverdue(task.dueDate) && !task.completed
+                            ? "font-semibold text-red-600"
+                            : ""
+                        }`}
+                      >
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {new Date(task.dueDate).toLocaleDateString("pt-BR", {
+                            timeZone: "UTC",
+                          })}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs">N/D</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="flex items-center justify-center text-center">
+                    {task.responsible ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={"/placeholder.svg"} />
+                          <AvatarFallback className="bg-[#00183E] text-xs text-white">
+                            {task.responsible.name.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">
+                          {task.responsible.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs">Não atribuído</span>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className="flex items-center justify-center text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-end space-x-1">
+                      {isCreator(task) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingTask(task)}
+                          className="h-8 w-8 p-0 text-gray-500 hover:text-gray-800"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {isCreator(task) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteTask(task.id)}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow className="flex w-full">
+                <TableCell
+                  colSpan={7}
+                  className="h-32 w-full text-center text-gray-500"
+                >
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <Inbox className="h-10 w-10 text-gray-400" />
+                    <p className="font-medium">Nenhuma tarefa encontrada</p>
+                    <p className="text-sm text-gray-400">
+                      Tente ajustar os filtros ou crie uma nova tarefa
+                    </p>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {filteredTasks.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <CheckCircle2 className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-              <h3 className="mb-2 text-lg font-medium text-gray-900">
-                Nenhuma tarefa encontrada
-              </h3>
-              <p className="text-gray-500">
-                Tente ajustar os filtros ou criar uma nova tarefa.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
@@ -682,7 +666,7 @@ export function TarefasContent() {
             <DialogTitle>Editar Tarefa</DialogTitle>
           </DialogHeader>
           {editingTask && (
-            <div className="space-y-4">
+            <div className="space-y-4 pt-2">
               <div>
                 <Label htmlFor="edit-title">Título *</Label>
                 <Input
@@ -708,7 +692,7 @@ export function TarefasContent() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-priority">Prioridade</Label>
                   <Select
                     value={editingTask.priority}
@@ -716,7 +700,7 @@ export function TarefasContent() {
                       setEditingTask({ ...editingTask, priority: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -727,7 +711,7 @@ export function TarefasContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-category">Categoria</Label>
                   <Select
                     value={editingTask.category}
@@ -735,7 +719,7 @@ export function TarefasContent() {
                       setEditingTask({ ...editingTask, category: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -749,27 +733,45 @@ export function TarefasContent() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-assignee">Responsável</Label>
-                  <Input
-                    id="edit-assignee"
+                  <Select
                     value={editingTask.assignee?.name || ""}
-                    onChange={(e) =>
+                    onValueChange={(value) =>
                       setEditingTask({
                         ...editingTask,
-                        assignee: e.target.value
-                          ? { name: e.target.value }
-                          : undefined,
+                        assignee: { name: value },
                       })
                     }
-                  />
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um responsável" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users
+                        .filter((u) => u.companyId === user?.companyId)
+                        .map((u) => (
+                          <SelectItem key={u.id} value={u.name}>
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-5 w-5">
+                                <AvatarImage src={"/placeholder.svg"} />
+                                <AvatarFallback className="bg-[#00183E] text-xs text-white">
+                                  {u.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{u.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="edit-dueDate">Data de Vencimento</Label>
                   <Input
                     id="edit-dueDate"
                     type="date"
-                    value={editingTask.dueDate || ""}
+                    value={editingTask.dueDate?.split("T")[0] || ""}
                     onChange={(e) =>
                       setEditingTask({
                         ...editingTask,
@@ -791,6 +793,109 @@ export function TarefasContent() {
                 </Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Details Dialog (NOVO) */}
+      <Dialog open={!!viewingTask} onOpenChange={() => setViewingTask(null)}>
+        <DialogContent className="max-w-2xl">
+          {viewingTask && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <span>{viewingTask.title}</span>
+                  {viewingTask.favorite && (
+                    <Star className="h-5 w-5 text-yellow-500" />
+                  )}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                {viewingTask.description && (
+                  <div>
+                    <Label>Descrição</Label>
+                    <p className="text-sm text-gray-700">
+                      {viewingTask.description}
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                  <div>
+                    <Label>Status</Label>
+                    <div className="flex items-center space-x-2">
+                      {viewingTask.completed ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-orange-600" />
+                      )}
+                      <span className="text-sm">
+                        {viewingTask.completed ? "Concluída" : "Pendente"}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Prioridade</Label>
+                    <Badge
+                      className={`text-xs ${getPriorityColor(
+                        viewingTask.priority,
+                      )}`}
+                    >
+                      {viewingTask.priority.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label>Categoria</Label>
+                    <Badge
+                      variant="secondary"
+                      className={`text-xs ${getCategoryColor(
+                        viewingTask.category,
+                      )}`}
+                    >
+                      {viewingTask.category.charAt(0).toUpperCase() +
+                        viewingTask.category.slice(1)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label>Data de Vencimento</Label>
+                    <p className="text-sm">
+                      {viewingTask.dueDate
+                        ? new Date(viewingTask.dueDate).toLocaleDateString(
+                            "pt-BR",
+                          )
+                        : "Não definida"}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Responsável</Label>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={"/placeholder.svg"} />
+                        <AvatarFallback className="bg-[#00183E] text-xs text-white">
+                          {viewingTask.responsible?.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">
+                        {viewingTask.responsible?.name || "Não atribuído"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Criado por</Label>
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-6 w-6">
+                        <AvatarImage src={"/placeholder.svg"} />
+                        <AvatarFallback className="bg-gray-600 text-xs text-white">
+                          {viewingTask.createdBy?.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">
+                        {viewingTask.createdBy?.name || "Desconhecido"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
