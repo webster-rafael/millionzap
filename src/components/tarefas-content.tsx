@@ -291,7 +291,7 @@ export function TarefasContent() {
               <DialogTitle>Criar Nova Tarefa</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label htmlFor="title">Título *</Label>
                 <Input
                   id="title"
@@ -302,7 +302,7 @@ export function TarefasContent() {
                   placeholder="Digite o título da tarefa"
                 />
               </div>
-              <div>
+              <div className="flex flex-col gap-1">
                 <Label htmlFor="description">Descrição</Label>
                 <Textarea
                   id="description"
@@ -315,7 +315,7 @@ export function TarefasContent() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="priority">Prioridade</Label>
                   <Select
                     value={newTask.priority}
@@ -323,7 +323,7 @@ export function TarefasContent() {
                       setNewTask({ ...newTask, priority: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -334,7 +334,7 @@ export function TarefasContent() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="category">Categoria</Label>
                   <Select
                     value={newTask.category}
@@ -342,7 +342,7 @@ export function TarefasContent() {
                       setNewTask({ ...newTask, category: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -356,7 +356,7 @@ export function TarefasContent() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="assignee">Responsável</Label>
                   <Select
                     value={newTask.assignee}
@@ -364,7 +364,7 @@ export function TarefasContent() {
                       setNewTask({ ...newTask, assignee: value })
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Selecione um responsável" />
                     </SelectTrigger>
                     <SelectContent>
@@ -387,7 +387,7 @@ export function TarefasContent() {
                   </Select>
                 </div>
 
-                <div>
+                <div className="flex flex-col gap-1">
                   <Label htmlFor="dueDate">Data de Vencimento</Label>
                   <Input
                     id="dueDate"
@@ -483,7 +483,6 @@ export function TarefasContent() {
                 <TabsTrigger value="todas">Todas</TabsTrigger>
                 <TabsTrigger value="pendentes">Pendentes</TabsTrigger>
                 <TabsTrigger value="concluidas">Concluídas</TabsTrigger>
-                <TabsTrigger value="favoritas">Favoritas</TabsTrigger>
                 <TabsTrigger value="vencidas">Vencidas</TabsTrigger>
               </TabsList>
             </Tabs>
