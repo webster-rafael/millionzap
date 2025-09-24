@@ -117,6 +117,7 @@ export function AtendimentosContent() {
   const [isOpenModalTransfer, setIsOpenModalTransfer] = useState(false);
   const [openFilters, setOpenFilters] = useState(false);
   const [selectedQueueId, setSelectedQueueId] = useState<string>("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedQueueFilter, setSelectedQueueFilter] = useState("todas");
   const [isRecording, setIsRecording] = useState(false);
@@ -476,11 +477,30 @@ export function AtendimentosContent() {
           return conversation.userId === user.id;
         }
 
-        if (userQueueIds.size === 0) {
-          return !conversation.queueId;
+        if (
+          (conversation.status === "RESOLVED" ||
+            conversation.status === "CLOSED") &&
+          conversation.userId === user.id
+        ) {
+          return true;
         }
 
-        return conversation.queueId && userQueueIds.has(conversation.queueId);
+        if (
+          conversation.status === "WAITING" &&
+          conversation.queueId &&
+          userQueueIds.has(conversation.queueId)
+        ) {
+          return true;
+        }
+
+        if (
+          conversation.status === "WAITING" &&
+          conversation.userId === user.id
+        ) {
+          return true;
+        }
+
+        return false;
       });
     }
 
@@ -514,23 +534,31 @@ export function AtendimentosContent() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeConversation?.messages]);
-
   const handleTransferConfirm = () => {
-    if (!selectedConversationId || !selectedQueueId) {
-      console.error("Conversa ou Fila não selecionada para transferência.");
+    if (!selectedConversationId) {
+      console.error("Nenhuma conversa selecionada para transferência.");
       return;
     }
 
     const queueIdToSend =
-      selectedQueueId === "sem-fila" ? null : selectedQueueId;
+      !selectedQueueId || selectedQueueId === "sem-fila"
+        ? null
+        : selectedQueueId;
+
+    const userIdToSend =
+      !selectedUserId || selectedUserId === "nenhum-usuario"
+        ? null
+        : selectedUserId;
 
     updateConversation({
       id: selectedConversationId,
       queueId: queueIdToSend,
+      userId: userIdToSend,
     });
 
     setIsOpenModalTransfer(false);
     setSelectedQueueId("");
+    setSelectedUserId("");
   };
 
   const handleOpenFilters = () => {
@@ -2071,6 +2099,23 @@ export function AtendimentosContent() {
                   {queues.map((queue) => (
                     <option key={queue.id} value={queue.id}>
                       {queue.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-zinc-500">
+                  <ArrowDown className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="relative">
+                <select
+                  className="w-full appearance-none rounded border border-gray-300 px-4 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                >
+                  <option value="nenhum-usuario">Nenhum usuário</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
                     </option>
                   ))}
                 </select>
