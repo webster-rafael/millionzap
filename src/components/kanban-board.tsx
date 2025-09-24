@@ -14,6 +14,7 @@ import {
   MessageSquareDot,
   TicketCheck,
   MessageSquareX,
+  LockKeyhole,
 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,8 @@ import { ptBR } from "date-fns/locale";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 interface Column {
   id: string;
   title: string;
@@ -62,6 +65,7 @@ export function KanbanBoard() {
         title: tag.title,
         color: tag.color,
         conversations: conversations.filter((conv) => conv.tagId === tag.id),
+        order: tag.order,
       })),
     );
   }, [tags, conversations]);
@@ -81,6 +85,12 @@ export function KanbanBoard() {
     const startCol = columns.find((col) => col.id === source.droppableId);
     const endCol = columns.find((col) => col.id === destination.droppableId);
     if (!startCol || !endCol) return;
+
+    const lastColumnId = columns[columns.length - 1]?.id;
+    if (destination.droppableId === lastColumnId) {
+      toast("Não é permitido mover para o Follow-up.");
+      return;
+    }
 
     const conversationToMove = startCol.conversations.find(
       (conv) => conv.id === draggableId,
@@ -188,12 +198,19 @@ export function KanbanBoard() {
                       <h3 className="font-semibold text-gray-900">
                         {column.title}
                       </h3>
-                      <Badge
-                        variant="secondary"
-                        className="bg-[#00183E] text-white"
-                      >
-                        {column.conversations.length}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {columns[columns.length - 1]?.id === column.id && (
+                          <div title="Acesso restrito" className="flex size-6 items-center justify-center rounded-full bg-zinc-800">
+                            <LockKeyhole className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+                        <Badge
+                          variant="secondary"
+                          className="bg-[#00183E] text-white"
+                        >
+                          {column.conversations.length}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
@@ -286,7 +303,8 @@ export function KanbanBoard() {
                                             })()}
                                           </span>
                                           <p className="truncate text-sm text-gray-600">
-                                            {conversation.messages?.[0]?.content || ""}
+                                            {conversation.messages?.[0]
+                                              ?.content || ""}
                                           </p>
                                         </CardContent>
 
@@ -374,6 +392,7 @@ export function KanbanBoard() {
           </div>
         </DragDropContext>
       </div>
+      <Toaster />
     </div>
   );
 }
