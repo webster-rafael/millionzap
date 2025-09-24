@@ -15,6 +15,9 @@ export interface Conversation {
   user?: UserInfo | null;
   messages?: MessageInfo[];
   companyId: string;
+  copilot: boolean | null;
+  copilotFeedback?: CopilotFeedback | null;
+  statusCopilot?: string | null;
 }
 
 interface ContactInfo {
@@ -58,4 +61,40 @@ export interface ConversationCreate {
   createdAt: Date;
   messages?: MessageInfo[];
   companyId: string;
+  copilot?: boolean | null;
+  copilotFeedback?: CopilotFeedback | null;
+  statusCopilot?: string | null;
+}
+
+export interface CopilotFeedback {
+  feedback: {
+    avaliacaoGeral: {
+      status: "Crítico" | "Atenção" | "Bom" | "Excelente";
+      pontuacao: string;
+    };
+    analiseCompleta: {
+      pontosFortes: string[];
+      pontosFracos: string[];
+      errosACorrigir: string[];
+      proximosPassos: string[];
+    };
+    analiseCriterios: {
+      criterio: string;
+      feedback: string;
+      avaliacao: string;
+    }[];
+    quebraDeObjecoes: {
+      contraArgumento: string;
+      objecaoProvavel: string;
+    }[];
+    rascunhoResposta: string;
+    sugestaoFollowUp: {
+      opcoes: string[];
+      cenario: string;
+    };
+    perguntasEstrategicas: string[];
+    respostasEstrategicas: string[];
+  };
+  companyId: string;
+  conversationId: string;
 }

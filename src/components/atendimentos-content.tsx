@@ -21,6 +21,10 @@ import {
   Image,
   FileText,
   Pencil,
+  BotMessageSquare,
+  BotOff,
+  Bot,
+  ClipboardList,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +111,7 @@ export function AtendimentosContent() {
   } = useConversationsInstagram();
   const { updateContact } = useContacts();
   const { connections } = useWhatsAppConnections();
-  const { queues, isLoadingQueues, isErrorQueues } = useQueues();
+  const { queues, isLoadingQueues } = useQueues();
   const sendMessageMutation = useSendMessage();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [isOpenModalTransfer, setIsOpenModalTransfer] = useState(false);
@@ -130,7 +134,13 @@ export function AtendimentosContent() {
   const [facebookLoginStatus, setFacebookLoginStatus] = useState("unknown");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSendingDocument, setIsSendingDocument] = useState(false);
-
+  const [activeCopilot, setActiveCopilot] = useState(
+    conversations.find((c) => c.id === selectedConversationId)?.copilot,
+  );
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setStatusFeedback] = useState<string | null>(null);
   const audioHistoryRef = useRef<number[]>([]);
   const MAX_WAVE_SAMPLES = 60;
   const lastSampleTimeRef = useRef(0);
@@ -237,7 +247,6 @@ export function AtendimentosContent() {
     }
 
     const userConnection = connections.find((c) => c.id === user.connectionId);
-
     if (!userConnection) {
       toast.error("A conexão associada ao seu usuário não foi encontrada.");
       return;
@@ -282,6 +291,47 @@ export function AtendimentosContent() {
 
       sendMessageMutation.send(payload);
       setMessageInput("");
+    }
+    try {
+      const res = await fetch(import.meta.env.VITE_COPILOT_WEBHOOK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyId: user?.companyId,
+          conversationId: selectedConversation.id,
+          name: selectedConversation.contact?.name,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro no webhook");
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      const status =
+        data?.copilotFeedback?.feedback?.avaliacaoGeral?.status || null;
+
+      if (status) {
+        setStatusFeedback(status);
+
+        let bgStyle: React.CSSProperties = {};
+
+        if (status === "Crítico") {
+          bgStyle = { backgroundColor: "#dc2626", color: "#fff" };
+        } else if (status === "Atenção") {
+          bgStyle = { backgroundColor: "#eab308", color: "#fff" };
+        } else if (status === "Bom") {
+          bgStyle = { backgroundColor: "#3b82f6", color: "#fff" };
+        } else if (status === "Excelente") {
+          bgStyle = { backgroundColor: "#22c55e", color: "#fff" };
+        }
+
+        toast.success(`Status da conversa: ${status}`, {
+          style: bgStyle,
+        });
+      }
+    } catch (err) {
+      console.error("Erro ao chamar webhook:", err);
+      toast.error("Erro ao chamar webhook.");
     }
   };
 
@@ -506,7 +556,7 @@ export function AtendimentosContent() {
       const audioContext = new ((window as any).AudioContext ||
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (window as any).webkitAudioContext)();
-      const analyser = audioContext.createAnalyser()
+      const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
       analyser.fftSize = 256;
@@ -534,26 +584,26 @@ export function AtendimentosContent() {
   };
 
   const stopRecording = (send: boolean) => {
-  setIsRecording(false);
+    setIsRecording(false);
 
-  const recorder = mediaRecorderRef.current;
-  if (recorder && recorder.state === "recording") {
-    if (!send) recorder.onstop = null;
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state === "recording") {
+      if (!send) recorder.onstop = null;
 
-    recorder.stop();
+      recorder.stop();
 
-    if (recorder.stream) {
-      recorder.stream.getTracks().forEach((track) => track.stop());
+      if (recorder.stream) {
+        recorder.stream.getTracks().forEach((track) => track.stop());
+      }
     }
-  }
-  if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-    audioContextRef.current.close();
-    audioContextRef.current = null;
-  }
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
 
-  analyserRef.current = null;
-  mediaRecorderRef.current = null;
-};
+    analyserRef.current = null;
+    mediaRecorderRef.current = null;
+  };
 
   const handleResolveConversation = async (conversation: Conversation) => {
     updateConversation({
@@ -785,9 +835,114 @@ export function AtendimentosContent() {
     );
   }
 
-  if (isErrorQueues) {
-    toast.error("Erro ao buscar filas.");
-  }
+  useEffect(() => {
+    if (selectedConversation) {
+      setActiveCopilot(selectedConversation.copilot);
+    }
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchFeedback = async () => {
+      if (!selectedConversation?.copilot) return;
+
+      try {
+        const res = await fetch(import.meta.env.VITE_COPILOT_WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            companyId: user?.companyId,
+            conversationId: selectedConversation.id,
+          }),
+        });
+
+        const data = await res.json();
+
+        const status =
+          data?.[0]?.copilotFeedback?.feedback?.avaliacaoGeral?.status || null;
+
+        if (status) {
+          setStatusFeedback(status);
+          toast.success(`Status da conversa: ${status}`);
+          clearInterval(intervalId);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar feedback:", err);
+      }
+    };
+
+    if (selectedConversation?.status === "RESOLVED") {
+      fetchFeedback();
+
+      intervalId = setInterval(fetchFeedback, 1000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [
+    selectedConversation?.status,
+    selectedConversation?.id,
+    user?.companyId,
+    selectedConversation?.copilot,
+  ]);
+
+  const handleActiveCopilot = async () => {
+    if (!selectedConversation || !user?.companyId) {
+      toast.error("Nenhuma conversa selecionada ou empresa não encontrada.");
+      return;
+    }
+
+    try {
+      const newCopilotValue = !selectedConversation.copilot;
+
+      updateConversation({
+        id: selectedConversation.id,
+        copilot: newCopilotValue,
+      });
+
+      if (!newCopilotValue) {
+        const stopWebhookUrl = import.meta.env.VITE_STOP_COPILOT_WEBHOOK;
+        if (stopWebhookUrl) {
+          await fetch(stopWebhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              companyId: user.companyId,
+              conversationId: selectedConversation.id,
+            }),
+          });
+          toast.info("Fluxo do n8n interrompido.");
+        } else {
+          console.warn("VITE_STOP_COPILOT_WEBHOOK não configurado.");
+        }
+      }
+
+      toast.success(
+        newCopilotValue
+          ? "Copilot de vendas ativado!"
+          : "Copilot de vendas desativado!",
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar copilot:", err);
+      toast.error("Erro ao ativar/desativar copilot.");
+    }
+  };
+
+  const handleShowSuggestion = () => {
+    const suggestions =
+      selectedConversation?.copilotFeedback?.feedback?.perguntasEstrategicas ||
+      [];
+
+    if (suggestions.length === 0) return;
+
+    const nextSuggestion = suggestions[suggestionIndex];
+
+    setMessageInput(nextSuggestion);
+
+    setSuggestionIndex((prev) => (prev + 1) % suggestions.length);
+  };
 
   const isLoading =
     activeSource === "whatsapp"
@@ -1398,6 +1553,36 @@ export function AtendimentosContent() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
+                    variant="outline"
+                    className={`hover:bg-secondary-million bg-red-500 text-white hover:text-white ${
+                      selectedConversation?.copilot
+                        ? "bg-secondary-million text-white hover:bg-red-500"
+                        : ""
+                    }`}
+                    size="sm"
+                    title={`${
+                      activeCopilot ? "Desativar Copilot" : "Ativar Copilot"
+                    }`}
+                    onClick={handleActiveCopilot}
+                  >
+                    {selectedConversation?.copilot ? (
+                      <BotMessageSquare className="h-5 w-5" />
+                    ) : (
+                      <BotOff className="h-5 w-5" />
+                    )}
+                  </Button>
+                  {selectedConversation.copilot &&
+                    selectedConversation.copilotFeedback && (
+                      <Button
+                        onClick={() => setIsFeedbackModalOpen(true)}
+                        className={`${selectedConversation.statusCopilot === "Crítico" ? "bg-red-500/80" : selectedConversation.statusCopilot === "Atenção" ? "bg-yellow-500/80" : selectedConversation.statusCopilot === "Bom" ? "bg-blue-500/80" : selectedConversation.statusCopilot === "Excelente" ? "bg-green-500/80" : ""} animate-pulse text-white`}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <ClipboardList />
+                      </Button>
+                    )}
+                  <Button
                     onClick={() => setIsOpenModalTransfer(true)}
                     title="Transferir"
                     variant="outline"
@@ -1619,19 +1804,21 @@ export function AtendimentosContent() {
                               onCheckedChange={handleIsCustomerToggle}
                             />
                           </div>
+                          <Button
+                            className="bg-red-500 text-white"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              deleteConversation(selectedConversation.id)
+                            }
+                          >
+                            <Trash className="h-4 w-4" />
+                            <span className="ml-2">Excluir Conversa</span>
+                          </Button>
                         </div>
                       </div>
                     </PopoverContent>
                   </Popover>
-
-                  <Button
-                    className="hover:bg-red-500 hover:text-white"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => deleteConversation(selectedConversation.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </div>
@@ -1723,7 +1910,6 @@ export function AtendimentosContent() {
 
             <div className="border-t border-gray-200 bg-white p-4">
               {isRecording ? (
-                // ---- INTERFACE DE GRAVAÇÃO (JÁ ESTAVA CORRETA) ----
                 <div className="flex h-[54px] items-center space-x-3">
                   <Button
                     variant="ghost"
@@ -1737,7 +1923,6 @@ export function AtendimentosContent() {
                     <div className="flex items-center space-x-2">
                       <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
 
-                      {/* 👇 SUBSTITUA O SPAN ANTIGO POR ISTO 👇 */}
                       <RecordingTimer isRecording={isRecording} />
                     </div>
                     {isRecording && (
@@ -1755,7 +1940,6 @@ export function AtendimentosContent() {
                   </Button>
                 </div>
               ) : (
-                // ---- INTERFACE DE TEXTO (VERSÃO CORRIGIDA E LIMPA) ----
                 <div className="flex items-center space-x-2">
                   <input
                     type="file"
@@ -1769,7 +1953,7 @@ export function AtendimentosContent() {
                     size="icon"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={!selectedConversation || isSendingDocument}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="h-12 w-12 border text-gray-800 hover:bg-zinc-200 hover:text-gray-700"
                   >
                     {isSendingDocument ? (
                       <Loader className="h-5 w-5 animate-spin" />
@@ -1777,7 +1961,19 @@ export function AtendimentosContent() {
                       <Paperclip className="h-5 w-5" />
                     )}
                   </Button>
-                  <div className="relative flex-1">
+                  <div
+                    className={`relative flex flex-1 items-center rounded-md border py-0.5 pr-2 disabled:cursor-not-allowed disabled:opacity-50 ${
+                      selectedConversation.statusCopilot === "Crítico"
+                        ? "focus-within:border-red-500/50"
+                        : selectedConversation.statusCopilot === "Atenção"
+                          ? "focus-within:border-yellow-500/50"
+                          : selectedConversation.statusCopilot === "Bom"
+                            ? "focus-within:border-blue-500/50"
+                            : selectedConversation.statusCopilot === "Excelente"
+                              ? "focus-within:border-green-500/50"
+                              : ""
+                    }`}
+                  >
                     <TextareaAutosize
                       placeholder="Digite uma mensagem..."
                       value={messageInput}
@@ -1791,18 +1987,37 @@ export function AtendimentosContent() {
                         }
                       }}
                       maxRows={6}
-                      className="border-input bg-background ring-offset-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border py-3 pr-12 pl-4 text-sm focus-visible:ring-1 focus-visible:ring-blue-300 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                      className="border-input bg-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border border-none py-3 pr-12 pl-4 text-sm focus-within:ring-0 focus-within:outline-none"
                     />
+                    {selectedConversation.copilot &&
+                      selectedConversation.copilotFeedback?.feedback && (
+                        <Button
+                          onClick={handleShowSuggestion}
+                          className={`group flex size-7 items-center justify-center rounded-full p-1.5 hover:scale-105 ${
+                            selectedConversation.statusCopilot === "Crítico"
+                              ? "bg-red-500"
+                              : selectedConversation.statusCopilot === "Atenção"
+                                ? "bg-yellow-500"
+                                : selectedConversation.statusCopilot === "Bom"
+                                  ? "bg-blue-500"
+                                  : selectedConversation.statusCopilot ===
+                                      "Excelente"
+                                    ? "bg-green-500"
+                                    : "bg-zinc-500"
+                          }`}
+                        >
+                          <Bot className="size-4 animate-bounce text-white group-hover:animate-none" />
+                        </Button>
+                      )}
                   </div>
 
-                  {/* LÓGICA CORRETA PARA ALTERNAR ENTRE MIC E SEND */}
                   {messageInput.trim() === "" ? (
                     <Button
                       variant="outline"
-                      className="size-12"
+                      className="size-12 bg-zinc-400 text-white hover:bg-orange-600 hover:text-white"
                       onClick={startRecording}
                     >
-                      <Mic className="size-4" />
+                      <Mic className="size-5" />
                     </Button>
                   ) : (
                     <Button
@@ -1878,6 +2093,124 @@ export function AtendimentosContent() {
         )}
       </>
       <Toaster />
+      {isFeedbackModalOpen && selectedConversation?.copilotFeedback && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setIsFeedbackModalOpen(false)}
+        >
+          <div
+            className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between">
+              <div className="flex items-center gap-2 py-4">
+                <Bot className="size-6" />
+                <h2 className="font-poppins text-lg font-semibold text-zinc-700">
+                  Feedback da Conversa
+                </h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <h3>
+                  <span className="font-poppins font-bold text-zinc-600 uppercase">
+                    Status
+                  </span>
+                  :{" "}
+                  <span
+                    className={`${
+                      selectedConversation.statusCopilot === "Crítico"
+                        ? "bg-red-500"
+                        : selectedConversation.statusCopilot === "Atenção"
+                          ? "bg-yellow-500"
+                          : selectedConversation.statusCopilot === "Bom"
+                            ? "bg-blue-500"
+                            : selectedConversation.statusCopilot === "Excelente"
+                              ? "bg-green-500"
+                              : "bg-zinc-500"
+                    } rounded-lg p-1 text-sm font-semibold text-white uppercase`}
+                  >
+                    {selectedConversation.statusCopilot || ""}
+                  </span>
+                </h3>
+              </div>
+            </div>
+
+            {selectedConversation.copilotFeedback.feedback.analiseCompleta && (
+              <div className="space-y-4">
+                {selectedConversation.copilotFeedback.feedback.analiseCompleta
+                  .pontosFortes && (
+                  <div>
+                    <h3 className="font-medium text-green-700">
+                      Pontos Fortes
+                    </h3>
+                    <ul className="list-disc pl-5 text-sm text-zinc-700">
+                      {selectedConversation.copilotFeedback.feedback.analiseCompleta.pontosFortes.map(
+                        (item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedConversation.copilotFeedback.feedback.analiseCompleta
+                  .pontosFracos && (
+                  <div>
+                    <h3 className="font-medium text-red-700">Pontos Fracos</h3>
+                    <ul className="list-disc pl-5 text-sm text-zinc-700">
+                      {selectedConversation.copilotFeedback.feedback.analiseCompleta.pontosFracos.map(
+                        (item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedConversation.copilotFeedback.feedback.analiseCompleta
+                  .errosACorrigir && (
+                  <div>
+                    <h3 className="font-medium text-orange-700">
+                      Erros a Corrigir
+                    </h3>
+                    <ul className="list-disc pl-5 text-sm text-zinc-700">
+                      {selectedConversation.copilotFeedback.feedback.analiseCompleta.errosACorrigir.map(
+                        (item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedConversation.copilotFeedback.feedback.analiseCompleta
+                  .proximosPassos && (
+                  <div>
+                    <h3 className="font-medium text-blue-700">
+                      Próximos Passos
+                    </h3>
+                    <ul className="list-disc pl-5 text-sm text-zinc-700">
+                      {selectedConversation.copilotFeedback.feedback.analiseCompleta.proximosPassos.map(
+                        (item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setIsFeedbackModalOpen(false)}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

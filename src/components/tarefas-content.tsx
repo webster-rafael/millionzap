@@ -546,11 +546,11 @@ export function TarefasContent() {
                   </TableCell>
                   <TableCell className="col-span-2 flex items-center justify-center font-medium">
                     <div className="flex flex-col">
-                      <span className="w-28 truncate text-gray-900">
+                      <span className="w-28 truncate text-gray-900 lg:w-48">
                         {task.title}
                       </span>
                       {task.description && (
-                        <p className="w-28 truncate text-xs text-zinc-500">
+                        <p className="w-28 truncate text-xs text-zinc-500 lg:w-48">
                           {task.description}
                         </p>
                       )}
