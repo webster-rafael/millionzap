@@ -96,7 +96,7 @@ export function Sidebar() {
     { name: "Filas & Chatbot", href: "/filas-chatbot", icon: MessageCircle },
     { name: "Usuários", href: "/usuarios", icon: UsersIcon },
     { name: "API", href: "/api", icon: Cog },
-    { name: "Financeiro", href: "/financeiro", icon: DollarSign },
+    { name: "Assinatura", href: "/planos", icon: DollarSign },
     { name: "Configurações", href: "/configuracoes", icon: Settings },
   ];
 

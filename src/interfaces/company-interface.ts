@@ -3,7 +3,7 @@ export interface Company {
   name: string;
   phone: string;
   email: string;
-  planId: string;
+  subscriptions: CompanySubscription[];
   status: boolean;
   dueDate: Date;
   createdAt: Date;
@@ -15,5 +15,28 @@ export interface CreateCompany {
   phone: string;
   email: string;
   password: string;
+}
+
+export interface CompanySubscription {
+  id: string;
+  companyId: string;
   planId: string;
+  startDate: Date;
+  endDate: Date;
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  paymentStatus: "PENDING" | "PAID" | "OVERDUE";
+  createdAt: Date;
+  updatedAt: Date;
+  plan: SubscriptionPlan;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  features: string[];
+  status: "ACTIVE" | "INACTIVE" | "PENDING" | "EXPIRED" | "CANCELLED";
+  createdAt: Date;
+  updatedAt: Date;
 }

@@ -1,3 +1,5 @@
+import type { Company } from "@/interfaces/company-interface";
+
 export interface User {
   id: string;
   name: string;
@@ -14,6 +16,7 @@ export interface User {
   tokenIg?: string | null;
   instagramId?: string | null;
   instagramAuthenticated?: boolean | null;
+  company?: Company;
 }
 
 interface UserQueue {

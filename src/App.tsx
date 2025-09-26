@@ -24,7 +24,7 @@ import ConexoesPage from "@/pages/conexoes/page";
 import ConfiguracoesPage from "@/pages/configuracoes/page";
 import ContatosPage from "@/pages/contatos/page";
 import FilasChatbotPage from "@/pages/filas-chatbot/page";
-import FinanceiroPage from "@/pages/financeiro/page";
+import FinanceiroPage from "@/pages/planos/page";
 import InformativosPage from "@/pages/informativos/page";
 import IntegracoesPage from "@/pages/integracoes/page";
 import KanbanPage from "@/pages/kanban/page";
@@ -95,7 +95,7 @@ function AppRoutes() {
         <Route path="/filas-chatbot" element={<FilasChatbotPage />} />
         <Route path="/usuarios" element={<UsuariosPage />} />
         <Route path="/api" element={<ApiPage />} />
-        <Route path="/financeiro" element={<FinanceiroPage />} />
+        <Route path="/planos" element={<FinanceiroPage />} />
         <Route path="/configuracoes" element={<ConfiguracoesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />

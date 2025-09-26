@@ -1,3 +1,4 @@
+import type { Company } from "@/interfaces/company-interface";
 import { api } from "@/services/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface User {
@@ -11,6 +12,7 @@ interface User {
   tokenIg?: string | null;
   instagramId?: string | null;
   instagramAuthenticated?: boolean | null;
+  company: Company;
   queues: {
     queue: {
       id: string;
