@@ -171,7 +171,7 @@ export function DashboardContent() {
               : user?.role === "ADMIN" || user?.role === "OWNER"
                 ? "ADMIN"
                 : "OWNER"}
-            , Bem vindo à {user?.companyName}
+            , Bem vindo à {user?.company.name}
           </p>
         </div>
         <div className="flex items-center space-x-4">
