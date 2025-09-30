@@ -40,7 +40,6 @@ export function CadastrarContent() {
       phone: values.phone,
       email: values.email,
       password: values.password,
-      planId: import.meta.env.VITE_PLAN_TEST_ID,
     };
 
     signUpUser(payload, {

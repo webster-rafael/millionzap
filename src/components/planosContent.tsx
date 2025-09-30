@@ -20,9 +20,6 @@ export function PlanosContent() {
 
   const currentSubscription = user?.company?.subscriptions?.[0];
   const currentPlanId = currentSubscription?.plan?.id;
-  const startDate = currentSubscription?.startDate
-    ? new Date(currentSubscription.startDate)
-    : null;
 
   const getDaysInfo = (endDate: Date | null) => {
     if (!endDate) {
@@ -40,11 +37,9 @@ export function PlanosContent() {
     return { daysLeft: 0, daysOverdue: Math.abs(diffInDays) };
   };
 
-  const endDate = startDate
-    ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
-    : currentSubscription?.endDate
-      ? new Date(currentSubscription.endDate)
-      : null;
+  const endDate = currentSubscription?.endDate
+    ? new Date(currentSubscription.endDate)
+    : null;
 
   const { daysLeft, daysOverdue } = getDaysInfo(endDate);
 

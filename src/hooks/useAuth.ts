@@ -32,7 +32,6 @@ type SignUpPayload = {
   phone: string;
   email: string;
   password: string;
-  planId: string;
 };
 
 const authQueryKey = ["auth-user"];

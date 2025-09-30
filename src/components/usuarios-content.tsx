@@ -507,8 +507,8 @@ export function UsuariosContent() {
                     <FormItem>
                       <FormLabel>Conexão WhatsApp</FormLabel>
                       <Select
+                        value={field.value || ""}
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -533,6 +533,7 @@ export function UsuariosContent() {
                     </FormItem>
                   )}
                 />
+
                 <DialogFooter className="gap-2 pt-4">
                   <Button
                     type="button"
