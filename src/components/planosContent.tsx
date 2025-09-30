@@ -11,6 +11,8 @@ import {
 import { Check, CreditCard, Gem, Loader2, Rocket } from "lucide-react";
 import { useSubscriptionPlans } from "@/hooks/useSubscriptionPlans";
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useRef } from "react";
+import { toast, Toaster } from "sonner";
 
 export function PlanosContent() {
   const { plans, isLoadingPlans } = useSubscriptionPlans();
@@ -18,9 +20,15 @@ export function PlanosContent() {
 
   const currentSubscription = user?.company?.subscriptions?.[0];
   const currentPlanId = currentSubscription?.plan?.id;
-  const endDate = currentSubscription?.endDate
-    ? new Date(currentSubscription.endDate)
+  const startDate = currentSubscription?.startDate
+    ? new Date(currentSubscription.startDate)
     : null;
+
+  const endDate = startDate
+    ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+    : currentSubscription?.endDate
+      ? new Date(currentSubscription.endDate)
+      : null;
 
   const daysLeft =
     endDate != null
@@ -40,9 +48,32 @@ export function PlanosContent() {
       currency: "BRL",
     }).format(price);
 
+  const subscriptions = user?.company.subscriptions;
+  const paymentStatus = subscriptions?.[0]?.paymentStatus;
+
+  const hasShownToast = useRef(false);
+  useEffect(() => {
+    if (paymentStatus === "FAILED" && !hasShownToast.current) {
+      toast.error(
+        "O pagamento do seu plano falhou. Por favor, tente novamente.",
+      );
+      hasShownToast.current = true;
+    } else if (paymentStatus === "PENDING" && !hasShownToast.current) {
+      toast.info(
+        "O pagamento do seu plano está pendente. Por favor, aguarde a confirmação.",
+      );
+      hasShownToast.current = true;
+    } else if (paymentStatus === "OVERDUE" && !hasShownToast.current) {
+      toast.error(
+        "O pagamento do seu plano está atrasado. Por favor, regularize sua situação.",
+      );
+      hasShownToast.current = true;
+    }
+  }, [paymentStatus]);
+
   if (isLoadingPlans || isLoadingUser) {
     return (
-      <div className="flex min-h-dvh w-full items-center justify-center rounded-lg bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="flex h-64 items-center justify-center">
         <Loader2 className="text-primary h-8 w-8 animate-spin" />
         <p className="ml-2 text-gray-600">Carregando...</p>
       </div>
@@ -146,13 +177,33 @@ export function PlanosContent() {
                         ? "bg-secondary-million hover:bg-secondary-million/90 cursor-pointer text-white"
                         : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
                     }`}
-                    disabled={isCurrentPlan(plan.id)}
+                    disabled={
+                      isCurrentPlan(plan.id) &&
+                      user?.company?.subscriptions[0]?.paymentStatus === "PAID"
+                    }
                   >
-                    {isCurrentPlan(plan.id)
+                    {isCurrentPlan(plan.id) &&
+                    user?.company?.subscriptions[0]?.paymentStatus === "PAID"
                       ? "Plano Atual"
-                      : isDiamond
-                        ? "Fazer Upgrade"
-                        : "Começar Agora"}
+                      : isCurrentPlan(plan.id) &&
+                          user?.company?.subscriptions[0]?.paymentStatus ===
+                            "PENDING"
+                        ? "Aguardando pagamento"
+                        : isCurrentPlan(plan.id) &&
+                            user?.company?.subscriptions[0]?.paymentStatus ===
+                              "FAILED"
+                          ? "Pagamento recusado - Tentar Novamente"
+                          : isCurrentPlan(plan.id) &&
+                              user?.company?.subscriptions[0].paymentStatus ===
+                                "OVERDUE"
+                            ? "Pagamento Atrasado - Regularizar"
+                            : isCurrentPlan(plan.id) &&
+                                user?.company?.subscriptions[0]?.status ===
+                                  "EXPIRED"
+                              ? "Plano Expirado - Renovar"
+                              : isDiamond
+                                ? "Fazer Upgrade"
+                                : "Começar Agora"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -160,6 +211,7 @@ export function PlanosContent() {
           })}
         </div>
       )}
+      <Toaster />
     </div>
   );
 }

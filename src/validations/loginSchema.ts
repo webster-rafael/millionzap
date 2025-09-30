@@ -28,9 +28,7 @@ const CreateCompanyFormSchema = z.object({
     .regex(/[0-9]/, { message: "A senha deve conter pelo menos um número" })
     .regex(/[^a-zA-Z0-9]/, {
       message: "A senha deve conter pelo menos um caractere especial",
-    }),
-
-  plan: z.string().min(1, { message: "Selecione um plano" }),
+    })
 });
 
 export const loginSchema = z.object({

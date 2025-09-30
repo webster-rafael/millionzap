@@ -16,13 +16,6 @@ import { Input } from "@/components/ui/input";
 import { CreateCompanyFormSchema } from "@/validations/loginSchema";
 import { useState } from "react";
 import { Eye, EyeClosed } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast, Toaster } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +31,6 @@ export function CadastrarContent() {
       phone: "",
       email: "",
       password: "",
-      plan: "",
     },
   });
 
@@ -48,7 +40,7 @@ export function CadastrarContent() {
       phone: values.phone,
       email: values.email,
       password: values.password,
-      planId: values.plan,
+      planId: import.meta.env.VITE_PLAN_TEST_ID,
     };
 
     signUpUser(payload, {
@@ -160,30 +152,6 @@ export function CadastrarContent() {
                       )}
                     </button>
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="plan"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Planos</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um plano" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="plano1">Plano 1</SelectItem>
-                        <SelectItem value="plano2">Plano 2</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

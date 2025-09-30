@@ -164,6 +164,7 @@ export function ConexoesContent() {
 
     try {
       const webhookUrl = import.meta.env.VITE_CONNECTION_WEBHOOK;
+      const receivedMsgWebhook = import.meta.env.VITE_RECEIVED_MSG_WEBHOOK;
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
@@ -174,6 +175,7 @@ export function ConexoesContent() {
           userId: connection.id,
           connectionId: connection.id,
           companyId: connection?.companyId || "",
+          receivedMsgWebhook: receivedMsgWebhook,
         }),
       });
 

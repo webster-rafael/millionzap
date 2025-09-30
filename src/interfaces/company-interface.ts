@@ -23,8 +23,8 @@ export interface CompanySubscription {
   planId: string;
   startDate: Date;
   endDate: Date;
-  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
-  paymentStatus: "PENDING" | "PAID" | "OVERDUE";
+  status: "ACTIVE" | "PENDING" | "EXPIRED" | "CANCELLED";
+  paymentStatus: "PENDING" | "PAID" | "OVERDUE" | "FAILED";
   createdAt: Date;
   updatedAt: Date;
   plan: SubscriptionPlan;

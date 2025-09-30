@@ -354,6 +354,11 @@ export function ListasDeContatosContent() {
   const startTriggerMessage = async (id: string) => {
     const webhookUrl = import.meta.env.VITE_TRIGGER_MESSAGE_WEBHOOK;
 
+    if (user?.company?.subscriptions[0].paymentStatus !== "PAID") {
+      toast.error("Você não tem uma assinatura ativa.");
+      return;
+    }
+
     const listToTrigger = contactLists.find((list) => list.id === id);
 
     if (!listToTrigger) {
@@ -620,7 +625,7 @@ export function ListasDeContatosContent() {
                     <Label htmlFor="template-body">Corpo da Mensagem</Label>
                     <Textarea
                       id="template-body"
-                      placeholder="Olá {contactName}, temos uma novidade para você..."
+                      placeholder="Olá, temos uma novidade para você..."
                       value={templateData.body}
                       onChange={(e) =>
                         setTemplateData({

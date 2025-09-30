@@ -10,6 +10,7 @@ import {
   List,
   Upload,
   TriangleAlert,
+  Crown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -424,10 +425,15 @@ export function ContatosContent() {
             onClick={handleImportWhatsContacts}
             variant="outline"
             className="bg-green-200"
+            disabled={user?.company?.subscriptions[0].paymentStatus !== "PAID"}
           >
             <FaWhatsapp className="h-4 w-4" />
             <span className="hidden xl:block">Whatsapp</span>
+            {user?.company?.subscriptions[0].paymentStatus !== "PAID" && (
+              <Crown />
+            )}
           </Button>
+
           <Button
             variant="outline"
             onClick={() => {
@@ -446,7 +452,10 @@ export function ContatosContent() {
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
+            disabled={
+              isImporting ||
+              user?.company?.subscriptions[0].paymentStatus !== "PAID"
+            }
           >
             {isImporting ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -454,6 +463,9 @@ export function ContatosContent() {
               <Upload className="mr-2 h-4 w-4" />
             )}
             {isImporting ? "Importando..." : "Importar"}
+            {user?.company?.subscriptions[0].paymentStatus !== "PAID" && (
+              <Crown />
+            )}
           </Button>
           <input
             type="file"
