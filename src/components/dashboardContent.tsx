@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   Phone,
@@ -27,11 +27,37 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useConversations } from "@/hooks/useConversation";
 import { useContacts } from "@/hooks/useContacts";
+import { ModalSubscriptionInformation } from "@/components/modalSubscriptionInformation";
 
 export function DashboardContent() {
   const { user, logoutUser } = useAuth();
   const { conversations } = useConversations();
   const { contacts } = useContacts();
+
+  const subscriptions = user?.company?.subscriptions;
+  const paymentStatus = subscriptions?.[0]?.paymentStatus;
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (paymentStatus === "FAILED") {
+      setMessage(
+        "❌ O pagamento do seu plano não foi concluído. Por favor, tente novamente para evitar a suspensão de recursos e acesso a funcionalidades Diamante.",
+      );
+      setIsModalOpen(true);
+    } else if (paymentStatus === "PENDING") {
+      setMessage(
+        "⏳  O pagamento do seu plano está em análise. Algumas funcionalidades podem ficar temporariamente limitadas até a confirmação do pagamento.",
+      );
+      setIsModalOpen(true);
+    } else if (paymentStatus === "OVERDUE") {
+      setMessage(
+        "⚠️ Seu pagamento está atrasado. Regularize o quanto antes para evitar a interrupção de serviços e perda de funcionalidades da sua conta.",
+      );
+      setIsModalOpen(true);
+    }
+  }, [paymentStatus]);
 
   // Filtra conversas baseado no role do usuário
   const filteredConversations = useMemo(() => {
@@ -375,6 +401,23 @@ export function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+      <ModalSubscriptionInformation
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      >
+        <h2 className="mb-4 text-lg font-bold text-gray-900">
+          Aviso de Pagamento
+        </h2>
+        <p className="text-gray-700">{message}</p>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={() => setIsModalOpen(false)}
+            className="bg-primary hover:bg-primary/90 rounded px-4 py-2 text-white"
+          >
+            Entendi
+          </button>
+        </div>
+      </ModalSubscriptionInformation>
     </main>
   );
 }

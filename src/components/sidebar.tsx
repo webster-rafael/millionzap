@@ -26,10 +26,27 @@ import {
   // Cog,
   // Info,
   MessageSquareText,
+  AlertTriangle,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useWhatsAppConnections } from "@/hooks/useWhatsConnection";
+
+type AdminItem = {
+  name: string;
+  href?: string;
+  icon: React.ElementType;
+  isCollapsible?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  subItems?: {
+    name: string;
+    href: string;
+    icon: React.ElementType;
+  }[];
+  showAlert?: boolean;
+  paymentStatus?: "FAILED" | "PENDING" | "OVERDUE" | "PAID";
+};
 
 export function Sidebar() {
   const { user } = useAuth();
@@ -49,6 +66,15 @@ export function Sidebar() {
     setCurrentConnectionStatus(userConnection?.status || "CLOSED");
   }, [userConnection?.status, connectionStatus]);
 
+  const subscriptions = user?.company?.subscriptions;
+  const paymentStatus = subscriptions?.[0]?.paymentStatus;
+
+  // 🔹 Definir se deve mostrar alerta
+  const showPaymentAlert =
+    paymentStatus === "FAILED" ||
+    paymentStatus === "PENDING" ||
+    paymentStatus === "OVERDUE";
+
   const mainItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Atendimentos", href: "/atendimentos", icon: MessageSquare },
@@ -62,7 +88,7 @@ export function Sidebar() {
     { name: "Ajuda", href: "/ajuda", icon: HelpCircle },
   ];
 
-  const adminItems = [
+  const adminItems: AdminItem[] = [
     {
       name: "Campanhas",
       icon: Megaphone,
@@ -96,7 +122,13 @@ export function Sidebar() {
     { name: "Filas & Chatbot", href: "/filas-chatbot", icon: MessageCircle },
     { name: "Usuários", href: "/usuarios", icon: UsersIcon },
     // { name: "API", href: "/api", icon: Cog },
-    { name: "Assinatura", href: "/planos", icon: DollarSign },
+    {
+      name: "Assinatura",
+      href: "/planos",
+      icon: DollarSign,
+      showAlert: showPaymentAlert,
+      paymentStatus,
+    },
     { name: "Configurações", href: "/configuracoes", icon: Settings },
   ];
 
@@ -177,6 +209,7 @@ export function Sidebar() {
                             <ChevronRight className="h-4 w-4" />
                           )}
                         </button>
+
                         {item.isOpen && item.subItems && (
                           <div className="mt-1 space-y-1">
                             {item.subItems.map((subItem) => (
@@ -213,6 +246,18 @@ export function Sidebar() {
                       >
                         <item.icon className="mr-3 h-4 w-4" />
                         {item.name}
+                        {item.name === "Assinatura" && item.showAlert && (
+                          <AlertTriangle
+                            className={cn(
+                              "ml-auto h-5 w-5 animate-pulse",
+                              item.paymentStatus === "FAILED"
+                                ? "fill-red-500 text-white"
+                                : item.paymentStatus === "OVERDUE"
+                                  ? "fill-orange-500 text-white"
+                                  : "fill-yellow-500 text-white",
+                            )}
+                          />
+                        )}
                       </button>
                     )}
                   </div>
@@ -224,7 +269,7 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-gray-200 p-4">
-        <p className="text-center text-xs text-gray-500">Versão: 2.1.1</p>
+        <p className="text-center text-xs text-gray-500">Versão: 2.1.2</p>
       </div>
     </div>
   );

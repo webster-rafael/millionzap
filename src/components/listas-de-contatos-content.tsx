@@ -354,8 +354,13 @@ export function ListasDeContatosContent() {
   const startTriggerMessage = async (id: string) => {
     const webhookUrl = import.meta.env.VITE_TRIGGER_MESSAGE_WEBHOOK;
 
-    if (user?.company?.subscriptions[0].paymentStatus !== "PAID") {
-      toast.error("Você não tem uma assinatura ativa.");
+    if (
+      user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
+      user?.company?.subscriptions[0].paymentStatus === "PENDING"
+    ) {
+      toast.error(
+        "Você não tem uma assinatura ativa. Por favor, verifique seu status de pagamento.",
+      );
       return;
     }
 

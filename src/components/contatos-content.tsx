@@ -425,13 +425,17 @@ export function ContatosContent() {
             onClick={handleImportWhatsContacts}
             variant="outline"
             className="bg-green-200"
-            disabled={user?.company?.subscriptions[0].paymentStatus !== "PAID"}
+            disabled={
+              user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
+              user?.company?.subscriptions[0].paymentStatus === "PENDING"
+            }
           >
             <FaWhatsapp className="h-4 w-4" />
             <span className="hidden xl:block">Whatsapp</span>
-            {user?.company?.subscriptions[0].paymentStatus !== "PAID" && (
-              <Crown />
-            )}
+            {user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
+              (user?.company?.subscriptions[0].paymentStatus === "PENDING" && (
+                <Crown />
+              ))}
           </Button>
 
           <Button
@@ -454,7 +458,8 @@ export function ContatosContent() {
             onClick={() => fileInputRef.current?.click()}
             disabled={
               isImporting ||
-              user?.company?.subscriptions[0].paymentStatus !== "PAID"
+              user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
+              user?.company?.subscriptions[0].paymentStatus === "PENDING"
             }
           >
             {isImporting ? (
@@ -463,7 +468,8 @@ export function ContatosContent() {
               <Upload className="mr-2 h-4 w-4" />
             )}
             {isImporting ? "Importando..." : "Importar"}
-            {user?.company?.subscriptions[0].paymentStatus !== "PAID" && (
+            {(user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
+              user?.company?.subscriptions[0].paymentStatus === "PENDING") && (
               <Crown />
             )}
           </Button>
