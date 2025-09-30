@@ -427,13 +427,15 @@ export function ContatosContent() {
             className="bg-green-200"
             disabled={
               user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
-              user?.company?.subscriptions[0].paymentStatus === "PENDING"
+              user?.company?.subscriptions[0].paymentStatus === "PENDING" ||
+              user?.company?.subscriptions[0].status === "TESTING"
             }
           >
             <FaWhatsapp className="h-4 w-4" />
             <span className="hidden xl:block">Whatsapp</span>
             {user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
-              (user?.company?.subscriptions[0].paymentStatus === "PENDING" && (
+              user?.company?.subscriptions[0].paymentStatus === "PENDING" ||
+              (user?.company?.subscriptions[0].status === "TESTING" && (
                 <Crown />
               ))}
           </Button>
@@ -459,7 +461,8 @@ export function ContatosContent() {
             disabled={
               isImporting ||
               user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
-              user?.company?.subscriptions[0].paymentStatus === "PENDING"
+              user?.company?.subscriptions[0].paymentStatus === "PENDING" ||
+              user?.company?.subscriptions[0].status === "TESTING"
             }
           >
             {isImporting ? (
@@ -469,7 +472,8 @@ export function ContatosContent() {
             )}
             {isImporting ? "Importando..." : "Importar"}
             {(user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
-              user?.company?.subscriptions[0].paymentStatus === "PENDING") && (
+              user?.company?.subscriptions[0].paymentStatus === "PENDING" ||
+              user?.company?.subscriptions[0].status === "TESTING") && (
               <Crown />
             )}
           </Button>

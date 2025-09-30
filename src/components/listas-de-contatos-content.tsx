@@ -356,7 +356,8 @@ export function ListasDeContatosContent() {
 
     if (
       user?.company?.subscriptions[0].paymentStatus === "FAILED" ||
-      user?.company?.subscriptions[0].paymentStatus === "PENDING"
+      user?.company?.subscriptions[0].paymentStatus === "PENDING" ||
+      user?.company?.subscriptions[0].status === "TESTING"
     ) {
       toast.error(
         "Você não tem uma assinatura ativa. Por favor, verifique seu status de pagamento.",
