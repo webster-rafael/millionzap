@@ -24,21 +24,29 @@ export function PlanosContent() {
     ? new Date(currentSubscription.startDate)
     : null;
 
+  const getDaysInfo = (endDate: Date | null) => {
+    if (!endDate) {
+      return { daysLeft: null, daysOverdue: null };
+    }
+
+    const today = new Date();
+    const diffInMs = endDate.getTime() - today.getTime();
+    const diffInDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays >= 0) {
+      return { daysLeft: diffInDays, daysOverdue: null };
+    }
+
+    return { daysLeft: 0, daysOverdue: Math.abs(diffInDays) };
+  };
+
   const endDate = startDate
     ? new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000)
     : currentSubscription?.endDate
       ? new Date(currentSubscription.endDate)
       : null;
 
-  const daysLeft =
-    endDate != null
-      ? Math.max(
-          0,
-          Math.ceil(
-            (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-          ),
-        )
-      : null;
+  const { daysLeft, daysOverdue } = getDaysInfo(endDate);
 
   const isCurrentPlan = (planId: string) => currentPlanId === planId;
 
@@ -91,9 +99,32 @@ export function PlanosContent() {
             Assinatura e Planos
           </h1>
           <p className="text-sm text-gray-500">
-            {currentSubscription
-              ? `Seu plano atual: ${currentSubscription.plan.name} (${daysLeft} dias restantes)`
-              : "Escolha o plano que melhor se adapta às suas necessidades."}
+            {currentSubscription ? (
+              daysOverdue && daysOverdue > 0 ? (
+                <>
+                  Seu plano atual:{" "}
+                  <span className="font-medium text-gray-800">
+                    {currentSubscription.plan.name}
+                  </span>{" "}
+                  (Plano atrasado há{" "}
+                  <span className="font-semibold text-red-500">
+                    {daysOverdue}
+                  </span>{" "}
+                  {daysOverdue === 1 ? "dia" : "dias"})
+                </>
+              ) : (
+                <>
+                  Seu plano atual:{" "}
+                  <span className="font-medium text-gray-800">
+                    {currentSubscription.plan.name}
+                  </span>{" "}
+                  ({daysLeft}{" "}
+                  {daysLeft === 1 ? "dia restante" : "dias restantes"})
+                </>
+              )
+            ) : (
+              "Escolha o plano que melhor se adapta às suas necessidades."
+            )}
           </p>
         </div>
       </div>
