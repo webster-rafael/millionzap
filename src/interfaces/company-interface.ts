@@ -36,7 +36,13 @@ export interface SubscriptionPlan {
   description?: string;
   price: number;
   features: string[];
-  status: "ACTIVE" | "INACTIVE" | "PENDING" | "EXPIRED" | "CANCELLED";
+  status:
+    | "ACTIVE"
+    | "INACTIVE"
+    | "PENDING"
+    | "EXPIRED"
+    | "CANCELLED"
+    | "TESTING";
   createdAt: Date;
   updatedAt: Date;
 }

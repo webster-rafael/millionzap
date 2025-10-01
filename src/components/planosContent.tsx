@@ -133,11 +133,21 @@ export function PlanosContent() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12 2xl:grid-cols-3">
           {plans.map((plan) => {
             const isDiamond = plan.name.toLowerCase().includes("diamante");
+            const isTestingPlan = plan.status === "TESTING";
+            const userHasNonTestingPlan =
+              currentSubscription &&
+              currentSubscription.plan.status !== "TESTING";
+
+            const shouldDisableCard = isTestingPlan && userHasNonTestingPlan;
 
             return (
               <Card
                 key={plan.id}
-                className={`relative flex flex-col shadow-lg transition-transform hover:scale-105 ${
+                className={`relative flex flex-col shadow-lg transition-transform ${
+                  shouldDisableCard
+                    ? "cursor-not-allowed opacity-50"
+                    : "hover:scale-105"
+                } ${
                   isDiamond
                     ? "border-secondary-million border-2 shadow-xl"
                     : "border-2 border-gray-200"
@@ -196,40 +206,47 @@ export function PlanosContent() {
                 <CardFooter className="p-6">
                   <Button
                     onClick={() => {
-                      window.location.href = plan.checkoutUrl;
+                      if (!shouldDisableCard) {
+                        window.location.href = plan.checkoutUrl;
+                      }
                     }}
                     className={`w-full ${
                       isDiamond
-                        ? "bg-secondary-million hover:bg-secondary-million/90 cursor-pointer text-white"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                        ? "bg-secondary-million hover:bg-secondary-million/90 text-white"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
                     }`}
                     disabled={
-                      isCurrentPlan(plan.id) &&
-                      user?.company?.subscriptions[0]?.paymentStatus === "PAID"
+                      shouldDisableCard ||
+                      (isCurrentPlan(plan.id) &&
+                        user?.company?.subscriptions[0]?.paymentStatus ===
+                          "PAID")
                     }
                   >
-                    {isCurrentPlan(plan.id) &&
-                    user?.company?.subscriptions[0]?.paymentStatus === "PAID"
-                      ? "Plano Atual"
+                    {shouldDisableCard
+                      ? "Indisponível"
                       : isCurrentPlan(plan.id) &&
                           user?.company?.subscriptions[0]?.paymentStatus ===
-                            "PENDING"
-                        ? "Aguardando pagamento"
+                            "PAID"
+                        ? "Plano Atual"
                         : isCurrentPlan(plan.id) &&
                             user?.company?.subscriptions[0]?.paymentStatus ===
-                              "FAILED"
-                          ? "Pagamento recusado - Tentar Novamente"
+                              "PENDING"
+                          ? "Aguardando pagamento"
                           : isCurrentPlan(plan.id) &&
-                              user?.company?.subscriptions[0].paymentStatus ===
-                                "OVERDUE"
-                            ? "Pagamento Atrasado - Regularizar"
+                              user?.company?.subscriptions[0]?.paymentStatus ===
+                                "FAILED"
+                            ? "Pagamento recusado - Tentar Novamente"
                             : isCurrentPlan(plan.id) &&
-                                user?.company?.subscriptions[0]?.status ===
-                                  "EXPIRED"
-                              ? "Plano Expirado - Renovar"
-                              : isDiamond
-                                ? "Fazer Upgrade"
-                                : "Começar Agora"}
+                                user?.company?.subscriptions[0]
+                                  .paymentStatus === "OVERDUE"
+                              ? "Pagamento Atrasado - Regularizar"
+                              : isCurrentPlan(plan.id) &&
+                                  user?.company?.subscriptions[0]?.status ===
+                                    "EXPIRED"
+                                ? "Plano Expirado - Renovar"
+                                : isDiamond
+                                  ? "Fazer Upgrade"
+                                  : "Começar Agora"}
                   </Button>
                 </CardFooter>
               </Card>
