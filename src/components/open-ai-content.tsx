@@ -535,6 +535,7 @@ export function OpenAIContent() {
                         size="sm"
                         onClick={() => handleEdit(prompt)}
                         className="h-8 w-8 p-0"
+                        disabled={prompt.isDefault}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>

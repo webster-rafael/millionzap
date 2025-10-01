@@ -15,6 +15,7 @@ export interface Prompt {
   createdAt: Date;
   updatedAt: Date;
   isActive?: boolean;
+  isDefault?: boolean;
   companyId: string;
   queueId?: string;
 }
