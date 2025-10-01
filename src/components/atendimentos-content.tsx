@@ -554,6 +554,7 @@ export function AtendimentosContent() {
       id: selectedConversationId,
       queueId: queueIdToSend,
       userId: userIdToSend,
+      status: "WAITING",
     });
 
     setIsOpenModalTransfer(false);
