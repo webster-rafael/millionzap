@@ -78,6 +78,8 @@ import { InstagramChatArea } from "@/components/instagramChatArea";
 import { useHandleInstagramCode } from "@/components/handoleInstagramCode";
 import TextareaAutosize from "react-textarea-autosize";
 import { RecordingTimer } from "@/components/recordingTimer";
+import { useQuickResponses } from "@/hooks/useQuickResponse";
+import type { QuickResponse } from "@/interfaces/quickresposnse-interface";
 
 interface DynamicAudioWaveformProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -145,6 +147,13 @@ export function AtendimentosContent() {
   const audioHistoryRef = useRef<number[]>([]);
   const MAX_WAVE_SAMPLES = 60;
   const lastSampleTimeRef = useRef(0);
+  const { quickResponses, isLoadingQuickResponses } = useQuickResponses();
+
+  const [showQuickResponses, setShowQuickResponses] = useState(false);
+  const [filteredQuickResponses, setFilteredQuickResponses] = useState<
+    QuickResponse[]
+  >([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   useEffect(() => {
     let animationFrameId: number;
@@ -2006,18 +2015,104 @@ export function AtendimentosContent() {
                     <TextareaAutosize
                       placeholder="Digite uma mensagem..."
                       value={messageInput}
-                      onChange={(e) => setMessageInput(e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMessageInput(value);
+
+                        const lastChar = value.slice(-1);
+
+                        if (lastChar === "/") {
+                          setShowQuickResponses(true);
+                          setFilteredQuickResponses(quickResponses);
+                          setHighlightedIndex(0);
+                        } else if (showQuickResponses) {
+                          const lastWord =
+                            value.split("/").pop()?.toLowerCase() || "";
+                          const filtered = quickResponses.filter((resp) =>
+                            resp.shortcut.toLowerCase().includes(lastWord),
+                          );
+                          setFilteredQuickResponses(filtered);
+                        }
+                      }}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          if (messageInput.trim() !== "") {
-                            handleSendMessage();
+                        if (showQuickResponses) {
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setHighlightedIndex((prev) =>
+                              prev + 1 < filteredQuickResponses.length
+                                ? prev + 1
+                                : 0,
+                            );
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setHighlightedIndex((prev) =>
+                              prev - 1 >= 0
+                                ? prev - 1
+                                : filteredQuickResponses.length - 1,
+                            );
+                          } else if (e.key === "Enter") {
+                            e.preventDefault();
+                            const selected =
+                              filteredQuickResponses[highlightedIndex];
+                            if (selected) {
+                              setMessageInput(selected.message);
+                              setShowQuickResponses(false);
+                            }
+                          } else if (e.key === "Escape") {
+                            setShowQuickResponses(false);
+                          }
+                        } else {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (messageInput.trim() !== "") {
+                              handleSendMessage();
+                            }
                           }
                         }
                       }}
                       maxRows={6}
                       className="border-input bg-background placeholder:text-muted-foreground flex w-full resize-none rounded-md border border-none py-3 pr-12 pl-4 text-sm focus-within:ring-0 focus-within:outline-none"
                     />
+                    {showQuickResponses &&
+                      filteredQuickResponses.length > 0 && (
+                        <div
+                          className="absolute bottom-16 left-0 z-50 w-80 rounded-md border border-gray-200 bg-white shadow-lg"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {isLoadingQuickResponses ? (
+                            <div className="p-4 text-sm text-gray-500">
+                              Carregando respostas...
+                            </div>
+                          ) : (
+                            <ul className="max-h-60 overflow-y-auto">
+                              {filteredQuickResponses.map((resp, index) => (
+                                <li
+                                  key={resp.id}
+                                  onClick={() => {
+                                    setMessageInput(resp.message);
+                                    setShowQuickResponses(false);
+                                  }}
+                                  className={`cursor-pointer px-4 py-2 text-sm transition-colors ${
+                                    index === highlightedIndex
+                                      ? "bg-blue-100 text-blue-900"
+                                      : "hover:bg-blue-50"
+                                  }`}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium text-gray-800">
+                                      {resp.shortcut}
+                                    </span>
+                                    <span className="truncate text-xs text-gray-500">
+                                      {resp.title}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+
                     {selectedConversation.copilot &&
                       selectedConversation.copilotFeedback?.feedback && (
                         <Button
