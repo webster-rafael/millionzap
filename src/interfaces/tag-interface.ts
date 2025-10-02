@@ -5,6 +5,7 @@ export interface Tags {
   order: number;
   description?: string;
   companyId: string;
+  isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

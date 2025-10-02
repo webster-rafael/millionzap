@@ -65,6 +65,8 @@ export function TagsContent() {
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [editingTag, setEditingTag] = useState<Tags | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const isFollowUp = (t: { title?: string }) =>
+    (t.title || "").trim().toLowerCase() === "followup";
   const [newTag, setNewTag] = useState<CreateTags>({
     title: "",
     color: "",
@@ -81,7 +83,21 @@ export function TagsContent() {
 
   useEffect(() => {
     if (!isLoadingTags && !isErrorTags) {
-      setListTags(tags);
+      const defaultTags = tags
+        .filter((t) => t.isDefault && !isFollowUp(t))
+        .sort((a, b) => a.order - b.order);
+
+      const customTags = tags
+        .filter((t) => !t.isDefault && !isFollowUp(t))
+        .sort((a, b) => a.order - b.order);
+
+      const followUp = tags.find(isFollowUp) || null;
+
+      setListTags(
+        followUp
+          ? [...defaultTags, ...customTags, followUp]
+          : [...defaultTags, ...customTags],
+      );
     }
   }, [tags, isLoadingTags, isErrorTags]);
 
@@ -92,27 +108,49 @@ export function TagsContent() {
   );
 
   const addTag = () => {
-    const tagToCreate = {
-      ...newTag,
-      order: listTags.length + 1,
-    };
-    const result = tagSchema.safeParse(newTag);
+    const candidate = { ...newTag };
+    const result = tagSchema.safeParse(candidate);
 
     if (!result.success) {
       const tree = z.treeifyError(result.error);
-
       const validationErrorsFormatted = {
         title: tree.properties?.title?.errors ?? [],
         color: tree.properties?.color?.errors ?? [],
         description: tree.properties?.description?.errors ?? [],
       };
-
       setValidationErrors(validationErrorsFormatted);
       return;
     }
 
+    const followUp = listTags.find(isFollowUp);
+    const nonFollowUp = listTags.filter((t) => !isFollowUp(t));
+    const maxNonFollowUpOrder = nonFollowUp.reduce(
+      (max, t) => Math.max(max, t.order || 0),
+      0,
+    );
+
+    const creatingFollowUp = isFollowUp(candidate);
+
+    const tagToCreate: CreateTags = {
+      ...candidate,
+      // Se estiver criando a própria FollowUp, manda pro final absoluto.
+      order: creatingFollowUp
+        ? Math.max(...listTags.map((t) => t.order || 0), 0) + 1
+        : // Se não, coloca logo após a última não-FollowUp
+          maxNonFollowUpOrder + 1,
+      companyId: user?.id || "",
+    };
+
     create(tagToCreate, {
       onSuccess: () => {
+        // Se criou uma tag comum e existe FollowUp, empurre a FollowUp para ficar sempre por último
+        if (!creatingFollowUp && followUp) {
+          const desiredOrder = tagToCreate.order + 1; // depois da nova
+          if (followUp.order !== desiredOrder) {
+            update({ ...followUp, order: desiredOrder });
+          }
+        }
+
         setNewTag({
           title: "",
           color: "",
@@ -130,7 +168,6 @@ export function TagsContent() {
     if (!editingTag) return;
 
     const result = tagSchema.safeParse(editingTag);
-
     if (!result.success) {
       setValidationErrors(result.error.flatten().fieldErrors);
       return;
@@ -138,6 +175,20 @@ export function TagsContent() {
 
     const currentTag = listTags.find((t) => t.id === editingTag.id);
     if (!currentTag) return;
+
+    // Nunca permitir mudar a ordem da FollowUp
+    if (isFollowUp(editingTag)) {
+      update(
+        { ...editingTag, order: currentTag.order },
+        {
+          onSuccess: () => {
+            setEditingTag(null);
+            toast.success("Tag editada com sucesso!");
+          },
+        },
+      );
+      return;
+    }
 
     const oldOrder = currentTag.order;
     const newOrder = editingTag.order;
@@ -153,8 +204,11 @@ export function TagsContent() {
     }
 
     const reorderedTags = [...listTags];
+
+    // Reordena apenas tags que NÃO são default e NÃO são FollowUp
     reorderedTags.forEach((tag) => {
       if (tag.id === editingTag.id) return;
+      if (tag.isDefault || isFollowUp(tag)) return;
 
       if (
         newOrder < oldOrder &&
@@ -180,14 +234,50 @@ export function TagsContent() {
       updatedTag,
     ];
 
-    tagsToUpdate.forEach((tag) => {
-      update(tag, {
-        onSuccess: () => {
-          setEditingTag(null);
-          toast.success("Tag editada com sucesso!");
-        },
-      });
-    });
+    // Garante FollowUp no fim após reordenar
+    const followUp = tagsToUpdate.find(isFollowUp) || listTags.find(isFollowUp);
+    if (followUp) {
+      const maxNonFollowUp = Math.max(
+        ...tagsToUpdate.filter((t) => !isFollowUp(t)).map((t) => t.order),
+        0,
+      );
+      const desiredOrder = maxNonFollowUp + 1;
+
+      // Atualiza todo mundo (menos a FollowUp)…
+      tagsToUpdate
+        .filter((t) => !isFollowUp(t))
+        .forEach((tag) =>
+          update(tag, {
+            onSuccess: () => {},
+          }),
+        );
+
+      // …e por último a FollowUp se precisar mover
+      if (followUp.order !== desiredOrder) {
+        update(
+          { ...followUp, order: desiredOrder },
+          {
+            onSuccess: () => {
+              setEditingTag(null);
+              toast.success("Tag editada com sucesso!");
+            },
+          },
+        );
+      } else {
+        setEditingTag(null);
+        toast.success("Tag editada com sucesso!");
+      }
+    } else {
+      // Se não existe FollowUp, só atualiza os demais
+      tagsToUpdate.forEach((tag) =>
+        update(tag, {
+          onSuccess: () => {
+            setEditingTag(null);
+            toast.success("Tag editada com sucesso!");
+          },
+        }),
+      );
+    }
   };
 
   const handleDeleteTag = (id: string) => {
@@ -381,7 +471,13 @@ export function TagsContent() {
             </TableHeader>
             <TableBody>
               {filteredTags
-                .sort((a, b) => a.order - b.order)
+                .sort((a, b) => {
+                  const aF = isFollowUp(a);
+                  const bF = isFollowUp(b);
+                  if (aF && !bF) return 1;
+                  if (!aF && bF) return -1;
+                  return a.order - b.order;
+                })
                 .map((tag) => (
                   <TableRow key={tag.id}>
                     <TableCell>
@@ -529,26 +625,41 @@ export function TagsContent() {
 
               <div>
                 <Label htmlFor="edit-order">Ordem</Label>
-                <Select
-                  value={editingTag.order.toString()}
-                  onValueChange={(value) =>
-                    setEditingTag({
-                      ...editingTag,
-                      order: Number.parseInt(value),
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: tags.length }, (_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        {i + 1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+                {editingTag.isDefault || editingTag.title === "FollowUp" ? (
+                  <Input
+                    type="text"
+                    value={editingTag.order}
+                    disabled
+                    className="bg-gray-100 text-gray-500"
+                  />
+                ) : (
+                  <Select
+                    value={editingTag.order.toString()}
+                    onValueChange={(value) =>
+                      setEditingTag({
+                        ...editingTag,
+                        order: Number.parseInt(value),
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from(
+                        {
+                          length: listTags.filter((t) => !isFollowUp(t)).length,
+                        },
+                        (_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>
+                            {i + 1}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
