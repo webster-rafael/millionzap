@@ -536,6 +536,7 @@ export function TagsContent() {
                           onClick={() => handleDeleteTag(tag.id)}
                           title="Excluir"
                           className="text-red-600 hover:text-red-700"
+                          disabled={isFollowUp(tag)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -573,6 +574,7 @@ export function TagsContent() {
                 <Input
                   id="edit-name"
                   value={editingTag.title}
+                  disabled={isFollowUp(editingTag)}
                   onChange={(e) =>
                     setEditingTag({ ...editingTag, title: e.target.value })
                   }
