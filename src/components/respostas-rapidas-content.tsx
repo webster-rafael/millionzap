@@ -48,37 +48,12 @@ import { useAuth } from "@/hooks/useAuth";
 
 const availableVariables = [
   {
-    key: "{{primeiro_nome}}",
-    label: "Primeiro Nome",
-    description: "Nome do cliente",
-  },
-  {
     key: "{{nome}}",
-    label: "Nome Completo",
-    description: "Nome completo do cliente",
+    label: "Nome",
+    description: "Nome do lead",
   },
   { key: "{{empresa}}", label: "Empresa", description: "Nome da sua empresa" },
   { key: "{{agente}}", label: "Agente", description: "Nome do atendente" },
-  {
-    key: "{{protocolo}}",
-    label: "Protocolo",
-    description: "Número do protocolo",
-  },
-  {
-    key: "{{hora}}",
-    label: "Hora Atual",
-    description: "Hora atual do sistema",
-  },
-  {
-    key: "{{data}}",
-    label: "Data Atual",
-    description: "Data atual do sistema",
-  },
-  {
-    key: "{{saudacao}}",
-    label: "Saudação",
-    description: "Saudação baseada no horário",
-  },
 ];
 
 export function RespostasRapidasContent() {

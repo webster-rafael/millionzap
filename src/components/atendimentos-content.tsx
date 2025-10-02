@@ -149,6 +149,19 @@ export function AtendimentosContent() {
   const lastSampleTimeRef = useRef(0);
   const { quickResponses, isLoadingQuickResponses } = useQuickResponses();
 
+  function replaceVariables(message: string): string {
+    if (!selectedConversation || !user) return message;
+
+    const leadName = selectedConversation.contact?.name || "Cliente";
+    const companyName = user.company.name || "Empresa";
+    const agentName = user.name || "Atendente";
+
+    return message
+      .replace(/{{nome}}/g, leadName)
+      .replace(/{{empresa}}/g, companyName)
+      .replace(/{{agente}}/g, agentName);
+  }
+
   const [showQuickResponses, setShowQuickResponses] = useState(false);
   const [filteredQuickResponses, setFilteredQuickResponses] = useState<
     QuickResponse[]
@@ -2055,7 +2068,9 @@ export function AtendimentosContent() {
                             const selected =
                               filteredQuickResponses[highlightedIndex];
                             if (selected) {
-                              setMessageInput(selected.message);
+                              setMessageInput(
+                                replaceVariables(selected.message),
+                              );
                               setShowQuickResponses(false);
                             }
                           } else if (e.key === "Escape") {
@@ -2089,7 +2104,9 @@ export function AtendimentosContent() {
                                 <li
                                   key={resp.id}
                                   onClick={() => {
-                                    setMessageInput(resp.message);
+                                    setMessageInput(
+                                      replaceVariables(resp.message),
+                                    );
                                     setShowQuickResponses(false);
                                   }}
                                   className={`cursor-pointer px-4 py-2 text-sm transition-colors ${
