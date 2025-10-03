@@ -807,6 +807,8 @@ export function AtendimentosContent() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.FB.getLoginStatus(function (response: any) {
       setFacebookLoginStatus(response.status);
+      console.log("Status de login do Facebook:", response.status);
+      toast.info(`Status de login do Facebook: ${facebookLoginStatus}`);
 
       if (response.status === "connected") {
         toast.info("Você já está conectado com o Facebook!");
@@ -823,20 +825,18 @@ export function AtendimentosContent() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       function (response: any) {
         if (response.authResponse) {
-          console.log(
-            "Login bem-sucedido! Token:",
-            response.authResponse.accessToken,
-            facebookLoginStatus,
-          );
+          console.log("Login bem-sucedido:", response.authResponse);
           toast.success("Login com Facebook realizado com sucesso!");
-          setFacebookLoginStatus("connected");
-          setIsFacebookModalOpen(false);
         } else {
-          console.log("Login cancelado ou falhou.");
           toast.error("O login com o Facebook foi cancelado ou falhou.");
         }
       },
-      { scope: "public_profile,email" },
+      {
+        scope:
+          "public_profile,email,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement,instagram_basic,instagram_manage_messages,instagram_manage_comments",
+        return_scopes: true,
+        auth_type: "rerequest",
+      },
     );
   };
 

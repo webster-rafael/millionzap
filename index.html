@@ -10,13 +10,19 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      window.fbAsyncInit = function () {};
+      window.fbAsyncInit = function () {
+        FB.init({
+          appId: "1196531575832242",
+          cookie: true,
+          xfbml: true,
+          version: "v21.0",
+        });
+      };
+
       (function (d, s, id) {
         var js,
           fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) {
-          return;
-        }
+        if (d.getElementById(id)) return;
         js = d.createElement(s);
         js.id = id;
         js.src = "https://connect.facebook.net/pt_BR/sdk.js";
