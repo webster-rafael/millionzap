@@ -1095,7 +1095,7 @@ export function AtendimentosContent() {
               </SelectContent>
             </Select>
           )}
-          {user?.companyName === "Milliontech" && (
+          {user?.company.name === "Milliontech" && (
             <div className="flex gap-2">
               <FaWhatsapp
                 onClick={() => {
