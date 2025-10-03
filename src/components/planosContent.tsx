@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Check, CreditCard, Gem, Loader2, Rocket } from "lucide-react";
+import { Check, CreditCard, Gem, Loader2, Rocket, Crown } from "lucide-react";
 import { useSubscriptionPlans } from "@/hooks/useSubscriptionPlans";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useRef } from "react";
@@ -130,9 +130,10 @@ export function PlanosContent() {
           <p className="ml-2 text-gray-600">Carregando planos...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:gap-12 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 lg:gap-4 2xl:grid-cols-3">
           {plans.map((plan) => {
             const isDiamond = plan.name.toLowerCase().includes("diamante");
+            const isElite = plan.name.toLowerCase().includes("elite");
             const isTestingPlan = plan.status === "TESTING";
             const userHasNonTestingPlan =
               currentSubscription &&
@@ -150,7 +151,9 @@ export function PlanosContent() {
                 } ${
                   isDiamond
                     ? "border-secondary-million border-2 shadow-xl"
-                    : "border-2 border-gray-200"
+                    : isElite
+                      ? "border-2 border-zinc-900 bg-zinc-900 text-white shadow-2xl"
+                      : "border-2 border-gray-200"
                 }`}
               >
                 {isDiamond && (
@@ -161,18 +164,32 @@ export function PlanosContent() {
                     MAIS POPULAR
                   </Badge>
                 )}
+                {isElite && (
+                  <Badge
+                    variant="secondary"
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 transform bg-zinc-900 px-4 py-1 text-sm font-semibold text-white"
+                  >
+                    MAIS EXCLUSIVO
+                  </Badge>
+                )}
 
-                <CardHeader className="p-6">
+                <CardHeader className="px-6">
                   <div className="flex items-center justify-between">
                     <CardTitle
                       className={`text-2xl font-bold ${
-                        isDiamond ? "text-secondary-million" : "text-gray-800"
+                        isDiamond
+                          ? "text-secondary-million"
+                          : isElite
+                            ? "text-white"
+                            : "text-gray-800"
                       }`}
                     >
                       {plan.name}
                     </CardTitle>
                     {isDiamond ? (
                       <Gem className="text-secondary-million h-8 w-8" />
+                    ) : isElite ? (
+                      <Crown className="h-8 w-8 text-white" />
                     ) : (
                       <Rocket className="h-8 w-8 text-gray-400" />
                     )}
@@ -182,19 +199,35 @@ export function PlanosContent() {
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="flex-grow p-6">
-                  <div className="mb-6">
-                    <span className="text-4xl font-extrabold text-gray-900">
+                <CardContent className="flex-grow px-6">
+                  <div className="mb-4">
+                    <span
+                      className={`text-4xl font-extrabold ${
+                        isElite ? "text-white" : "text-gray-900"
+                      }`}
+                    >
                       {formatPrice(plan.price)}
                     </span>
-                    <span className="text-base font-medium text-gray-500">
+                    <span
+                      className={`text-base font-medium ${
+                        isElite ? "text-gray-300" : "text-gray-500"
+                      }`}
+                    >
                       /mês
                     </span>
                   </div>
-                  <ul className="space-y-3 text-sm text-gray-600">
+                  <ul
+                    className={`space-y-3 text-sm ${
+                      isElite ? "text-gray-200" : "text-gray-600"
+                    }`}
+                  >
                     {plan.features.map((feature, index) => (
                       <li key={index} className="flex items-center gap-2">
-                        <Check className="h-5 w-5 text-green-500" />
+                        <Check
+                          className={`h-5 w-5 ${
+                            isElite ? "text-green-400" : "text-green-500"
+                          }`}
+                        />
                         <span className={isDiamond ? "font-medium" : ""}>
                           {feature}
                         </span>
@@ -203,7 +236,7 @@ export function PlanosContent() {
                   </ul>
                 </CardContent>
 
-                <CardFooter className="p-6">
+                <CardFooter className="px-6">
                   <Button
                     onClick={() => {
                       if (!shouldDisableCard) {
@@ -213,7 +246,9 @@ export function PlanosContent() {
                     className={`w-full ${
                       isDiamond
                         ? "bg-secondary-million hover:bg-secondary-million/90 text-white"
-                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : isElite
+                          ? "bg-white text-zinc-900 hover:bg-gray-200"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90"
                     }`}
                     disabled={
                       shouldDisableCard ||
@@ -246,7 +281,9 @@ export function PlanosContent() {
                                 ? "Plano Expirado - Renovar"
                                 : isDiamond
                                   ? "Fazer Upgrade"
-                                  : "Começar Agora"}
+                                  : isElite
+                                    ? "Acesso Exclusivo"
+                                    : "Começar Agora"}
                   </Button>
                 </CardFooter>
               </Card>
